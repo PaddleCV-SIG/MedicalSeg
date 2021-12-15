@@ -1,0 +1,39 @@
+batch_size: 16
+iters: 40000
+
+train_dataset:
+  type: lung_coronavirus
+  dataset_root: data/lung_coronavirus/lung_coronavirus_phase0
+  result_dir: data/lung_coronavirus/lung_coronavirus_phase1
+  transforms:
+    - type: [transformName]
+      params: None
+  mode: train
+
+val_dataset:
+  type: lung_coronavirus
+  dataset_root: data/lung_coronavirus/lung_coronavirus_phase0
+  result_dir: data/lung_coronavirus/lung_coronavirus_phase1
+  transforms:
+    - type: Normalize
+  mode: val
+
+
+optimizer:
+  type: sgd
+  momentum: 0.9
+  weight_decay: 4.0e-5
+
+lr_scheduler:
+  type: PolynomialDecay
+  learning_rate: 0.01
+  end_lr: 0
+  power: 0.9
+
+loss:
+  types:
+    - type: DiceLoss
+  coef: [1]
+
+test_config:
+  auc_roc: True
