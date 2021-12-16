@@ -14,6 +14,7 @@
 
 import codecs
 import os
+import warnings
 from typing import Any, Dict, Generic
 
 import paddle
@@ -80,6 +81,7 @@ class Config(object):
 
         if path.endswith('yml') or path.endswith('yaml'):
             self.dic = self._parse_from_yaml(path)
+            self.data_path_warning()
         else:
             raise RuntimeError('Config file should in yaml format!')
 
@@ -319,11 +321,23 @@ class Config(object):
 
     @property
     def train_dataset_config(self) -> Dict:
-        return self.dic.get('train_dataset', {}).copy()
+        trainset_config = self.dic.get('train_dataset', {}).copy()
+
+        trainset_config['dataset_root'] = os.path.join(
+            self.dic['data_root'], trainset_config.get('dataset_root'))
+        trainset_config['result_dir'] = os.path.join(
+            self.dic['data_root'], trainset_config.get('result_dir'))
+        return trainset_config
 
     @property
     def val_dataset_config(self) -> Dict:
-        return self.dic.get('val_dataset', {}).copy()
+        valset_config = self.dic.get('val_dataset', {}).copy()
+
+        valset_config['dataset_root'] = os.path.join(
+            self.dic['data_root'], valset_config.get('dataset_root'))
+        valset_config['result_dir'] = os.path.join(
+            self.dic['data_root'], valset_config.get('result_dir'))
+        return valset_config
 
     @property
     def train_dataset_class(self) -> Generic:
@@ -401,3 +415,15 @@ class Config(object):
 
     def __str__(self) -> str:
         return yaml.dump(self.dic)
+
+    def data_root_path_warning(self):
+        if "data_root" not in self.dic:
+            raise RuntimeError(
+                'The dataroot need to be set in the config file')
+
+        data_root = self.dic["data_root"]
+        absolute_data_dir = os.path.join(os.getcwd(), data_root)
+        if data_root == 'data/':
+            warnings.warn(
+                "Warning: The data dir now is {}, you should change the data_root in the global.yml if this directory didn\'t have enough space"
+                .format(absolute_data_dir))
