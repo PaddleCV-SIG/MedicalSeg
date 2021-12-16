@@ -3,8 +3,6 @@ _base_: '../global_configs.yml'
 batch_size: 16
 iters: 40000
 
-data_root: data/
-
 train_dataset:
   type: lung_coronavirus
   dataset_root: lung_coronavirus/lung_coronavirus_phase0
