@@ -1,10 +1,14 @@
+_base_: '../global_configs.yml'
+
 batch_size: 16
 iters: 40000
 
+data_root: data/
+
 train_dataset:
   type: lung_coronavirus
-  dataset_root: data/lung_coronavirus/lung_coronavirus_phase0
-  result_dir: data/lung_coronavirus/lung_coronavirus_phase1
+  dataset_root: lung_coronavirus/lung_coronavirus_phase0
+  result_dir: lung_coronavirus/lung_coronavirus_phase1
   transforms:
     - type: [transformName]
       params: None
@@ -12,8 +16,8 @@ train_dataset:
 
 val_dataset:
   type: lung_coronavirus
-  dataset_root: data/lung_coronavirus/lung_coronavirus_phase0
-  result_dir: data/lung_coronavirus/lung_coronavirus_phase1
+  dataset_root: lung_coronavirus/lung_coronavirus_phase0
+  result_dir: lung_coronavirus/lung_coronavirus_phase1
   transforms:
     - type: Normalize
   mode: val
