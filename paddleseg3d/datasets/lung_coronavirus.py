@@ -14,10 +14,9 @@
 
 import os
 import sys
-print(__file__, os.path.realpath(__file__),
-      os.path.dirname(os.path.realpath(__file__)))
+import numpy as np
 
-sys.path.append("/ssd2/tangshiyu/Code/PaddleSeg3D/")
+sys.path.append("..")
 
 from paddleseg3d.utils.download import download_file_and_uncompress
 from paddleseg3d.utils.env import seg_env
@@ -104,3 +103,5 @@ if __name__ == "__main__":
 
     for img, label in dataset:
         print(img.shape, label.shape)
+        print("image val", img.min(), img.max())
+        print("label val", label.min(), label.max(), np.unique(label))

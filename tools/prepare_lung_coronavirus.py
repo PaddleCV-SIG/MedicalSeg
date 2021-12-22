@@ -201,6 +201,6 @@ class Prep:
 
 if __name__ == "__main__":
     prep = Prep()
-    # prep.uncompress_file(num_zipfiles=4)
-    # prep.convert_path()
+    prep.uncompress_file(num_zipfiles=4)
+    prep.convert_path()
     prep.generate_txt()
