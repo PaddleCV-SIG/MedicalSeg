@@ -42,7 +42,7 @@ class CrossEntropyLoss(nn.Layer):
                  weight=None,
                  ignore_index=255,
                  top_k_percent_pixels=1.0,
-                 data_format='NCHW'):
+                 data_format='NCDHW'):
         super(CrossEntropyLoss, self).__init__()
         self.ignore_index = ignore_index
         self.top_k_percent_pixels = top_k_percent_pixels
@@ -69,7 +69,7 @@ class CrossEntropyLoss(nn.Layer):
         Returns:
             (Tensor): The average loss.
         """
-        channel_axis = 1 if self.data_format == 'NCHW' else -1
+        channel_axis = self.data_format.index("C") # NCDHW -> 1, NDHWC -> 4
         if self.weight is not None and logit.shape[channel_axis] != len(
                 self.weight):
             raise ValueError(
@@ -77,7 +77,7 @@ class CrossEntropyLoss(nn.Layer):
                 .format(len(self.weight), logit.shape[channel_axis]))
 
         if channel_axis == 1:
-            logit = paddle.transpose(logit, [0, 2, 3, 1])
+            logit = paddle.transpose(logit, [0, 2, 3, 4, 1])
         label = label.astype('int64')
 
         # In F.cross_entropy, the ignore_index is invalid, which needs to be fixed.
@@ -167,7 +167,7 @@ class DistillCrossEntropyLoss(CrossEntropyLoss):
                  weight=None,
                  ignore_index=255,
                  top_k_percent_pixels=1.0,
-                 data_format='NCHW'):
+                 data_format='NCDHW'):
         super().__init__(weight, ignore_index, top_k_percent_pixels,
                          data_format)
 
@@ -197,7 +197,7 @@ class DistillCrossEntropyLoss(CrossEntropyLoss):
                 'The shape of student_logit = {} must be the same as the shape of teacher_logit = {}.'
                 .format(student_logit.shape, teacher_logit.shape))
 
-        channel_axis = 1 if self.data_format == 'NCHW' else -1
+        channel_axis = self.data_format.index("C") # NCDHW -> 1, NDHWC -> 4
         if self.weight is not None and student_logit.shape[
                 channel_axis] != len(self.weight):
             raise ValueError(
@@ -205,8 +205,8 @@ class DistillCrossEntropyLoss(CrossEntropyLoss):
                 .format(len(self.weight), student_logit.shape[channel_axis]))
 
         if channel_axis == 1:
-            student_logit = paddle.transpose(student_logit, [0, 2, 3, 1])
-            teacher_logit = paddle.transpose(teacher_logit, [0, 2, 3, 1])
+            student_logit = paddle.transpose(student_logit, [0, 2, 3, 4, 1])
+            teacher_logit = paddle.transpose(teacher_logit, [0, 2, 3, 4, 1])
 
         teacher_logit = F.softmax(teacher_logit)
 
