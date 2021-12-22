@@ -18,6 +18,7 @@ import numpy as np
 
 sys.path.append("..")
 
+
 from paddleseg3d.utils.download import download_file_and_uncompress
 from paddleseg3d.utils.env import seg_env
 from paddleseg3d.cvlibs import manager
@@ -105,3 +106,4 @@ if __name__ == "__main__":
         print(img.shape, label.shape)
         print("image val", img.min(), img.max())
         print("label val", label.min(), label.max(), np.unique(label))
+
