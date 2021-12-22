@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Todo: Add function here
 
 import collections
 import numbers
@@ -107,3 +106,4 @@ def resized_crop_3d(img, i, j, k, d, h, w, size, interpolation):
     img = crop_3d(img, i, j, k, d, h, w)
     img = resize_3d(img, size, interpolation=interpolation)
     return img
+

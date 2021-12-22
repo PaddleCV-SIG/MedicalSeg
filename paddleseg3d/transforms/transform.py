@@ -23,6 +23,7 @@ from paddleseg3d.cvlibs import manager
 from paddleseg3d.transforms import functional as F
 
 
+
 @manager.TRANSFORMS.add_component
 class Compose:
     """
@@ -54,9 +55,10 @@ class Compose:
             (tuple). A tuple including image, image info, and label after transformation.
         """
         if isinstance(im, str):
-            im = np.load(str)
+            print("image path", im)
+            im = np.load(im)
         if isinstance(label, str):
-            label = np.load(str)
+            label = np.load(label)
         if im is None:
             raise ValueError('Can\'t read The image file {}!'.format(im))
 
@@ -327,3 +329,4 @@ class RandomResizedCrop3D:
             label = F.resized_crop_3d(label, i, j, k, d, h, w, self.size, 0)
         
         return img, label
+

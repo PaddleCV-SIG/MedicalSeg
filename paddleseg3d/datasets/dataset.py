@@ -46,14 +46,14 @@ class MedicalDataset(paddle.io.Dataset):
 
         Examples:
 
-            import paddleseg.transforms as T
-            from paddleseg.datasets import Dataset
+            import paddleseg3d.transforms as T
+            from paddleseg.datasets import MedicalDataset
 
             transforms = [T.RandomPaddingCrop(crop_size=(512,512)), T.Normalize()]
             dataset_root = 'dataset_root_path'
             train_path = 'train_path'
             num_classes = 2
-            dataset = Dataset(transforms = transforms,
+            dataset = MedicalDataset(transforms = transforms,
                               dataset_root = dataset_root,
                               num_classes = 2,
                               train_path = train_path,
@@ -153,10 +153,8 @@ class MedicalDataset(paddle.io.Dataset):
             return im, label
         else:
             im, label = self.transforms(im=image_path, label=label_path)
-            if self.edge:
-                pass  # todo: add edge extraction for 3D image and return
-            else:
-                return im, label
+
+            return im, label
 
     def save_transformed(self):
         """Save the preprocessed images to the result_dir"""

@@ -13,12 +13,16 @@
 # limitations under the License.
 
 import os
+import sys
+import numpy as np
 
-from paddleseg.utils.download import download_file_and_uncompress
-from paddleseg.utils import seg_env
-from paddleseg.cvlibs import manager
-from paddleseg.transforms import Compose
-from paddleseg.datasets import MedicalDataset
+sys.path.append("..")
+
+from paddleseg3d.utils.download import download_file_and_uncompress
+from paddleseg3d.utils.env import seg_env
+from paddleseg3d.cvlibs import manager
+from paddleseg3d.transforms import Compose
+from paddleseg3d.datasets import MedicalDataset
 
 URL = ' '  # todo: add coronavirus url
 
@@ -87,3 +91,17 @@ class LungCoronavirus(MedicalDataset):
                     image_path = os.path.join(self.dataset_root, items[0])
                     grt_path = os.path.join(self.dataset_root, items[1])
                 self.file_list.append([image_path, grt_path])
+
+
+if __name__ == "__main__":
+    sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+    dataset = LungCoronavirus(
+        dataset_root="data/lung_coronavirus/lung_coronavirus_phase0",
+        result_dir="data/lung_coronavirus/lung_coronavirus_phase1",
+        transforms=[],
+        mode="train")
+
+    for img, label in dataset:
+        print(img.shape, label.shape)
+        print("image val", img.min(), img.max())
+        print("label val", label.min(), label.max(), np.unique(label))

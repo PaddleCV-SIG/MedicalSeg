@@ -177,13 +177,16 @@ class Prep:
                     image_names = files[self.train_split:]
 
                 label_names = [
-                    name.replace("_org_", "_") for name in image_names
+                    name.replace("_org_covid-19-pneumonia-", "_").replace(
+                        "-dcm", "").replace("_org_", "_")
+                    for name in image_names
                 ]  #todo: remove specific for this class
 
                 for i in range(len(image_names)):
                     string = "{} {}\n".format('images/' + image_names[i],
                                               'labels/' + label_names[i])
                     f.write(string)
+            print("successfully write to {}".format(txt))
 
         txtname = [
             os.path.join(self.phase_path, 'train_list.txt'),
