@@ -54,9 +54,10 @@ class Compose:
             (tuple). A tuple including image, image info, and label after transformation.
         """
         if isinstance(im, str):
-            im = np.load(str)
+            print("image path", im)
+            im = np.load(im)
         if isinstance(label, str):
-            label = np.load(str)
+            label = np.load(label)
         if im is None:
             raise ValueError('Can\'t read The image file {}!'.format(im))
 
