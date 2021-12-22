@@ -36,6 +36,3 @@ loss:
   types:
     - type: DiceLoss
   coef: [1]
-
-test_config:
-  auc_roc: True

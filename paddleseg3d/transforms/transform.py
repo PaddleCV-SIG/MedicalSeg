@@ -19,8 +19,7 @@ import math
 
 import numpy as np
 
-from paddleseg.cvlibs import manager
-from paddleseg.transforms import functional
+from paddleseg3d.cvlibs import manager
 
 
 @manager.TRANSFORMS.add_component
@@ -67,8 +66,3 @@ class Compose:
             if len(outputs) == 2:
                 label = outputs[1]
         return (im, label)
-
-
-@manager.TRANSFORMS.add_component
-class HU2uint8:  # todo: check the input and use corresponding function in funcitonal
-    pass
