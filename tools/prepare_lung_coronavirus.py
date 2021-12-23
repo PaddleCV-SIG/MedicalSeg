@@ -33,20 +33,20 @@ lung_coronavirus_phase0
 import os
 import sys
 import glob
-import tarfile
 import time
 import random
 import zipfile
-import functools
 import numpy as np
 
+sys.path.append(
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 import nibabel as nib
 
-lasttime = time.time()
-FLUSH_INTERVAL = 0.1
+from paddleseg3d.datasets.preprocess_utils import uncompressor
+from paddleseg3d.datasets.preprocess_utils import HU2uint8
 
 
-def list_names(path):
+def list_files(path):
     """list all the filename in a given path recursively"""
     fname = []
     for root, _, f_names in os.walk(path):
@@ -56,70 +56,8 @@ def list_names(path):
     return fname
 
 
-class uncompressor:
-    def __init__(self):
-        pass
-
-    def _uncompress_file_zip(self, filepath, extrapath):
-        files = zipfile.ZipFile(filepath, 'r')
-        filelist = files.namelist()
-        rootpath = filelist[0]
-        total_num = len(filelist)
-        for index, file in enumerate(filelist):
-            files.extract(file, extrapath)
-            yield total_num, index, rootpath
-        files.close()
-        yield total_num, index, rootpath
-
-    def progress(self, str, end=False):
-        global lasttime
-        if end:
-            str += "\n"
-            lasttime = 0
-        if time.time() - lasttime >= FLUSH_INTERVAL:
-            sys.stdout.write("\r%s" % str)
-            lasttime = time.time()
-            sys.stdout.flush()
-
-    def _uncompress_file_tar(self, filepath, extrapath, mode="r:gz"):
-        files = tarfile.open(filepath, mode)
-        filelist = files.getnames()
-        total_num = len(filelist)
-        rootpath = filelist[0]
-        for index, file in enumerate(filelist):
-            files.extract(file, extrapath)
-            yield total_num, index, rootpath
-        files.close()
-        yield total_num, index, rootpath
-
-    def _uncompress_file(self, filepath, extrapath, delete_file,
-                         print_progress):
-        if print_progress:
-            print("Uncompress %s" % os.path.basename(filepath))
-
-        if filepath.endswith("zip"):
-            handler = self._uncompress_file_zip
-        elif filepath.endswith("tgz"):
-            handler = functools.partial(self._uncompress_file_tar, mode="r:*")
-        else:
-            handler = functools.partial(self._uncompress_file_tar, mode="r")
-
-        for total_num, index, rootpath in handler(filepath, extrapath):
-            if print_progress:
-                done = int(50 * float(index) / total_num)
-                self.progress("[%-50s] %.2f%%" %
-                              ('=' * done, float(100 * index) / total_num))
-        if print_progress:
-            self.progress("[%-50s] %.2f%%" % ('=' * 50, 100), end=True)
-
-        if delete_file:
-            os.remove(filepath)
-
-        return rootpath
-
-
 class Prep:
-    dataset_root = "../data/lung_coronavirus"
+    dataset_root = "data/lung_coronavirus"
     phase0_path = os.path.join(dataset_root, "lung_coronavirus_phase0/")
     image_dir = os.path.join(dataset_root, "20_ncov_scan")
     label_dir = os.path.join(dataset_root, "lung_mask")
@@ -148,22 +86,34 @@ class Prep:
             self.uncompress_tool._uncompress_file(
                 f, extract_path, delete_file=False, print_progress=True)
 
+    def load_save(self,
+                  names,
+                  load_type=np.float32,
+                  savepath=None,
+                  Normalize=False):
+
+        for f in names:
+            filename = f.split("/")[-1].split(".")[0]
+            nii_np = nib.load(f).get_fdata(dtype=load_type)
+            if Normalize:
+                nii_np = HU2uint8(nii_np)
+
+            np.save(os.path.join(savepath, filename), nii_np)
+
     def convert_path(self, image_dir=image_dir, label_dir=label_dir):
         """convert nii.gz file to numpy array in the right directory"""
 
-        def load_save(names, load_type=np.float32, savepath=self.image_path):
-            for f in names:
-                filename = f.split("/")[-1].split(".")[0]
-                nii_np = nib.load(f).get_fdata(dtype=load_type)
-                np.save(os.path.join(savepath, filename), nii_np)
-
-        image_names = list_names(image_dir)
-        label_names = list_names(label_dir)
+        image_names = list_files(image_dir)
+        label_names = list_files(label_dir)
+        assert len(image_names) != 0 and len(label_names) != 0, print(
+            "The data directory you assigned is wrong, there is no file in it."
+        )
 
         print("start to convert images to numpy array, please wait patiently")
-        load_save(image_names, np.float32, self.image_path)
+        self.load_save(
+            image_names, np.float32, self.image_path, Normalize=True)
         print("start to convert labels to numpy array, please wait patiently")
-        load_save(label_names, np.float32, self.label_path)
+        self.load_save(label_names, np.float32, self.label_path)
         print("Sucessfully convert medical images to numpy array!")
 
     def generate_txt(self):
@@ -180,7 +130,7 @@ class Prep:
                     name.replace("_org_covid-19-pneumonia-", "_").replace(
                         "-dcm", "").replace("_org_", "_")
                     for name in image_names
-                ]  #todo: remove specific for this class
+                ]  # todo: remove specific for this class
 
                 for i in range(len(image_names)):
                     string = "{} {}\n".format('images/' + image_names[i],
@@ -202,5 +152,5 @@ class Prep:
 if __name__ == "__main__":
     prep = Prep()
     # prep.uncompress_file(num_zipfiles=4)
-    # prep.convert_path()
+    prep.convert_path()
     prep.generate_txt()
