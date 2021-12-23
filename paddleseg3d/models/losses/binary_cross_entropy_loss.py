@@ -140,7 +140,7 @@ class BCELoss(nn.Layer):
         if label.shape[1] != logit.shape[1]:
             label = label.squeeze(1)
             label = F.one_hot(label, logit.shape[1])
-            label = label.transpose((0, 3, 1, 2))
+            label = label.transpose((0, 4, 1, 2, 3))
         if isinstance(self.weight, str):
             pos_index = (label == 1)
             neg_index = (label == 0)

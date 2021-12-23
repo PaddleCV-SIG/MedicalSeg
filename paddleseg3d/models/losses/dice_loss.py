@@ -13,10 +13,7 @@ import paddle
 from paddle import nn
 import paddle.nn.functional as F
 
-
 from paddleseg3d.cvlibs import manager
-
-
 
 @manager.LOSSES.add_component
 class DiceLoss(nn.Layer):
@@ -40,7 +37,7 @@ class DiceLoss(nn.Layer):
     def forward(self, logits, labels):
         labels = paddle.cast(labels, dtype='int32')
         labels_one_hot = F.one_hot(labels, num_classes=logits.shape[1])
-        labels_one_hot = paddle.transpose(labels_one_hot, [0, 3, 1, 2])
+        labels_one_hot = paddle.transpose(labels_one_hot, [0, 4, 1, 2, 3])
         labels_one_hot = paddle.cast(labels_one_hot, dtype='float32')
 
         logits = F.softmax(logits, axis=1)
