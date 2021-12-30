@@ -81,7 +81,7 @@ class Config(object):
 
         if path.endswith('yml') or path.endswith('yaml'):
             self.dic = self._parse_from_yaml(path)
-            self.data_path_warning()
+            self.data_root_path_warning()
         else:
             raise RuntimeError('Config file should in yaml format!')
 

@@ -1,4 +1,7 @@
-# referr to the pytorch-3dunet
+# Implementation of this model is borrowed and modified
+# (from torch to paddle) from here:
+# https://github.com/black0017/MedicalZooPytorch
+
 # Copyright (c) 2022 PaddlePaddle Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,130 +19,329 @@
 import paddle
 import paddle.nn as nn
 import paddle.nn.functional as F
+import os
+import sys
+sys.path.append(
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), "../.."))
 
 from paddleseg3d.cvlibs import manager
-from paddleseg3d.models import layers
+# from paddleseg3d.models import layers
 from paddleseg3d.utils import utils
 
 
 @manager.MODELS.add_component
-class UNet3D(nn.layer):
+class UNet3D(nn.Layer):
     """
-    3DUnet model from
-    `"3D U-Net: Learning Dense Volumetric Segmentation from Sparse Annotation"
-        <https://arxiv.org/pdf/1606.06650.pdf>`.
-
-    Uses `DoubleConv` as a basic_module and nearest neighbor upsampling in the decoder
-
-    Args:
-        in_channels (int): number of input channels
-        out_channels (int): number of output segmentation masks;
-            Note that that the of out_channels might correspond to either
-            different semantic classes or to different binary segmentation mask.
-            It's up to the user of the class to interpret the out_channels and
-            use the proper loss criterion during training (i.e. CrossEntropyLoss (multi-class)
-            or BCEWithLogitsLoss (two-class) respectively)
-        f_maps (int, tuple): number of feature maps at each level of the encoder; if it's an integer the number
-            of feature maps is given by the geometric progression: f_maps ^ k, k=1,2,3,4
-        final_sigmoid (bool): if True apply element-wise nn.Sigmoid after the
-            final 1x1 convolution, otherwise apply nn.Softmax. MUST be True if nn.BCELoss (two-class) is used
-            to train the model. MUST be False if nn.CrossEntropyLoss (multi-class) is used to train the model.
-        basic_module: basic model for the encoder/decoder (DoubleConv, ExtResNetBlock, ....)
-        layer_order (string): determines the order of layers
-            in `SingleConv` module. e.g. 'crg' stands for Conv3d+ReLU+GroupNorm3d.
-            See `SingleConv` for more info
-        num_groups (int): number of groups for the GroupNorm
-        num_levels (int): number of levels in the encoder/decoder path (applied only if f_maps is an int)
-        is_segmentation (bool): if True (semantic segmentation problem) Sigmoid/Softmax normalization is applied
-            after the final convolution; if False (regression problem) the normalization layer is skipped at the end
-        testing (bool): if True (testing mode) the `final_activation` (if present, i.e. `is_segmentation=true`)
-            will be applied as the last operation during the forward pass; if False the model is in training mode
-            and the `final_activation` (even if present) won't be applied; default: False
-        conv_kernel_size (int or tuple): size of the convolving kernel in the basic_module
-        pool_kernel_size (int or tuple): the size of the window
-        conv_padding (int or tuple): add zero-padding added to all three sides of the input
-
+    Implementations based on the Unet3D paper: https://arxiv.org/abs/1606.06650
     """
 
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 final_sigmoid=True,
-                 basic_module=layers.DoubleConv,
-                 f_maps=64,
-                 layer_order='gcr',
-                 num_groups=8,
-                 num_levels=4,
-                 is_segmentation=True,
-                 testing=False,
-                 conv_kernel_size=3,
-                 pool_kernel_size=2,
-                 conv_padding=1,
-                 **kwargs):
-        super().__init__()
+    def __init__(self, in_channels, n_classes, base_n_filter=8):
+        super(UNet3D, self).__init__()
+        self.best_loss = 1000000
+        self.in_channels = in_channels
+        self.n_classes = n_classes
+        self.base_n_filter = base_n_filter
 
-        self.testing = testing
+        self.lrelu = nn.LeakyReLU()
+        self.dropout3d = nn.Dropout3D(p=0.6)
+        self.upsacle = nn.Upsample(
+            scale_factor=2, mode='trilinear', data_format="NCDHW")
+        self.softmax = nn.Softmax(axis=1)
 
-        if isinstance(f_maps, int):
-            f_maps = [f_maps * 2**k for k in range(num_levels)]
+        self.conv3d_c1_1 = nn.Conv3D(
+            self.in_channels,
+            self.base_n_filter,
+            kernel_size=3,
+            stride=1,
+            padding=1,
+            bias_attr=False)
+        self.conv3d_c1_2 = nn.Conv3D(
+            self.base_n_filter,
+            self.base_n_filter,
+            kernel_size=3,
+            stride=1,
+            padding=1,
+            bias_attr=False)
+        self.lrelu_conv_c1 = self.lrelu_conv(self.base_n_filter,
+                                             self.base_n_filter)
+        self.inorm3d_c1 = nn.InstanceNorm3D(self.base_n_filter)
 
-        assert len(f_maps) > 1, "Required at least 2 levels in the U-Net"
+        self.conv3d_c2 = nn.Conv3D(
+            self.base_n_filter,
+            self.base_n_filter * 2,
+            kernel_size=3,
+            stride=2,
+            padding=1,
+            bias_attr=False)
+        self.norm_lrelu_conv_c2 = self.norm_lrelu_conv(self.base_n_filter * 2,
+                                                       self.base_n_filter * 2)
+        self.inorm3d_c2 = nn.InstanceNorm3D(self.base_n_filter * 2)
 
-        # create encoder path
-        self.encoders = layers.create_encoders(
-            in_channels, f_maps, basic_module, conv_kernel_size, conv_padding,
-            layer_order, num_groups, pool_kernel_size)
+        self.conv3d_c3 = nn.Conv3D(
+            self.base_n_filter * 2,
+            self.base_n_filter * 4,
+            kernel_size=3,
+            stride=2,
+            padding=1,
+            bias_attr=False)
+        self.norm_lrelu_conv_c3 = self.norm_lrelu_conv(self.base_n_filter * 4,
+                                                       self.base_n_filter * 4)
+        self.inorm3d_c3 = nn.InstanceNorm3D(self.base_n_filter * 4)
 
-        # create decoder path
-        self.decoders = layers.create_decoders(
-            f_maps,
-            basic_module,
-            conv_kernel_size,
-            conv_padding,
-            layer_order,
-            num_groups,
-            upsample=True)
+        self.conv3d_c4 = nn.Conv3D(
+            self.base_n_filter * 4,
+            self.base_n_filter * 8,
+            kernel_size=3,
+            stride=2,
+            padding=1,
+            bias_attr=False)
+        self.norm_lrelu_conv_c4 = self.norm_lrelu_conv(self.base_n_filter * 8,
+                                                       self.base_n_filter * 8)
+        self.inorm3d_c4 = nn.InstanceNorm3D(self.base_n_filter * 8)
 
-        # in the last layer a 1×1 convolution reduces the number of output channels to the number of labels
-        self.final_conv = nn.Conv3D(f_maps[0], out_channels, 1)
+        self.conv3d_c5 = nn.Conv3D(
+            self.base_n_filter * 8,
+            self.base_n_filter * 16,
+            kernel_size=3,
+            stride=2,
+            padding=1,
+            bias_attr=False)
+        self.norm_lrelu_conv_c5 = self.norm_lrelu_conv(self.base_n_filter * 16,
+                                                       self.base_n_filter * 16)
+        self.norm_lrelu_upscale_conv_norm_lrelu_l0 = self.norm_lrelu_upscale_conv_norm_lrelu(
+            self.base_n_filter * 16, self.base_n_filter * 8)
 
-        if is_segmentation:
-            # semantic segmentation problem
-            if final_sigmoid:
-                self.final_activation = nn.Sigmoid()
-            else:
-                self.final_activation = nn.Softmax(axis=1)
-        else:
-            # regression problem
-            self.final_activation = None
+        self.conv3d_l0 = nn.Conv3D(
+            self.base_n_filter * 8,
+            self.base_n_filter * 8,
+            kernel_size=1,
+            stride=1,
+            padding=0,
+            bias_attr=False)
+        self.inorm3d_l0 = nn.InstanceNorm3D(self.base_n_filter * 8)
+
+        self.conv_norm_lrelu_l1 = self.conv_norm_lrelu(self.base_n_filter * 16,
+                                                       self.base_n_filter * 16)
+        self.conv3d_l1 = nn.Conv3D(
+            self.base_n_filter * 16,
+            self.base_n_filter * 8,
+            kernel_size=1,
+            stride=1,
+            padding=0,
+            bias_attr=False)
+        self.norm_lrelu_upscale_conv_norm_lrelu_l1 = self.norm_lrelu_upscale_conv_norm_lrelu(
+            self.base_n_filter * 8, self.base_n_filter * 4)
+
+        self.conv_norm_lrelu_l2 = self.conv_norm_lrelu(self.base_n_filter * 8,
+                                                       self.base_n_filter * 8)
+        self.conv3d_l2 = nn.Conv3D(
+            self.base_n_filter * 8,
+            self.base_n_filter * 4,
+            kernel_size=1,
+            stride=1,
+            padding=0,
+            bias_attr=False)
+        self.norm_lrelu_upscale_conv_norm_lrelu_l2 = self.norm_lrelu_upscale_conv_norm_lrelu(
+            self.base_n_filter * 4, self.base_n_filter * 2)
+
+        self.conv_norm_lrelu_l3 = self.conv_norm_lrelu(self.base_n_filter * 4,
+                                                       self.base_n_filter * 4)
+        self.conv3d_l3 = nn.Conv3D(
+            self.base_n_filter * 4,
+            self.base_n_filter * 2,
+            kernel_size=1,
+            stride=1,
+            padding=0,
+            bias_attr=False)
+        self.norm_lrelu_upscale_conv_norm_lrelu_l3 = self.norm_lrelu_upscale_conv_norm_lrelu(
+            self.base_n_filter * 2, self.base_n_filter)
+
+        self.conv_norm_lrelu_l4 = self.conv_norm_lrelu(self.base_n_filter * 2,
+                                                       self.base_n_filter * 2)
+        self.conv3d_l4 = nn.Conv3D(
+            self.base_n_filter * 2,
+            self.n_classes,
+            kernel_size=1,
+            stride=1,
+            padding=0,
+            bias_attr=False)
+
+        self.ds2_1x1_conv3d = nn.Conv3D(
+            self.base_n_filter * 8,
+            self.n_classes,
+            kernel_size=1,
+            stride=1,
+            padding=0,
+            bias_attr=False)
+        self.ds3_1x1_conv3d = nn.Conv3D(
+            self.base_n_filter * 4,
+            self.n_classes,
+            kernel_size=1,
+            stride=1,
+            padding=0,
+            bias_attr=False)
+        self.sigmoid = nn.Sigmoid()
+
+    def conv_norm_lrelu(self, feat_in, feat_out):
+        return nn.Sequential(
+            nn.Conv3D(
+                feat_in,
+                feat_out,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+                bias_attr=False), nn.InstanceNorm3D(feat_out), nn.LeakyReLU())
+
+    def norm_lrelu_conv(self, feat_in, feat_out):
+        return nn.Sequential(
+            nn.InstanceNorm3D(feat_in), nn.LeakyReLU(),
+            nn.Conv3D(
+                feat_in,
+                feat_out,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+                bias_attr=False))
+
+    def lrelu_conv(self, feat_in, feat_out):
+        return nn.Sequential(
+            nn.LeakyReLU(),
+            nn.Conv3D(
+                feat_in,
+                feat_out,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+                bias_attr=False))
+
+    def norm_lrelu_upscale_conv_norm_lrelu(self, feat_in, feat_out):
+        return nn.Sequential(
+            nn.InstanceNorm3D(feat_in),
+            nn.LeakyReLU(),
+            nn.Upsample(scale_factor=2, mode='trilinear', data_format='NCDHW'),
+            # should be feat_in*2 or feat_in
+            nn.Conv3D(
+                feat_in,
+                feat_out,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+                bias_attr=False),
+            nn.InstanceNorm3D(feat_out),
+            nn.LeakyReLU())
 
     def forward(self, x):
-        # encoder part
-        encoders_features = []
-        for encoder in self.encoders:
-            x = encoder(x)
-            # reverse the encoder outputs to be aligned with the decoder
-            encoders_features.insert(0, x)
+        #  Level 1 context pathway
+        # import pdb; pdb.set_trace()
+        out = self.conv3d_c1_1(x)
+        residual_1 = out
+        out = self.lrelu(out)
+        out = self.conv3d_c1_2(out)
+        out = self.dropout3d(out)
+        out = self.lrelu_conv_c1(out)
+        # Element Wise Summation
+        out += residual_1
+        context_1 = self.lrelu(out)
+        out = self.inorm3d_c1(out)
+        out = self.lrelu(out)
 
-        # remove the last encoder's output from the list
-        # !!remember: it's the 1st in the list
-        encoders_features = encoders_features[1:]
+        # Level 2 context pathway
+        out = self.conv3d_c2(out)
+        residual_2 = out
+        out = self.norm_lrelu_conv_c2(out)
+        out = self.dropout3d(out)
+        out = self.norm_lrelu_conv_c2(out)
+        out += residual_2
+        out = self.inorm3d_c2(out)
+        out = self.lrelu(out)
+        context_2 = out
 
-        # decoder part
-        for decoder, encoder_features in zip(self.decoders, encoders_features):
-            # pass the output from the corresponding encoder and the output
-            # of the previous decoder
-            x = decoder(encoder_features, x)
+        # Level 3 context pathway
+        out = self.conv3d_c3(out)
+        residual_3 = out
+        out = self.norm_lrelu_conv_c3(out)
+        out = self.dropout3d(out)
+        out = self.norm_lrelu_conv_c3(out)
+        out += residual_3
+        out = self.inorm3d_c3(out)
+        out = self.lrelu(out)
+        context_3 = out
 
-        x = self.final_conv(x)
+        # Level 4 context pathway
+        out = self.conv3d_c4(out)
+        residual_4 = out
+        out = self.norm_lrelu_conv_c4(out)
+        out = self.dropout3d(out)
+        out = self.norm_lrelu_conv_c4(out)
+        out += residual_4
+        out = self.inorm3d_c4(out)
+        out = self.lrelu(out)
+        context_4 = out
 
-        # apply final_activation (i.e. Sigmoid or Softmax) only during prediction. During training the network outputs
-        # logits and it's up to the user to normalize it before visualising with tensorboard or computing validation metric
-        if self.testing and self.final_activation is not None:
-            x = self.final_activation(x)
+        # Level 5
+        out = self.conv3d_c5(out)
+        residual_5 = out
+        out = self.norm_lrelu_conv_c5(out)
+        out = self.dropout3d(out)
+        out = self.norm_lrelu_conv_c5(out)
+        out += residual_5
+        out = self.norm_lrelu_upscale_conv_norm_lrelu_l0(out)
 
-        return x
+        out = self.conv3d_l0(out)
+        out = self.inorm3d_l0(out)
+        out = self.lrelu(out)
+
+        # Level 1 localization pathway
+        out = paddle.concat([out, context_4], axis=1)
+        out = self.conv_norm_lrelu_l1(out)
+        out = self.conv3d_l1(out)
+        out = self.norm_lrelu_upscale_conv_norm_lrelu_l1(out)
+
+        # Level 2 localization pathway
+        out = paddle.concat([out, context_3], axis=1)
+        out = self.conv_norm_lrelu_l2(out)
+        ds2 = out
+        out = self.conv3d_l2(out)
+        out = self.norm_lrelu_upscale_conv_norm_lrelu_l2(out)
+
+        # Level 3 localization pathway
+        out = paddle.concat([out, context_2], axis=1)
+        out = self.conv_norm_lrelu_l3(out)
+        ds3 = out
+        out = self.conv3d_l3(out)
+        out = self.norm_lrelu_upscale_conv_norm_lrelu_l3(out)
+
+        # Level 4 localization pathway
+        out = paddle.concat([out, context_1], axis=1)
+        out = self.conv_norm_lrelu_l4(out)
+        out_pred = self.conv3d_l4(out)
+
+        ds2_1x1_conv = self.ds2_1x1_conv3d(ds2)
+        ds1_ds2_sum_upscale = self.upsacle(ds2_1x1_conv)
+        ds3_1x1_conv = self.ds3_1x1_conv3d(ds3)
+        ds1_ds2_sum_upscale_ds3_sum = ds1_ds2_sum_upscale + ds3_1x1_conv
+        ds1_ds2_sum_upscale_ds3_sum_upscale = self.upsacle(
+            ds1_ds2_sum_upscale_ds3_sum)
+
+        out = out_pred + ds1_ds2_sum_upscale_ds3_sum_upscale
+
+        return out
+
+    def test(self):
+        import numpy as np
+        np.random.seed(1)
+        a = np.random.rand(1, self.in_channels, 32, 32, 32)
+        input_tensor = paddle.to_tensor(a, dtype='float32')
+
+        ideal_out = paddle.rand((1, self.n_classes, 32, 32, 32))
+        out = self.forward(input_tensor)
+        print("out", out.mean(), input_tensor.mean())
+
+        assert ideal_out.shape == out.shape
+        paddle.summary(self, (1, self.in_channels, 32, 32, 32))
+
+        print("Vnet test is complete")
 
 
-if __name__ == "__main__":
-    pass  # todo module test
+m = UNet3D(in_channels=1, n_classes=2)
+m.test()

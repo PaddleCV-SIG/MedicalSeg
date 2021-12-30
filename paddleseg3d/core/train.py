@@ -21,8 +21,10 @@ import paddle
 import paddle.nn.functional as F
 
 from paddleseg3d.utils import (TimeAverager, calculate_eta, resume, logger,
-                               worker_init_fn, train_profiler, op_flops_funs)
+                               worker_init_fn, train_profiler, op_flops_run)
 from paddleseg3d.core.val import evaluate
+
+import paddleseg3d.datasets, paddleseg3d.models
 
 
 def check_logits_losses(logits_list, losses):
@@ -315,7 +317,7 @@ def train(model,
         _, c, h, w = images.shape
         _ = paddle.flops(
             model, [1, c, h, w],
-            custom_ops={paddle.nn.SyncBatchNorm: op_flops_funs.count_syncbn})
+            custom_ops={paddle.nn.SyncBatchNorm: op_flops_run.count_syncbn})
 
     # Sleep for half a second to let dataloader release resources.
     time.sleep(0.5)

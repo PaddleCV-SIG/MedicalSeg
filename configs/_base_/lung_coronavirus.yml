@@ -4,20 +4,19 @@ batch_size: 16
 iters: 40000
 
 train_dataset:
-  type: lung_coronavirus
+  type: LungCoronavirus
   dataset_root: lung_coronavirus/lung_coronavirus_phase0
   result_dir: lung_coronavirus/lung_coronavirus_phase1
   transforms:
-    - type: [transformName]
-      params: None
+    - type: RandomFlip3D
   mode: train
 
 val_dataset:
-  type: lung_coronavirus
+  type: LungCoronavirus
   dataset_root: lung_coronavirus/lung_coronavirus_phase0
   result_dir: lung_coronavirus/lung_coronavirus_phase1
   transforms:
-    - type: Normalize
+    - type: RandomFlip3D
   mode: val
 
 

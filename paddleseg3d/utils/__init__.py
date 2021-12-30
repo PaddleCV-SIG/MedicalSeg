@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from . import logger
+from . import op_flops_run
 from . import download
 from . import metric
 from .env import seg_env, get_sys_env
