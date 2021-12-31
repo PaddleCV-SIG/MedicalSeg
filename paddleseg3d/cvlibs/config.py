@@ -20,8 +20,8 @@ from typing import Any, Dict, Generic
 import paddle
 import yaml
 
-from paddleseg.cvlibs import manager
-from paddleseg.utils import logger
+from paddleseg3d.cvlibs import manager
+from paddleseg3d.utils import logger
 
 # todo: check and edit the unnecessary components
 

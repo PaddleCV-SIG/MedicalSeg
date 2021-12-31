@@ -19,8 +19,8 @@ import time
 import paddle
 import paddle.nn.functional as F
 
-from paddleseg.utils import metrics, TimeAverager, calculate_eta, logger, progbar
-from paddleseg.core import infer
+from paddleseg3d.utils import metric, TimeAverager, calculate_eta, logger, progbar
+from paddleseg3d.core import infer
 
 np.set_printoptions(suppress=True)
 
@@ -118,7 +118,7 @@ def evaluate(model,
                     stride=stride,
                     crop_size=crop_size)
 
-            intersect_area, pred_area, label_area = metrics.calculate_area(
+            intersect_area, pred_area, label_area = metric.calculate_area(
                 pred,
                 label,
                 eval_dataset.num_classes,
@@ -162,10 +162,10 @@ def evaluate(model,
             batch_cost_averager.reset()
             batch_start = time.time()
 
-    class_iou, miou = metrics.mean_iou(intersect_area_all, pred_area_all,
+    class_iou, miou = metric.mean_iou(intersect_area_all, pred_area_all,
                                        label_area_all)
-    class_acc, acc = metrics.accuracy(intersect_area_all, pred_area_all)
-    kappa = metrics.kappa(intersect_area_all, pred_area_all, label_area_all)
+    class_acc, acc = metric.accuracy(intersect_area_all, pred_area_all)
+    kappa = metric.kappa(intersect_area_all, pred_area_all, label_area_all)
 
     if print_detail:
         logger.info(

@@ -22,8 +22,8 @@ from urllib.parse import urlparse, unquote
 
 import paddle
 
-from paddleseg.utils import logger, seg_env
-from paddleseg.utils.download import download_file_and_uncompress
+from paddleseg3d.utils import logger, seg_env
+from paddleseg3d.utils.download import download_file_and_uncompress
 
 
 @contextlib.contextmanager

@@ -18,9 +18,9 @@ import paddle
 import numpy as np
 from PIL import Image
 
-from paddleseg.cvlibs import manager
-from paddleseg.transforms import Compose
-import paddleseg.transforms.functional as F
+from paddleseg3d.cvlibs import manager
+from paddleseg3d.transforms import Compose
+import paddleseg3d.transforms.functional as F
 
 
 @manager.DATASETS.add_component
