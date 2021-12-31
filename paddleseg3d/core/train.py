@@ -24,7 +24,10 @@ from paddleseg3d.utils import (TimeAverager, calculate_eta, resume, logger,
                                worker_init_fn, train_profiler, op_flops_run)
 from paddleseg3d.core.val import evaluate
 
-import paddleseg3d.datasets, paddleseg3d.models
+import paddleseg3d.datasets, paddleseg3d.models, paddleseg3d
+
+from paddleseg3d.datasets import MedicalDataset
+from paddleseg3d.datasets import LungCoronavirus
 
 
 def check_logits_losses(logits_list, losses):
