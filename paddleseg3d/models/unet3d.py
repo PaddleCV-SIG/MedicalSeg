@@ -343,5 +343,6 @@ class UNet3D(nn.Layer):
         print("Vnet test is complete")
 
 
-m = UNet3D(in_channels=1, n_classes=2)
-m.test()
+if __name__ == "__main__":
+    m = UNet3D(in_channels=1, n_classes=2)
+    m.test()

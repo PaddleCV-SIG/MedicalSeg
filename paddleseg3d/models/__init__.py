@@ -13,3 +13,5 @@
 # limitations under the License.
 
 from .losses import *
+from .unet3d import UNet3D
+from .vnet import VNet
