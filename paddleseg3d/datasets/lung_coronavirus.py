@@ -20,7 +20,7 @@ sys.path.append(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), "../.."))
 
 from paddleseg3d.utils.download import download_file_and_uncompress
-from paddleseg3d.utils.env import seg_env
+from paddleseg3d.utils.env_util import seg_env
 from paddleseg3d.cvlibs import manager
 from paddleseg3d.transforms import Compose
 from paddleseg3d.datasets import MedicalDataset

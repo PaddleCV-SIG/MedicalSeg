@@ -1,4 +1,4 @@
-# Copyright (c) 2020 PaddlePaddle Authors. All Rights Reserved.
+# Copyright (c) 2022 PaddlePaddle Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ from . import logger
 from . import op_flops_run
 from . import download
 from . import metric
-from .env import seg_env, get_sys_env
+from .env_util import seg_env, get_sys_env
 from .utils import *
 from .timer import TimeAverager, calculate_eta
 from . import visualize
