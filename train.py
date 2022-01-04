@@ -22,10 +22,6 @@ from paddleseg3d.cvlibs import manager, Config
 from paddleseg3d.utils import get_sys_env, logger, config_check
 from paddleseg3d.core import train
 
-import paddleseg3d.datasets, paddleseg3d.models
-from paddleseg3d.datasets import MedicalDataset
-from paddleseg3d.datasets import LungCoronavirus
-
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Model training')

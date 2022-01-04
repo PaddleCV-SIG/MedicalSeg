@@ -23,11 +23,7 @@ import paddle.nn.functional as F
 from paddleseg3d.utils import (TimeAverager, calculate_eta, resume, logger,
                                worker_init_fn, train_profiler, op_flops_run)
 from paddleseg3d.core.val import evaluate
-
-import paddleseg3d.datasets, paddleseg3d.models, paddleseg3d
-
-from paddleseg3d.datasets import MedicalDataset
-from paddleseg3d.datasets import LungCoronavirus
+import pdb
 
 
 def check_logits_losses(logits_list, losses):
@@ -42,6 +38,8 @@ def check_logits_losses(logits_list, losses):
 def loss_computation(logits_list, labels, losses, edges=None):
     check_logits_losses(logits_list, losses)
     loss_list = []
+    # pdb.set_trace()
+
     for i in range(len(logits_list)):
         logits = logits_list[i]
         loss_i = losses['types'][i]
@@ -105,6 +103,7 @@ def train(model,
         profiler_options (str, optional): The option of train profiler.
         to_static_training (bool, optional): Whether to use @to_static for training.
     """
+
     model.train()
     nranks = paddle.distributed.ParallelEnv().nranks
     local_rank = paddle.distributed.ParallelEnv().local_rank
@@ -134,6 +133,7 @@ def train(model,
         return_list=True,
         worker_init_fn=worker_init_fn,
     )
+    # test loader
 
     # use amp
     if fp16:
@@ -171,11 +171,11 @@ def train(model,
             reader_cost_averager.record(time.time() - batch_start)
             images = data[0]
             labels = data[1].astype('int64')
-            edges = None
-            if len(data) == 3:
-                edges = data[2].astype('int64')
-            if hasattr(model, 'data_format') and model.data_format == 'NHWC':
-                images = images.transpose((0, 2, 3, 1))
+
+            if hasattr(
+                    model, 'data_format'
+            ) and model.data_format == 'NDHWC':  # originally as NCDHW
+                images = images.transpose((0, 2, 3, 4, 1))
 
             if fp16:
                 with paddle.amp.auto_cast(
@@ -189,10 +189,7 @@ def train(model,
                     else:
                         logits_list = model(images)
                     loss_list = loss_computation(
-                        logits_list=logits_list,
-                        labels=labels,
-                        losses=losses,
-                        edges=edges)
+                        logits_list=logits_list, labels=labels, losses=losses)
                     loss = sum(loss_list)
 
                 scaled = scaler.scale(loss)  # scale the loss
@@ -207,12 +204,9 @@ def train(model,
                 else:
                     logits_list = model(images)
                 loss_list = loss_computation(
-                    logits_list=logits_list,
-                    labels=labels,
-                    losses=losses,
-                    edges=edges)
+                    logits_list=logits_list, labels=labels, losses=losses)
                 loss = sum(loss_list)
-                loss.backward()
+                loss.backward()  # grad is nan is set elu=True
                 optimizer.step()
 
             lr = optimizer.get_lr()

@@ -39,12 +39,13 @@ class LungCoronavirus(MedicalDataset):
         transforms (list): Transforms for image.
         mode (str, optional): Which part of dataset to use. it is one of ('train', 'val'). Default: 'train'.
     """
-    NUM_CLASSES = 2
+    num_classes = 2
 
     def __init__(self,
                  dataset_root=None,
                  result_dir=None,
                  transforms=None,
+                 num_classes=None,
                  edge=False,
                  mode='train'):
         self.dataset_root = dataset_root
@@ -52,8 +53,8 @@ class LungCoronavirus(MedicalDataset):
         self.transforms = Compose(transforms)
         self.mode = mode.lower()
         self.file_list = list()
-        self.num_classes = self.NUM_CLASSES
-        self.ignore_index = 255  # todo: if labels only have 1/0, thus ignore_index is not necessary
+        self.num_classes = num_classes
+        self.ignore_index = 255  # todo: if labels only have 1/0/2, thus ignore_index is not necessary
 
         if mode not in ['train', 'val']:
             raise ValueError(
@@ -101,8 +102,25 @@ if __name__ == "__main__":
         result_dir="data/lung_coronavirus/lung_coronavirus_phase1",
         transforms=[],
         mode="train")
+    import paddle
+    import random
 
-    for img, label in dataset:
+    def worker_init_fn(worker_id):
+        np.random.seed(random.randint(0, 100000))
+
+    batch_sampler = paddle.io.DistributedBatchSampler(
+        dataset, batch_size=2, shuffle=True, drop_last=True)
+
+    loader = paddle.io.DataLoader(
+        dataset,
+        batch_sampler=batch_sampler,
+        num_workers=2,
+        return_list=True,
+        worker_init_fn=worker_init_fn,
+    )
+
+    for data in loader:
+        img, label = data
         print(img.shape, label.shape)
         print("image val", img.min(), img.max())
         print("label val", label.min(), label.max(), np.unique(label))

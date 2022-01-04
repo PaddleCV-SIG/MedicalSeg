@@ -14,5 +14,4 @@
 
 from .train import train
 from .val import evaluate
-
-__all__ = ['train', 'evaluate']
+from . import infer

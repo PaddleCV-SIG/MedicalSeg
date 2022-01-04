@@ -1,7 +1,7 @@
 _base_: '../global_configs.yml'
 
-batch_size: 16
-iters: 40000
+batch_size: 2
+iters: 10000
 
 train_dataset:
   type: LungCoronavirus
@@ -10,6 +10,7 @@ train_dataset:
   transforms:
     - type: RandomFlip3D
   mode: train
+  num_classes: 3
 
 val_dataset:
   type: LungCoronavirus
@@ -18,6 +19,7 @@ val_dataset:
   transforms:
     - type: RandomFlip3D
   mode: val
+  num_classes: 3
 
 
 optimizer:
@@ -27,7 +29,7 @@ optimizer:
 
 lr_scheduler:
   type: PolynomialDecay
-  learning_rate: 0.01
+  learning_rate: 0.0003
   end_lr: 0
   power: 0.9
 

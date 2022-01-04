@@ -15,6 +15,7 @@ import paddle.nn.functional as F
 
 from paddleseg3d.cvlibs import manager
 
+
 @manager.LOSSES.add_component
 class DiceLoss(nn.Layer):
     """
@@ -34,22 +35,30 @@ class DiceLoss(nn.Layer):
         self.eps = 1e-5
         self.smooth = smooth
 
-    def forward(self, logits, labels):
+    def forward(self, logits, labels):  # second round logit is NAN
+        """
+        logits: tensor of [B, C, D, H, W]
+        labels: tensor of shape [B, D, H, W]
+        """
         labels = paddle.cast(labels, dtype='int32')
         labels_one_hot = F.one_hot(labels, num_classes=logits.shape[1])
-        labels_one_hot = paddle.transpose(labels_one_hot, [0, 4, 1, 2, 3])
+        labels_one_hot = paddle.transpose(labels_one_hot,
+                                          [0, 4, 1, 2, 3])  # [B, C, D, H, W]
         labels_one_hot = paddle.cast(labels_one_hot, dtype='float32')
 
-        logits = F.softmax(logits, axis=1)
+        logits = F.softmax(logits, axis=1)  # [B, C, D, H, W]
 
-        mask = (paddle.unsqueeze(labels, 1) != self.ignore_index)
+        mask = (paddle.unsqueeze(labels, 1) != self.ignore_index
+                )  # [B, C, D, H, W]
         logits = logits * mask
         labels_one_hot = labels_one_hot * mask
 
-        dims = (0, ) + tuple(range(2, labels.ndimension() + 1))
+        dims = (0, ) + tuple(range(2, labels.ndimension() + 1))  # 0, 2, 3, 4
 
         intersection = paddle.sum(logits * labels_one_hot, dims)
+
         cardinality = paddle.sum(logits + labels_one_hot, dims)
         dice_loss = ((2. * intersection + self.smooth) /
                      (cardinality + self.eps + self.smooth)).mean()
+
         return 1 - dice_loss
