@@ -21,6 +21,7 @@ import paddle.nn as nn
 import paddle.nn.functional as F
 import os
 import sys
+
 sys.path.append(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), "../.."))
 
@@ -29,6 +30,7 @@ from paddleseg3d.utils import utils
 
 
 class LUConv(nn.Layer):
+
     def __init__(self, nchan, elu):
         super(LUConv, self).__init__()
         self.relu1 = nn.ELU() if elu else nn.PReLU(nchan)
@@ -50,13 +52,16 @@ def _make_nConv(nchan, depth, elu):
 
 
 class InputTransition(nn.Layer):
+
     def __init__(self, in_channels, elu):
         super(InputTransition, self).__init__()
         self.num_features = 16
         self.in_channels = in_channels
 
-        self.conv = nn.Conv3D(
-            self.in_channels, self.num_features, kernel_size=5, padding=2)
+        self.conv = nn.Conv3D(self.in_channels,
+                              self.num_features,
+                              kernel_size=5,
+                              padding=2)
 
         self.bn = nn.BatchNorm3D(self.num_features)
 
@@ -71,6 +76,7 @@ class InputTransition(nn.Layer):
 
 
 class DownTransition(nn.Layer):
+
     def __init__(self, inChans, nConvs, elu, dropout=False):
         super(DownTransition, self).__init__()
         outChans = 2 * inChans
@@ -94,10 +100,13 @@ class DownTransition(nn.Layer):
 
 
 class UpTransition(nn.Layer):
+
     def __init__(self, inChans, outChans, nConvs, elu, dropout=False):
         super(UpTransition, self).__init__()
-        self.up_conv = nn.Conv3DTranspose(
-            inChans, outChans // 2, kernel_size=2, stride=2)
+        self.up_conv = nn.Conv3DTranspose(inChans,
+                                          outChans // 2,
+                                          kernel_size=2,
+                                          stride=2)
 
         self.bn1 = nn.BatchNorm3D(outChans // 2)
         self.relu1 = nn.ELU() if elu else nn.PReLU(outChans // 2)
@@ -119,10 +128,13 @@ class UpTransition(nn.Layer):
 
 
 class OutputTransition(nn.Layer):
+
     def __init__(self, in_channels, num_classes, elu):
         super(OutputTransition, self).__init__()
-        self.conv1 = nn.Conv3D(
-            in_channels, num_classes, kernel_size=5, padding=2)
+        self.conv1 = nn.Conv3D(in_channels,
+                               num_classes,
+                               kernel_size=5,
+                               padding=2)
         self.bn1 = nn.BatchNorm3D(num_classes)
 
         self.conv2 = nn.Conv3D(num_classes, num_classes, kernel_size=1)
@@ -170,7 +182,7 @@ class VNet(nn.Layer):
             utils.load_entire_model(self, self.pretrained)
 
     def forward(self, x):
-        out16 = self.in_tr(x)  # NAN
+        out16 = self.in_tr(x)
         out32 = self.down_tr32(out16)
         out64 = self.down_tr64(out32)
         out128 = self.down_tr128(out64)

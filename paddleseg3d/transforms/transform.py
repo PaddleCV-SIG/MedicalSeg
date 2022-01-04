@@ -18,7 +18,7 @@ import math
 import random
 import numpy as np
 import numbers
-from functools import collections
+import collections
 
 from paddleseg3d.cvlibs import manager
 from paddleseg3d.transforms import functional as F
@@ -65,7 +65,6 @@ class Compose:
             if len(outputs) == 2:
                 label = outputs[1]
         im = np.expand_dims(im, axis=0)
-        # label = np.expand_dims(label, axis=0)
         return (im, label)
 
 
