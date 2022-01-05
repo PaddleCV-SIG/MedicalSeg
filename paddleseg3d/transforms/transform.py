@@ -350,7 +350,7 @@ class BinaryMaskConnectCompoent:
         self.minimum_volume = minimum_volume
         super().__init__()
 
-    def __call__(self, img, label=None):
+    def __call__(self, pred, label=None):
         """
         Args:
             img (numpy ndarray): Image to be scaled.
@@ -359,6 +359,7 @@ class BinaryMaskConnectCompoent:
             numpy ndarray: Rescaled image.
             numpy ndarray: Rescaled label.
         """
+        pred = F.extract_connect_compoent(pred, self.minimum_volume)
         if label is not None:
             label = F.extract_connect_compoent(label, self.minimum_volume)
-        return img, label
+        return pred, label
