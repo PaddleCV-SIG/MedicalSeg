@@ -31,7 +31,7 @@ def get_reverse_list(ori_shape, transforms):
             ('padding', (h, w)) The image shape before padding.
     """
     reverse_list = []
-    d, h, w = ori_shape[0], ori_shape[1], ori_shape[3]
+    d, h, w = ori_shape[0], ori_shape[1], ori_shape[2]
     for op in transforms:
         if op.__class__.__name__ in ['Resize3D']:
             pass  # todo: add reverse transform information
