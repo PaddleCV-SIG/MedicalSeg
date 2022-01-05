@@ -81,10 +81,7 @@ def inference(model, im, ori_shape=None, transforms=None):
         raise TypeError(
             "The type of logits must be one of collections.abc.Sequence, e.g. list, tuple. But received {}"
             .format(type(logits)))
-    logit = logits[0]  # [1, 3, 128, 128, 128]
-
-    import pdb
-    pdb.set_trace()
+    logit = logits[0]
 
     if hasattr(model, 'data_format') and model.data_format == 'NDHWC':
         logit = logit.transpose((0, 4, 1, 2, 3))
