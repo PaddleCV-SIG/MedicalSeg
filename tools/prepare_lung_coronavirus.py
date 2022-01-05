@@ -36,14 +36,16 @@ import glob
 import time
 import random
 import zipfile
+import functools
 import numpy as np
 
 sys.path.append(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
+
 import nibabel as nib
 
 from paddleseg3d.datasets.preprocess_utils import uncompressor
-from paddleseg3d.datasets.preprocess_utils import HU2uint8
+from paddleseg3d.datasets.preprocess_utils import HU2float32, resample
 
 
 def list_files(path):
@@ -87,34 +89,55 @@ class Prep:
                 f, extract_path, delete_file=False, print_progress=True)
 
     def load_save(self,
-                  names,
+                  file_dir,
                   load_type=np.float32,
                   savepath=None,
-                  Normalize=False):
-
-        for f in names:
-            filename = f.split("/")[-1].split(".")[0]
-            nii_np = nib.load(f).get_fdata(dtype=load_type)
-            if Normalize:
-                nii_np = HU2uint8(nii_np)
-
-            np.save(os.path.join(savepath, filename), nii_np)
-
-    def convert_path(self, image_dir=image_dir, label_dir=label_dir):
-        """convert nii.gz file to numpy array in the right directory"""
-
-        image_names = list_files(image_dir)
-        label_names = list_files(label_dir)
-        assert len(image_names) != 0 and len(label_names) != 0, print(
+                  preprocess=None,
+                  tag="image"):
+        """
+        Load the file in file dir, preprocess it and save it to the directory.
+        """
+        files = list_files(file_dir)
+        assert len(files) != 0, print(
             "The data directory you assigned is wrong, there is no file in it."
         )
 
-        print("start to convert images to numpy array, please wait patiently")
-        self.load_save(
-            image_names, np.float32, self.image_path, Normalize=True)
-        print("start to convert labels to numpy array, please wait patiently")
-        self.load_save(label_names, np.float32, self.label_path)
+        for f in files:
+            filename = f.split("/")[-1].split(".")[0]
+            nii_np = nib.load(f).get_fdata(dtype=load_type)
+
+            if preprocess is not None:
+                for op in preprocess:
+                    nii_np = op(nii_np)
+
+            if tag == "label":
+                nii_np = nii_np.astype(int)
+
+            np.save(os.path.join(savepath, filename), nii_np)
+
         print("Sucessfully convert medical images to numpy array!")
+
+    def convert_path(self):
+        """convert nii.gz file to numpy array in the right directory"""
+
+        print("Start convert images to numpy array, please wait patiently")
+        self.load_save(
+            self.image_dir,
+            load_type=np.float32,
+            savepath=self.image_path,
+            preprocess=[
+                HU2float32,
+                functools.partial(resample, new_shape=[128, 128, 128])
+            ])
+        print("start convert labels to numpy array, please wait patiently")
+        self.load_save(
+            self.label_dir,
+            np.float32,
+            self.label_path,
+            preprocess=[
+                functools.partial(resample, new_shape=[128, 128, 128])
+            ],
+            tag="label")
 
     def generate_txt(self):
         """generate the train_list.txt and val_list.txt"""
@@ -153,4 +176,4 @@ if __name__ == "__main__":
     prep = Prep()
     # prep.uncompress_file(num_zipfiles=4)
     prep.convert_path()
-    prep.generate_txt()
+    # prep.generate_txt()

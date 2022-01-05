@@ -24,11 +24,6 @@ from paddleseg3d.utils import (TimeAverager, calculate_eta, resume, logger,
                                worker_init_fn, train_profiler, op_flops_run)
 from paddleseg3d.core.val import evaluate
 
-import paddleseg3d.datasets, paddleseg3d.models, paddleseg3d
-
-from paddleseg3d.datasets import MedicalDataset
-from paddleseg3d.datasets import LungCoronavirus
-
 
 def check_logits_losses(logits_list, losses):
     len_logits = len(logits_list)
@@ -42,6 +37,7 @@ def check_logits_losses(logits_list, losses):
 def loss_computation(logits_list, labels, losses, edges=None):
     check_logits_losses(logits_list, losses)
     loss_list = []
+
     for i in range(len(logits_list)):
         logits = logits_list[i]
         loss_i = losses['types'][i]
@@ -105,6 +101,7 @@ def train(model,
         profiler_options (str, optional): The option of train profiler.
         to_static_training (bool, optional): Whether to use @to_static for training.
     """
+
     model.train()
     nranks = paddle.distributed.ParallelEnv().nranks
     local_rank = paddle.distributed.ParallelEnv().local_rank
@@ -134,11 +131,6 @@ def train(model,
         return_list=True,
         worker_init_fn=worker_init_fn,
     )
-
-    # use amp
-    if fp16:
-        logger.info('use amp to train')
-        scaler = paddle.amp.GradScaler(init_loss_scaling=1024)
 
     if use_vdl:
         from visualdl import LogWriter
@@ -171,49 +163,21 @@ def train(model,
             reader_cost_averager.record(time.time() - batch_start)
             images = data[0]
             labels = data[1].astype('int64')
-            edges = None
-            if len(data) == 3:
-                edges = data[2].astype('int64')
-            if hasattr(model, 'data_format') and model.data_format == 'NHWC':
-                images = images.transpose((0, 2, 3, 1))
 
-            if fp16:
-                with paddle.amp.auto_cast(
-                        enable=True,
-                        custom_white_list={
-                            "elementwise_add", "batch_norm", "sync_batch_norm"
-                        },
-                        custom_black_list={'bilinear_interp_v2'}):
-                    if nranks > 1:
-                        logits_list = ddp_model(images)
-                    else:
-                        logits_list = model(images)
-                    loss_list = loss_computation(
-                        logits_list=logits_list,
-                        labels=labels,
-                        losses=losses,
-                        edges=edges)
-                    loss = sum(loss_list)
+            if hasattr(
+                    model, 'data_format'
+            ) and model.data_format == 'NDHWC':  # originally as NCDHW
+                images = images.transpose((0, 2, 3, 4, 1))
 
-                scaled = scaler.scale(loss)  # scale the loss
-                scaled.backward()  # do backward
-                if isinstance(optimizer, paddle.distributed.fleet.Fleet):
-                    scaler.minimize(optimizer.user_defined_optimizer, scaled)
-                else:
-                    scaler.minimize(optimizer, scaled)  # update parameters
+            if nranks > 1:
+                logits_list = ddp_model(images)
             else:
-                if nranks > 1:
-                    logits_list = ddp_model(images)
-                else:
-                    logits_list = model(images)
-                loss_list = loss_computation(
-                    logits_list=logits_list,
-                    labels=labels,
-                    losses=losses,
-                    edges=edges)
-                loss = sum(loss_list)
-                loss.backward()
-                optimizer.step()
+                logits_list = model(images)
+            loss_list = loss_computation(
+                logits_list=logits_list, labels=labels, losses=losses)
+            loss = sum(loss_list)
+            loss.backward()  # grad is nan when set elu=True
+            optimizer.step()
 
             lr = optimizer.get_lr()
 

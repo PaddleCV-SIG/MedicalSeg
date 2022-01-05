@@ -14,16 +14,19 @@
 
 import numpy as np
 
-def HU2uint8(image, HU_min=-1200, HU_max=600, HU_nan=-2000, dtype="uint8"):
+
+def HU2float32(image, HU_min=-1200, HU_max=600, HU_nan=-2000, dtype="float32"):
     """
     Convert HU unit into uint8 values. First bound HU values by predfined min
-    and max, and then normalize
+    and max, and then normalize. Due to paddle.nn.conv3D doesn't support uint8, we need to convert
+    the returned image as float32
+
     image: 3D numpy array of raw HU values from CT series in [z, y, x] order.
     HU_min: float, min HU value.
     HU_max: float, max HU value.
     HU_nan: float, value for nan in the raw CT image.
     """
-    if not isinstance(image, np.ndarray): 
+    if not isinstance(image, np.ndarray):
         image = np.array(image)
     image = np.nan_to_num(image, copy=False, nan=HU_nan)
 

@@ -39,12 +39,13 @@ class LungCoronavirus(MedicalDataset):
         transforms (list): Transforms for image.
         mode (str, optional): Which part of dataset to use. it is one of ('train', 'val'). Default: 'train'.
     """
-    NUM_CLASSES = 2
+    num_classes = 2
 
     def __init__(self,
                  dataset_root=None,
                  result_dir=None,
                  transforms=None,
+                 num_classes=None,
                  edge=False,
                  mode='train'):
         self.dataset_root = dataset_root
@@ -52,8 +53,8 @@ class LungCoronavirus(MedicalDataset):
         self.transforms = Compose(transforms)
         self.mode = mode.lower()
         self.file_list = list()
-        self.num_classes = self.NUM_CLASSES
-        self.ignore_index = 255  # todo: if labels only have 1/0, thus ignore_index is not necessary
+        self.num_classes = num_classes
+        self.ignore_index = 255  # todo: if labels only have 1/0/2, thus ignore_index is not necessary
 
         if mode not in ['train', 'val']:
             raise ValueError(
@@ -92,17 +93,3 @@ class LungCoronavirus(MedicalDataset):
                     image_path = os.path.join(self.dataset_root, items[0])
                     grt_path = os.path.join(self.dataset_root, items[1])
                 self.file_list.append([image_path, grt_path])
-
-
-if __name__ == "__main__":
-    sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-    dataset = LungCoronavirus(
-        dataset_root="data/lung_coronavirus/lung_coronavirus_phase0",
-        result_dir="data/lung_coronavirus/lung_coronavirus_phase1",
-        transforms=[],
-        mode="train")
-
-    for img, label in dataset:
-        print(img.shape, label.shape)
-        print("image val", img.min(), img.max())
-        print("label val", label.min(), label.max(), np.unique(label))

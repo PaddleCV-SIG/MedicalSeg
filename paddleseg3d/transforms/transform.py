@@ -14,14 +14,14 @@
 
 # Todo: Add transform components here
 
-import random
 import math
-
+import random
 import numpy as np
+import numbers
+import collections
 
 from paddleseg3d.cvlibs import manager
 from paddleseg3d.transforms import functional as F
-
 
 
 @manager.TRANSFORMS.add_component
@@ -43,9 +43,7 @@ class Compose:
             raise TypeError('The transforms must be a list!')
         self.transforms = transforms
 
-    def __call__(
-            self, im, label=None
-    ):  # todo: add necessary transform like load and transpose for all images
+    def __call__(self, im, label=None):
         """
         Args:
             im (str|np.ndarray): It is either image path or image object.
@@ -55,7 +53,6 @@ class Compose:
             (tuple). A tuple including image, image info, and label after transformation.
         """
         if isinstance(im, str):
-            print("image path", im)
             im = np.load(im)
         if isinstance(label, str):
             label = np.load(label)
@@ -67,6 +64,7 @@ class Compose:
             im = outputs[0]
             if len(outputs) == 2:
                 label = outputs[1]
+        im = np.expand_dims(im, axis=0)
         return (im, label)
 
 
@@ -74,7 +72,7 @@ class Compose:
 class Resize3D:
     """Resize the input numpy ndarray to the given size.
     Args:
-        size 
+        size
         order (int, optional): Desired order
     """
 
@@ -91,7 +89,7 @@ class Resize3D:
         else:
             raise ValueError('Unknown inputs for size: {}'.format(size))
         self.order = order
-        super().__init__(mode)
+        super().__init__()
 
     def __call__(self, img, label=None):
         """
@@ -108,7 +106,6 @@ class Resize3D:
         return img, label
 
 
-
 @manager.TRANSFORMS.add_component
 class RandomRotation3D:
     """Rotate the image by angle.
@@ -121,7 +118,7 @@ class RandomRotation3D:
             Default is the center of the image.
     """
 
-    def __init__(self, mode, degrees, rotate_planes=[[0, 1], [0, 2], [1, 2]]):
+    def __init__(self, degrees, rotate_planes=[[0, 1], [0, 2], [1, 2]]):
         """
         init
         """
@@ -138,7 +135,7 @@ class RandomRotation3D:
 
         self.rotate_planes = rotate_planes
 
-        super().__init__(mode)
+        super().__init__()
 
     def get_params(self, degrees):
         """Get parameters for ``rotate`` for a random rotation.
@@ -146,7 +143,9 @@ class RandomRotation3D:
             sequence: params to be passed to ``rotate`` for random rotation.
         """
         angle = random.uniform(degrees[0], degrees[1])
-        r_plane = self.rotate_planes[random.randint(0, len(self.rotate_planes) - 1)]
+        r_plane = self.rotate_planes[random.randint(
+            0,
+            len(self.rotate_planes) - 1)]
 
         return angle, r_plane
 
@@ -156,7 +155,7 @@ class RandomRotation3D:
             img (numpy ndarray): 3D Image to be flipped.
             label (numpy ndarray): 3D Label to be flipped.
         Returns:
-            (np.array). Image after transformation. 
+            (np.array). Image after transformation.
         """
         angle, r_plane = self.get_params(self.degrees)
         img = F.rotate_3d(img, r_plane, angle)
@@ -172,14 +171,14 @@ class RandomFlip3D:
         prob (float, optional): A probability of vertical flipping. Default: 0.1.
     """
 
-    def __init__(self, mode, prob=0.5, flip_axis=[0, 1, 2]):
+    def __init__(self, prob=0.5, flip_axis=[0, 1, 2]):
         """
         init
         """
         self.prob = prob
         self.flip_axis = flip_axis
 
-        super().__init__(mode)
+        super().__init__()
 
     def __call__(self, img, label=None):
         """
@@ -187,10 +186,11 @@ class RandomFlip3D:
             img (numpy ndarray): 3D Image to be flipped.
             label (numpy ndarray): 3D Label to be flipped.
         Returns:
-            (np.array). Image after transformation. 
+            (np.array). Image after transformation.
         """
         if isinstance(self.flip_axis, (tuple, list)):
-            flip_axis = self.flip_axis[random.randint(0, len(self.flip_axis) - 1)]
+            flip_axis = self.flip_axis[random.randint(0,
+                                                      len(self.flip_axis) - 1)]
         else:
             flip_axis = self.flip_axis
 
@@ -215,7 +215,7 @@ class RandomResizedCrop3D:
                   如果为False，则在image整个区域内进行滑窗
     """
 
-    def __init__(self, mode, size, scale=(0.8, 1.2), ratio=(3. / 4., 4. / 3.), \
+    def __init__(self, size, scale=(0.8, 1.2), ratio=(3. / 4., 4. / 3.), \
         interpolation=1, pre_crop=False, nonzero_mask=False):
         """
         init
@@ -235,7 +235,7 @@ class RandomResizedCrop3D:
         self.pre_crop = pre_crop
         self.nonzero_mask = nonzero_mask
 
-        super().__init__(mode)
+        super().__init__()
 
     def get_params(self, img, scale, ratio):
         """Get parameters for ``crop`` for a random sized crop.
@@ -247,14 +247,15 @@ class RandomResizedCrop3D:
             tuple: params (i, j, h, w) to be passed to ``crop`` for a random
                 sized crop.
         """
-        params_ret = collections.namedtuple('params_ret', ['i', 'j', 'k', 'd', 'h', 'w'])
+        params_ret = collections.namedtuple('params_ret',
+                                            ['i', 'j', 'k', 'd', 'h', 'w'])
         for attempt in range(10):
             volume = img.shape[0] * img.shape[1] * img.shape[2]
             target_volume = random.uniform(*scale) * volume
             aspect_ratio = random.uniform(*ratio)
 
-            d = int(round((target_volume * aspect_ratio) ** (1 / 3)))
-            h = int(round((target_volume / aspect_ratio) ** (1 / 3)))
+            d = int(round((target_volume * aspect_ratio)**(1 / 3)))
+            h = int(round((target_volume / aspect_ratio)**(1 / 3)))
             w = img.shape[2]
 
             if random.random() < 0.5:
@@ -290,11 +291,15 @@ class RandomResizedCrop3D:
                 minxidx = int(np.min(mask_voxel_coords[2]))
                 maxxidx = int(np.max(mask_voxel_coords[2])) + 1
 
-                masked_shape = np.array([maxzidx - minzidx, maxyidx - minyidx, maxxidx - minxidx])
+                masked_shape = np.array(
+                    [maxzidx - minzidx, maxyidx - minyidx, maxxidx - minxidx])
                 crop_z, crop_y, crop_x = np.minimum(masked_shape, crop_size)
-                z_start = np.random.randint(masked_shape[0] - crop_z + 1) + minzidx
-                y_start = np.random.randint(masked_shape[1] - crop_y + 1) + minyidx
-                x_start = np.random.randint(masked_shape[2] - crop_x + 1) + minxidx
+                z_start = np.random.randint(masked_shape[0] - crop_z +
+                                            1) + minzidx
+                y_start = np.random.randint(masked_shape[1] - crop_y +
+                                            1) + minyidx
+                x_start = np.random.randint(masked_shape[2] - crop_x +
+                                            1) + minxidx
 
                 z_end = z_start + crop_z
                 y_end = y_start + crop_y
@@ -324,9 +329,9 @@ class RandomResizedCrop3D:
         """
         img, label = self.pre_crop_util(img, label)
         i, j, k, d, h, w = self.get_params(img, self.scale, self.ratio)
-        img = F.resized_crop_3d(img, i, j, k, d, h, w, self.size, self.interpolation)
+        img = F.resized_crop_3d(img, i, j, k, d, h, w, self.size,
+                                self.interpolation)
         if label is not None:
             label = F.resized_crop_3d(label, i, j, k, d, h, w, self.size, 0)
-        
-        return img, label
 
+        return img, label

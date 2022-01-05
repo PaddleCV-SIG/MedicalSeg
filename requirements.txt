@@ -7,3 +7,5 @@ PyYAML
 pynrrd
 tqdm
 opencv-python
+visualdl
+sklearn

@@ -2,6 +2,7 @@ _base_: '../_base_/lung_coronavirus.yml'
 
 model:
   type: VNet
-  num_classes: 2
-  use_deconv: False
+  elu: False
+  in_channels: 1
+  num_classes: 3
   pretrained: Null
