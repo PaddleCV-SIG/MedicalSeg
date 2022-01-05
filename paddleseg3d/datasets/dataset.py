@@ -67,6 +67,7 @@ class MedicalDataset(paddle.io.Dataset):
                  result_dir,
                  num_classes,
                  mode='train',
+                 post_transforms=None,
                  train_path=None,
                  val_path=None,
                  test_path=None,
@@ -76,6 +77,7 @@ class MedicalDataset(paddle.io.Dataset):
         self.dataset_root = dataset_root
         self.result_dir = result_dir
         self.transforms = Compose(transforms)
+        self.post_transforms = Compose(post_transforms) if post_transforms is not None else None
         self.file_list = list()
         self.mode = mode.lower()
         self.num_classes = num_classes
@@ -102,8 +104,7 @@ class MedicalDataset(paddle.io.Dataset):
             elif not os.path.exists(train_path):
                 raise FileNotFoundError(
                     '`train_path` is not found: {}'.format(train_path))
-            else:
-                file_path = train_path
+
         elif self.mode == 'val':
             if val_path is None:
                 raise ValueError(
@@ -112,9 +113,8 @@ class MedicalDataset(paddle.io.Dataset):
             elif not os.path.exists(val_path):
                 raise FileNotFoundError(
                     '`val_path` is not found: {}'.format(val_path))
-            else:
-                file_path = val_path
-        else:
+
+        elif self.mode == "test":
             if test_path is None:
                 raise ValueError(
                     'When `mode` is "test", `test_path` is necessary, but it is None.'
@@ -122,43 +122,18 @@ class MedicalDataset(paddle.io.Dataset):
             elif not os.path.exists(test_path):
                 raise FileNotFoundError(
                     '`test_path` is not found: {}'.format(test_path))
-            else:
-                file_path = test_path
-
-        with open(file_path, 'r') as f:
-            for line in f:
-                items = line.strip().split(separator)
-                if len(items) != 2:
-                    if self.mode == 'train' or self.mode == 'val':
-                        raise ValueError(
-                            "File list format incorrect! In training or evaluation task it should be"
-                            " image_name{}label_name\\n".format(separator))
-                    image_path = os.path.join(self.dataset_root, items[0])
-                    label_path = None
-                else:
-                    image_path = os.path.join(self.dataset_root, items[0])
-                    label_path = os.path.join(self.dataset_root, items[1])
-                self.file_list.append([image_path, label_path])
 
     def __getitem__(self, idx):
-        image_path, label_path = self.file_list[idx]
-        if self.mode == 'test':
-            im, _ = self.transforms(im=image_path)
-            im = im[np.newaxis, ...]
-            return im, image_path
-        # elif self.mode == 'val':
-        #     im, _ = self.transforms(im=image_path)
-        #     label = np.asarray(Image.open(label_path))
-        #     label = label[np.newaxis, :, :]
-        #     return im, label
-        else:
-            im, label = self.transforms(im=image_path, label=label_path)
+        raise NotImplementedError
 
-            return im, label
-
-    def save_transformed(self):
+    def post_transform(self, pred, label=None):
         """Save the preprocessed images to the result_dir"""
-        pass  # todo
+        if self.post_transforms is not None:
+            if label is None:
+                pred = map(lambda x: self.post_transforms(x), pred)
+            else:
+                pred, label = map(lambda x, y: self.post_transforms(x, y), zip(pred, label))
+        return pred if label is None else (pred, label)
 
     def __len__(self):
-        return len(self.file_list)
+        raise NotImplementedError

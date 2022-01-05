@@ -105,10 +105,16 @@ def evaluate(model,
                 model,
                 im,
                 ori_shape=ori_shape,
-                transforms=eval_dataset.transforms.transforms,
+                transforms=eval_dataset.transforms,
                 is_slide=is_slide,
                 stride=stride,
                 crop_size=crop_size)
+
+            # Post process
+            if eval_dataset.post_transform is not None:
+                pred, label = eval_dataset.post_transform(pred.numpy(), label.numpy())
+                pred = paddle.to_tensor(pred)
+                label = paddle.to_tensor(label)
 
             intersect_area, pred_area, label_area = metric.calculate_area(
                 pred,

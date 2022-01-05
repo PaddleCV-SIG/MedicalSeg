@@ -45,23 +45,14 @@ class LungCoronavirus(MedicalDataset):
                  dataset_root=None,
                  result_dir=None,
                  transforms=None,
+                 post_transforms=None,
                  num_classes=None,
                  edge=False,
                  mode='train'):
-        self.dataset_root = dataset_root
-        self.result_dir = result_dir
-        self.transforms = Compose(transforms)
-        self.mode = mode.lower()
+        super(LungCoronavirus, self).__init__(transforms, dataset_root, result_dir, 
+                                                    num_classes, mode, post_transforms)
         self.file_list = list()
-        self.num_classes = num_classes
         self.ignore_index = 255  # todo: if labels only have 1/0/2, thus ignore_index is not necessary
-
-        if mode not in ['train', 'val']:
-            raise ValueError(
-                "`mode` should be 'train' or 'val', but got {}.".format(mode))
-
-        if self.transforms is None:
-            raise ValueError("`transforms` is necessary, but it is None.")
 
         if self.dataset_root is None:
             self.dataset_root = download_file_and_uncompress(
