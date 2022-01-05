@@ -93,34 +93,3 @@ class LungCoronavirus(MedicalDataset):
                     image_path = os.path.join(self.dataset_root, items[0])
                     grt_path = os.path.join(self.dataset_root, items[1])
                 self.file_list.append([image_path, grt_path])
-
-
-if __name__ == "__main__":
-    sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-    dataset = LungCoronavirus(
-        dataset_root="data/lung_coronavirus/lung_coronavirus_phase0",
-        result_dir="data/lung_coronavirus/lung_coronavirus_phase1",
-        transforms=[],
-        mode="train")
-    import paddle
-    import random
-
-    def worker_init_fn(worker_id):
-        np.random.seed(random.randint(0, 100000))
-
-    batch_sampler = paddle.io.DistributedBatchSampler(
-        dataset, batch_size=2, shuffle=True, drop_last=True)
-
-    loader = paddle.io.DataLoader(
-        dataset,
-        batch_sampler=batch_sampler,
-        num_workers=2,
-        return_list=True,
-        worker_init_fn=worker_init_fn,
-    )
-
-    for data in loader:
-        img, label = data
-        print(img.shape, label.shape)
-        print("image val", img.min(), img.max())
-        print("label val", label.min(), label.max(), np.unique(label))
