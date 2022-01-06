@@ -34,28 +34,26 @@ def get_reverse_list(ori_shape, transforms):
     d, h, w = ori_shape[0], ori_shape[1], ori_shape[2]
     for op in transforms:
         if op.__class__.__name__ in ['Resize3D']:
-            pass  # todo: add reverse transform information
-            # reverse_list.append(('resize', (d, h, w)))
-            # d, h, w = op.target_size[0], op.target_size[1], op.target_size[2]
+            reverse_list.append(('resize', (d, h, w)))
+            d, h, w = op.size[0], op.size[1], op.size[2]
 
     return reverse_list
 
 
-def reverse_transform(pred, ori_shape, transforms, mode='nearest'):
+def reverse_transform(pred, ori_shape, transforms, mode='trilinear'):
     """recover pred to origin shape"""
     reverse_list = get_reverse_list(ori_shape, transforms)
     intTypeList = [paddle.int8, paddle.int16, paddle.int32, paddle.int64]
     dtype = pred.dtype
     for item in reverse_list[::-1]:
         if item[0] == 'resize':
-            pass  # todo: reverse transform
-            # d, h, w = item[1][0], item[1][1], item[1][2]
-            # if paddle.get_device() == 'cpu' and dtype in intTypeList:
-            #     pred = paddle.cast(pred, 'float32')
-            #     pred = F.interpolate(pred, (d, h, w), mode=mode)
-            #     pred = paddle.cast(pred, dtype)
-            # else:
-            #     pred = F.interpolate(pred, (h, w), mode=mode)
+            d, h, w = item[1][0], item[1][1], item[1][2]
+            if paddle.get_device() == 'cpu' and dtype in intTypeList:
+                pred = paddle.cast(pred, 'float32')
+                pred = F.interpolate(pred, (d, h, w), mode=mode)
+                pred = paddle.cast(pred, dtype)
+            else:
+                pred = F.interpolate(pred, (d, h, w), mode=mode)
         else:
             raise Exception("Unexpected info '{}' in im_info".format(item[0]))
     return pred
@@ -77,6 +75,7 @@ def inference(model, im, ori_shape=None, transforms=None):
     """
     if hasattr(model, 'data_format') and model.data_format == 'NDHWC':
         im = im.transpose((0, 2, 3, 4, 1))
+
     logits = model(im)
     if not isinstance(logits, collections.abc.Sequence):
         raise TypeError(
@@ -87,13 +86,13 @@ def inference(model, im, ori_shape=None, transforms=None):
     if hasattr(model, 'data_format') and model.data_format == 'NDHWC':
         logit = logit.transpose((0, 4, 1, 2, 3))
 
-    if ori_shape is not None:
+    if ori_shape is not None and ori_shape != logit.shape[2:]:
         logit = reverse_transform(
             logit, ori_shape, transforms, mode='bilinear')
-        pred = paddle.argmax(logit, axis=1, keepdim=True, dtype='int32')
-        return pred, logit
-    else:
-        return logit
+
+    pred = paddle.argmax(logit, axis=1, keepdim=True, dtype='int32')
+
+    return pred, logit
 
 
 # todo: add aug inference with postpreocess.
