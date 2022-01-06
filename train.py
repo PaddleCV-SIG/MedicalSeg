@@ -89,7 +89,7 @@ def parse_args():
         '--log_iters',
         dest='log_iters',
         help='Display logging information at every log_iters',
-        default=10,
+        default=100,
         type=int)
     parser.add_argument(
         '--use_vdl',
@@ -102,8 +102,6 @@ def parse_args():
         help='Set the random seed during training.',
         default=None,
         type=int)
-    parser.add_argument(
-        '--fp16', dest='fp16', help='Whther to use amp', action='store_true')
     parser.add_argument(
         '--data_format',
         dest='data_format',
@@ -193,7 +191,6 @@ def main(args):
         losses=losses,
         keep_checkpoint_max=args.keep_checkpoint_max,
         test_config=cfg.test_config,
-        fp16=args.fp16,
         profiler_options=args.profiler_options,
         to_static_training=cfg.to_static_training)
 

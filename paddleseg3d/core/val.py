@@ -88,7 +88,6 @@ def evaluate(model,
         logger.info(
             "Start evaluating (total_samples: {}, total_iters: {})...".format(
                 len(eval_dataset), total_iters))
-    #TODO(chenguowei): fix log print error with multi-gpus
     progbar_val = progbar.Progbar(
         target=total_iters, verbose=1 if nranks < 2 else 2)
     reader_cost_averager = TimeAverager()
@@ -97,18 +96,15 @@ def evaluate(model,
     with paddle.no_grad():
         for iter, (im, label) in enumerate(loader):
             reader_cost_averager.record(time.time() - batch_start)
-            label = label.astype('int64')
+            label = label.unsqueeze(1).astype('int64')
 
-            ori_shape = label.shape[-2:]
+            ori_shape = label.shape[-3:]
 
             pred, logits = infer.inference(
                 model,
                 im,
                 ori_shape=ori_shape,
-                transforms=eval_dataset.transforms,
-                is_slide=is_slide,
-                stride=stride,
-                crop_size=crop_size)
+                transforms=eval_dataset.transforms.transforms)
 
             # Post process
             if eval_dataset.post_transform is not None:
