@@ -40,8 +40,8 @@ import functools
 import numpy as np
 import nibabel as nib
 
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                             ".."))
+sys.path.append(
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 
 from utils import list_files
 from paddleseg3d.datasets.preprocess_utils import uncompressor
@@ -60,8 +60,7 @@ urls = {
 
 
 class Prep:
-    # dataset_root = "data/lung_coronavirus"
-    dataset_root = "data/new_test"
+    dataset_root = "data/lung_coronavirus"
     phase0_path = os.path.join(dataset_root, "lung_coronavirus_phase0/")
     raw_data_path = os.path.join(dataset_root, "lung_coronavirus_raw/")
     image_dir = os.path.join(raw_data_path, "20_ncov_scan")
@@ -76,9 +75,8 @@ class Prep:
         os.makedirs(self.label_path, exist_ok=True)
 
     def uncompress_file(self, num_zipfiles):
-        uncompress_tool = uncompressor(urls=urls,
-                                       savepath=self.dataset_root,
-                                       print_progress=True)
+        uncompress_tool = uncompressor(
+            urls=urls, savepath=self.dataset_root, print_progress=True)
         """unzip all the file in the root directory"""
         zipfiles = glob.glob(os.path.join(self.dataset_root, "*.zip"))
 
@@ -89,10 +87,8 @@ class Prep:
         for f in zipfiles:
             extract_path = os.path.join(self.raw_data_path,
                                         f.split("/")[-1].split('.')[0])
-            uncompress_tool._uncompress_file(f,
-                                             extract_path,
-                                             delete_file=False,
-                                             print_progress=True)
+            uncompress_tool._uncompress_file(
+                f, extract_path, delete_file=False, print_progress=True)
 
     def load_save(self,
                   file_dir,
@@ -125,26 +121,26 @@ class Prep:
         import pdb
         pdb.set_trace()
 
-        # print("Start convert images to numpy array, please wait patiently")
-        # self.load_save(
-        #     self.image_dir,
-        #     load_type=np.float32,
-        #     savepath=self.image_path,
-        #     preprocess=[
-        #         HU2float32,
-        #         functools.partial(resample, new_shape=[128, 128, 128])
-        #     ])
+        print("Start convert images to numpy array, please wait patiently")
+        self.load_save(
+            self.image_dir,
+            load_type=np.float32,
+            savepath=self.image_path,
+            preprocess=[
+                HU2float32,
+                functools.partial(resample, new_shape=[128, 128, 128])
+            ])
         print("start convert labels to numpy array, please wait patiently")
 
-        self.load_save(self.label_dir,
-                       np.float32,
-                       self.label_path,
-                       preprocess=[
-                           functools.partial(resample,
-                                             new_shape=[128, 128, 128],
-                                             order=0)
-                       ],
-                       tag="label")
+        self.load_save(
+            self.label_dir,
+            np.float32,
+            self.label_path,
+            preprocess=[
+                functools.partial(
+                    resample, new_shape=[128, 128, 128], order=0)
+            ],
+            tag="label")
 
     def generate_txt(self):
         """generate the train_list.txt and val_list.txt"""
@@ -157,9 +153,8 @@ class Prep:
                     image_names = files[self.train_split:]
 
                 label_names = [
-                    name.replace("_org_covid-19-pneumonia-",
-                                 "_").replace("-dcm",
-                                              "").replace("_org_", "_")
+                    name.replace("_org_covid-19-pneumonia-", "_").replace(
+                        "-dcm", "").replace("_org_", "_")
                     for name in image_names
                 ]  # todo: remove specific for this class
 
@@ -182,6 +177,6 @@ class Prep:
 
 if __name__ == "__main__":
     prep = Prep()
-    # prep.uncompress_file(num_zipfiles=4)
+    prep.uncompress_file(num_zipfiles=4)
     prep.convert_path()
     prep.generate_txt()
