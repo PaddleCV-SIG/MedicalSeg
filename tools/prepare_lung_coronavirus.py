@@ -110,8 +110,8 @@ class Prep:
                 for op in preprocess:
                     nii_np = op(nii_np)
 
-            if tag == "label":
-                nii_np = nii_np.astype(int)
+            # if tag == "label":
+            #     nii_np = nii_np.astype(int)
 
             np.save(os.path.join(savepath, filename), nii_np)
 
@@ -135,7 +135,8 @@ class Prep:
             np.float32,
             self.label_path,
             preprocess=[
-                functools.partial(resample, new_shape=[128, 128, 128])
+                functools.partial(
+                    resample, new_shape=[128, 128, 128], order=0)
             ],
             tag="label")
 
@@ -174,6 +175,6 @@ class Prep:
 
 if __name__ == "__main__":
     prep = Prep()
-    # prep.uncompress_file(num_zipfiles=4)
+    prep.uncompress_file(num_zipfiles=4)
     prep.convert_path()
-    # prep.generate_txt()
+    prep.generate_txt()

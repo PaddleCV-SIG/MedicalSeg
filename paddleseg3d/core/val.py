@@ -180,4 +180,5 @@ def evaluate(model,
         logger.info(infor)
         logger.info("[EVAL] Class IoU: \n" + str(np.round(class_iou, 4)))
         logger.info("[EVAL] Class Acc: \n" + str(np.round(class_acc, 4)))
-    return miou, acc, class_iou, class_acc, kappa
+
+    return miou, mdice, class_iou, class_acc, kappa,

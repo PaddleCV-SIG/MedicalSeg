@@ -1,7 +1,7 @@
-export CUDA_VISIBLE_DEVICES=1,2
+export CUDA_VISIBLE_DEVICES=0,1
 
-yml=vnet_lung_coronavirus_128_128_128_40k
-save_dir=saved_model/${yml}
+yml=vnet_lung_coronavirus_128_128_128_10k
+save_dir=saved_model/${yml}_0106
 
 python3 -m paddle.distributed.launch train.py --config configs/vnet/${yml}.yml \
 --save_dir  $save_dir \
