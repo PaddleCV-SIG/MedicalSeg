@@ -1,4 +1,4 @@
-_base_: '../_base_/lung_coronavirus.yml'
+_base_: '../_base_/lung_coronavirus_addtrans_rmvtrans_ceweight.yml'
 
 model:
   type: VNet

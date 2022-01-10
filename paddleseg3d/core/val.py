@@ -36,7 +36,8 @@ def evaluate(model,
              crop_size=None,
              num_workers=0,
              print_detail=True,
-             auc_roc=False):
+             auc_roc=False,
+             save_dir=None):
     """
     Launch evalution.
 
@@ -68,8 +69,10 @@ def evaluate(model,
         if not paddle.distributed.parallel.parallel_helper._is_parallel_ctx_initialized(
         ):
             paddle.distributed.init_parallel_env()
-    batch_sampler = paddle.io.DistributedBatchSampler(
-        eval_dataset, batch_size=1, shuffle=False, drop_last=False)
+    batch_sampler = paddle.io.DistributedBatchSampler(eval_dataset,
+                                                      batch_size=1,
+                                                      shuffle=False,
+                                                      drop_last=False)
     loader = paddle.io.DataLoader(
         eval_dataset,
         batch_sampler=batch_sampler,
@@ -88,8 +91,8 @@ def evaluate(model,
         logger.info(
             "Start evaluating (total_samples: {}, total_iters: {})...".format(
                 len(eval_dataset), total_iters))
-    progbar_val = progbar.Progbar(
-        target=total_iters, verbose=1 if nranks < 2 else 2)
+    progbar_val = progbar.Progbar(target=total_iters,
+                                  verbose=1 if nranks < 2 else 2)
     reader_cost_averager = TimeAverager()
     batch_cost_averager = TimeAverager()
     batch_start = time.time()
@@ -105,6 +108,15 @@ def evaluate(model,
                 im,
                 ori_shape=ori_shape,
                 transforms=eval_dataset.transforms.transforms)
+
+            if save_dir is not None:
+                import pdb
+                pdb.set_trace()
+                np.save('{}/{}_pred.npy'.format(save_dir, iter),
+                        pred.clone().detach().numpy())
+                np.save('{}/{}_label.npy'.format(save_dir, iter),
+                        label.clone().detach().numpy())
+                logger.info("[EVAL] Sucessfully save iter {} pred and label.")
 
             intersect_area, pred_area, label_area = metric.calculate_area(
                 pred,
@@ -149,8 +161,8 @@ def evaluate(model,
                             [logits_all, logits.numpy()])  # (KN, C, H, W)
                         label_all = np.concatenate([label_all, label.numpy()])
 
-            batch_cost_averager.record(
-                time.time() - batch_start, num_samples=len(label))
+            batch_cost_averager.record(time.time() - batch_start,
+                                       num_samples=len(label))
             batch_cost = batch_cost_averager.get_average()
             reader_cost = reader_cost_averager.get_average()
 
@@ -169,8 +181,9 @@ def evaluate(model,
                                     label_area_all)
 
     if auc_roc:
-        auc_roc = metric.auc_roc(
-            logits_all, label_all, num_classes=eval_dataset.num_classes)
+        auc_roc = metric.auc_roc(logits_all,
+                                 label_all,
+                                 num_classes=eval_dataset.num_classes)
         auc_infor = ' Auc_roc: {:.4f}'.format(auc_roc)
 
     if print_detail:

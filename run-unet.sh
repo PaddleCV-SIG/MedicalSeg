@@ -1,9 +1,9 @@
-export CUDA_VISIBLE_DEVICES=4,5
+export CUDA_VISIBLE_DEVICES=6,7
 
-yml=vnet_lung_coronavirus_128_128_128_10k
-save_dir=saved_model/${yml}_0110_addtrans_rmvtrans_ceweight
+yml=unet3d_lung_coronavirus_128_128_128_10k
+save_dir=saved_model/${yml}_0110_addce
 
-python3 -m paddle.distributed.launch train.py --config configs/vnet/${yml}.yml \
+python3 -m paddle.distributed.launch train.py --config configs/unet3d/${yml}.yml \
 --save_dir  $save_dir \
 --save_interval 500 --log_iters 100 \
 --num_workers 2 --do_eval \
