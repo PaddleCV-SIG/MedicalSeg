@@ -38,31 +38,33 @@ import random
 import zipfile
 import functools
 import numpy as np
+import nibabel as nib
 
 sys.path.append(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 
-import nibabel as nib
-
+from utils import list_files
 from paddleseg3d.datasets.preprocess_utils import uncompressor
 from paddleseg3d.datasets.preprocess_utils import HU2float32, resample
 
-
-def list_files(path):
-    """list all the filename in a given path recursively"""
-    fname = []
-    for root, _, f_names in os.walk(path):
-        for f in f_names:
-            fname.append(os.path.join(root, f))
-
-    return fname
+urls = {
+    "lung_infection.zip":
+    "https://bj.bcebos.com/v1/ai-studio-online/432237969243497caa4d389c33797ddb2a9fa877f3104e4a9a63bd31a79e4fb8?responseContentDisposition=attachment%3B%20filename%3DLung_Infection.zip&authorization=bce-auth-v1%2F0ef6765c1e494918bc0d4c3ca3e5c6d1%2F2020-05-10T03%3A42%3A16Z%2F-1%2F%2Faccd5511d56d7119555f0e345849cca81459d3783c547eaa59eb715df37f5d25",
+    "lung_mask.zip":
+    "https://bj.bcebos.com/v1/ai-studio-online/96f299c5beb046b4a973fafb3c39048be8d5f860bd0d47659b92116a3cd8a9bf?responseContentDisposition=attachment%3B%20filename%3DLung_Mask.zip&authorization=bce-auth-v1%2F0ef6765c1e494918bc0d4c3ca3e5c6d1%2F2020-05-10T03%3A41%3A14Z%2F-1%2F%2Fb8e23810db1081fc287a1cae377c63cc79bac72ab0fb835d48a46b3a62b90f66",
+    "infection_mask.zip":
+    "https://bj.bcebos.com/v1/ai-studio-online/2b867932e42f4977b46bfbad4fba93aa158f16c79910400b975305c0bd50b638?responseContentDisposition=attachment%3B%20filename%3DInfection_Mask.zip&authorization=bce-auth-v1%2F0ef6765c1e494918bc0d4c3ca3e5c6d1%2F2020-05-10T03%3A42%3A37Z%2F-1%2F%2Fabd47aa33ddb2d4a65555795adef14826aa68b20c3ee742dff2af010ae164252",
+    "20_ncov_scan.zip":
+    "https://bj.bcebos.com/v1/ai-studio-online/12b02c4d5f9d44c5af53d17bbd4f100888b5be1dbc3d40d6b444f383540bd36c?responseContentDisposition=attachment%3B%20filename%3D20_ncov_scan.zip&authorization=bce-auth-v1%2F0ef6765c1e494918bc0d4c3ca3e5c6d1%2F2020-05-10T14%3A54%3A21Z%2F-1%2F%2F1d812ca210f849732feadff9910acc9dcf98ae296988546115fa7b987d856b85"
+}
 
 
 class Prep:
     dataset_root = "data/lung_coronavirus"
     phase0_path = os.path.join(dataset_root, "lung_coronavirus_phase0/")
-    image_dir = os.path.join(dataset_root, "20_ncov_scan")
-    label_dir = os.path.join(dataset_root, "lung_mask")
+    raw_data_path = os.path.join(dataset_root, "lung_coronavirus_raw/")
+    image_dir = os.path.join(raw_data_path, "20_ncov_scan")
+    label_dir = os.path.join(raw_data_path, "lung_mask")
 
     def __init__(self, phase_path=phase0_path, train_split=15):
         self.train_split = train_split
@@ -72,9 +74,9 @@ class Prep:
         os.makedirs(self.image_path, exist_ok=True)
         os.makedirs(self.label_path, exist_ok=True)
 
-        self.uncompress_tool = uncompressor()
-
     def uncompress_file(self, num_zipfiles):
+        uncompress_tool = uncompressor(
+            urls=urls, savepath=self.dataset_root, print_progress=True)
         """unzip all the file in the root directory"""
         zipfiles = glob.glob(os.path.join(self.dataset_root, "*.zip"))
 
@@ -83,9 +85,9 @@ class Prep:
             .format(num_zipfiles, len(zipfiles)))
 
         for f in zipfiles:
-            extract_path = os.path.join(self.dataset_root,
+            extract_path = os.path.join(self.raw_data_path,
                                         f.split("/")[-1].split('.')[0])
-            self.uncompress_tool._uncompress_file(
+            uncompress_tool._uncompress_file(
                 f, extract_path, delete_file=False, print_progress=True)
 
     def load_save(self,
@@ -110,15 +112,14 @@ class Prep:
                 for op in preprocess:
                     nii_np = op(nii_np)
 
-            if tag == "label":
-                nii_np = nii_np.astype(int)
-
             np.save(os.path.join(savepath, filename), nii_np)
 
         print("Sucessfully convert medical images to numpy array!")
 
     def convert_path(self):
         """convert nii.gz file to numpy array in the right directory"""
+        import pdb
+        pdb.set_trace()
 
         print("Start convert images to numpy array, please wait patiently")
         self.load_save(
@@ -130,12 +131,14 @@ class Prep:
                 functools.partial(resample, new_shape=[128, 128, 128])
             ])
         print("start convert labels to numpy array, please wait patiently")
+
         self.load_save(
             self.label_dir,
             np.float32,
             self.label_path,
             preprocess=[
-                functools.partial(resample, new_shape=[128, 128, 128])
+                functools.partial(
+                    resample, new_shape=[128, 128, 128], order=0)
             ],
             tag="label")
 
@@ -174,6 +177,6 @@ class Prep:
 
 if __name__ == "__main__":
     prep = Prep()
-    # prep.uncompress_file(num_zipfiles=4)
+    prep.uncompress_file(num_zipfiles=4)
     prep.convert_path()
-    # prep.generate_txt()
+    prep.generate_txt()

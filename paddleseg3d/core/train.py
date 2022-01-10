@@ -141,7 +141,7 @@ def train(model,
     avg_loss = 0.0
     avg_loss_list = []
     iters_per_epoch = len(batch_sampler)
-    best_mean_iou = -1.0
+    best_mean_dice = -1.0
     best_model_iter = -1
     reader_cost_averager = TimeAverager()
     batch_cost_averager = TimeAverager()
@@ -162,9 +162,7 @@ def train(model,
             images = data[0]
             labels = data[1].astype('int64')
 
-            if hasattr(
-                    model, 'data_format'
-            ) and model.data_format == 'NDHWC':  # originally as NCDHW
+            if hasattr(model, 'data_format') and model.data_format == 'NDHWC':
                 images = images.transpose((0, 2, 3, 4, 1))
 
             if nranks > 1:
@@ -240,7 +238,7 @@ def train(model,
                 if test_config is None:
                     test_config = {}
 
-                mean_iou, acc, _, _, _ = evaluate(
+                mean_iou, mdice, _, _, _ = evaluate(
                     model, val_dataset, num_workers=num_workers, **test_config)
 
                 model.train()
@@ -261,27 +259,27 @@ def train(model,
                     shutil.rmtree(model_to_remove)
 
                 if val_dataset is not None:
-                    if mean_iou > best_mean_iou:
-                        best_mean_iou = mean_iou
+                    if mdice > best_mean_dice:
+                        best_mean_dice = mdice
                         best_model_iter = iter
                         best_model_dir = os.path.join(save_dir, "best_model")
                         paddle.save(
                             model.state_dict(),
                             os.path.join(best_model_dir, 'model.pdparams'))
                     logger.info(
-                        '[EVAL] The model with the best validation mIoU ({:.4f}) was saved at iter {}.'
-                        .format(best_mean_iou, best_model_iter))
+                        '[EVAL] The model with the best validation mDice ({:.4f}) was saved at iter {}.'
+                        .format(best_mean_dice, best_model_iter))
 
                     if use_vdl:
+                        log_writer.add_scalar('Evaluate/Dice', mdice, iter)
                         log_writer.add_scalar('Evaluate/mIoU', mean_iou, iter)
-                        log_writer.add_scalar('Evaluate/Acc', acc, iter)
             batch_start = time.time()
 
     # Calculate flops.
     if local_rank == 0:
-        _, c, h, w = images.shape
+        _, c, d, h, w = images.shape
         _ = paddle.flops(
-            model, [1, c, h, w],
+            model, [1, c, d, h, w],
             custom_ops={paddle.nn.SyncBatchNorm: op_flops_run.count_syncbn})
 
     # Sleep for half a second to let dataloader release resources.

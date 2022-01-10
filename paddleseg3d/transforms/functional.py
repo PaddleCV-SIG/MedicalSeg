@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import collections
 import numbers
 import random
@@ -23,18 +22,20 @@ import scipy
 import scipy.ndimage
 import SimpleITK as sitk
 
+
 def resize_3d(img, size, order=1):
     r"""Resize the input numpy ndarray to the given size.
     Args:
         img (numpy ndarray): Image to be resized.
-        size 
+        size
         order (int, optional): Desired order of scipy.zoom . Default is 1
     Returns:
         Numpy Array
     """
     if not _is_numpy_image(img):
         raise TypeError('img should be numpy image. Got {}'.format(type(img)))
-    if not (isinstance(size, int) or (isinstance(size, collections.abc.Iterable) and len(size) == 3)):
+    if not (isinstance(size, int) or
+            (isinstance(size, collections.abc.Iterable) and len(size) == 3)):
         raise TypeError('Got inappropriate size arg: {}'.format(size))
     d, h, w = img.shape[0], img.shape[1], img.shape[2]
 
@@ -49,12 +50,16 @@ def resize_3d(img, size, order=1):
 
     if img.ndim == 3:
         resize_factor = np.array([od, oh, ow]) / img.shape
-        output = scipy.ndimage.interpolation.zoom(img, resize_factor,
-                                                 mode='nearest', order=interpolation)
+        output = scipy.ndimage.interpolation.zoom(img,
+                                                  resize_factor,
+                                                  mode='nearest',
+                                                  order=order)
     elif img.ndim == 4:
         resize_factor = np.array([od, oh, ow, img.shape[3]]) / img.shape
-        output = scipy.ndimage.interpolation.zoom(img, resize_factor,
-                                                 mode='nearest', order=interpolation)
+        output = scipy.ndimage.interpolation.zoom(img,
+                                                  resize_factor,
+                                                  mode='nearest',
+                                                  order=order)
     return output
 
 
@@ -64,7 +69,7 @@ def crop_3d(img, i, j, k, d, h, w):
         img (numpy ndarray): Image to be cropped.
         i: Upper pixel coordinate.
         j: Left pixel coordinate.
-        k: 
+        k:
         d:
         h: Height of the cropped image.
         w: Width of the cropped image.
@@ -95,7 +100,12 @@ def rotate_3d(img, r_plane, angle, order=1, cval=0):
     r_plane (2-list): rotate planes by axis, i.e, [0, 1] or [1, 2] or [0, 2]
     angle (int): rotate degrees
     """
-    img = scipy.ndimage.rotate(img, angle=angle, axes=r_plane, order=order, cval=cval, reshape=False)
+    img = scipy.ndimage.rotate(img,
+                               angle=angle,
+                               axes=r_plane,
+                               order=order,
+                               cval=cval,
+                               reshape=False)
     return img
 
 
@@ -105,8 +115,12 @@ def resized_crop_3d(img, i, j, k, d, h, w, size, interpolation):
     """
     assert _is_numpy_image(img), 'img should be numpy image'
     img = crop_3d(img, i, j, k, d, h, w)
-    img = resize_3d(img, size, interpolation=interpolation)
+    img = resize_3d(img, size, order=interpolation)
     return img
+
+
+def _is_numpy_image(img):
+    return isinstance(img, np.ndarray) and (img.ndim in {2, 3, 4})
 
 
 def extract_connect_compoent(binary_mask, minimum_volume=0):
@@ -120,8 +134,7 @@ def extract_connect_compoent(binary_mask, minimum_volume=0):
     assert len(np.unique(binary_mask)) < 3, \
         "Only binary mask is accepted, got mask with {}.".format(np.unique(binary_mask).tolist())
     instance_mask = sitk.GetArrayFromImage(
-            sitk.RelabelComponent(
-                sitk.ConnectedComponent(sitk.GetImageFromArray(binary_mask)), 
-                minimumObjectSize=minimum_volume)
-    )
+        sitk.RelabelComponent(sitk.ConnectedComponent(
+            sitk.GetImageFromArray(binary_mask)),
+                              minimumObjectSize=minimum_volume))
     return instance_mask

@@ -44,7 +44,7 @@ class train_scheduler:
 
     def run(self, ):
         for c in self.cfg:
-            os.system("python train_seg.py  –config {}".format(c))
+            os.system("python train.py  –config {}".format(c))
 
             if self.cfg["coarse"]:
                 pass  # ADD save result for coarse model

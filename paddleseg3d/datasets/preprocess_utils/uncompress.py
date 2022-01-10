@@ -18,14 +18,20 @@ import tarfile
 import time
 import zipfile
 import functools
+import requests
+import shutil
 
 lasttime = time.time()
 FLUSH_INTERVAL = 0.1
 
 
 class uncompressor:
-    def __init__(self):
-        pass
+
+    def __init__(self, urls, savepath, print_progress):
+        for key, url in urls.items():
+            self._download_file(url,
+                                savepath=os.path.join(savepath, key),
+                                print_progress=print_progress)
 
     def _uncompress_file_zip(self, filepath, extrapath):
         files = zipfile.ZipFile(filepath, 'r')
@@ -83,3 +89,30 @@ class uncompressor:
             os.remove(filepath)
 
         return rootpath
+
+    def _download_file(self, url, savepath, print_progress):
+        if print_progress:
+            print("Connecting to {}".format(url))
+        r = requests.get(url, stream=True, timeout=15)
+        total_length = r.headers.get('content-length')
+
+        if total_length is None:
+            with open(savepath, 'wb') as f:
+                shutil.copyfileobj(r.raw, f)
+        else:
+            with open(savepath, 'wb') as f:
+                dl = 0
+                total_length = int(total_length)
+                starttime = time.time()
+                if print_progress:
+                    print("Downloading %s" % os.path.basename(savepath))
+                for data in r.iter_content(chunk_size=4096):
+                    dl += len(data)
+                    f.write(data)
+                    if print_progress:
+                        done = int(50 * dl / total_length)
+                        self.progress(
+                            "[%-50s] %.2f%%" %
+                            ('=' * done, float(100 * dl) / total_length))
+            if print_progress:
+                self.progress("[%-50s] %.2f%%" % ('=' * 50, 100), end=True)
