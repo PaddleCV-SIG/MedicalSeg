@@ -118,6 +118,13 @@ def evaluate(model,
                         label.clone().detach().numpy())
                 logger.info("[EVAL] Sucessfully save iter {} pred and label.")
 
+            # Post process
+            if eval_dataset.post_transform is not None:
+                pred, label = eval_dataset.post_transform(
+                    pred.numpy(), label.numpy())
+                pred = paddle.to_tensor(pred)
+                label = paddle.to_tensor(label)
+
             intersect_area, pred_area, label_area = metric.calculate_area(
                 pred,
                 label,

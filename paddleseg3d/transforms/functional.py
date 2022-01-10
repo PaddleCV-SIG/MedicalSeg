@@ -20,6 +20,7 @@ import numpy as np
 import cv2
 import scipy
 import scipy.ndimage
+import SimpleITK as sitk
 
 
 def resize_3d(img, size, order=1):
@@ -120,3 +121,20 @@ def resized_crop_3d(img, i, j, k, d, h, w, size, interpolation):
 
 def _is_numpy_image(img):
     return isinstance(img, np.ndarray) and (img.ndim in {2, 3, 4})
+
+
+def extract_connect_compoent(binary_mask, minimum_volume=0):
+    """
+    extract connect compoent from binary mask
+    binary mask -> mask w/ [0, 1, 2, ...]
+    0 - background
+    1 - foreground instance #1 (start with 1)
+    2 - foreground instance #2
+    """
+    assert len(np.unique(binary_mask)) < 3, \
+        "Only binary mask is accepted, got mask with {}.".format(np.unique(binary_mask).tolist())
+    instance_mask = sitk.GetArrayFromImage(
+        sitk.RelabelComponent(sitk.ConnectedComponent(
+            sitk.GetImageFromArray(binary_mask)),
+                              minimumObjectSize=minimum_volume))
+    return instance_mask

@@ -335,3 +335,31 @@ class RandomResizedCrop3D:
             label = F.resized_crop_3d(label, i, j, k, d, h, w, self.size, 0)
 
         return img, label
+
+@manager.TRANSFORMS.add_component
+class BinaryMaskConnectCompoent:
+    """Got the connect compoent from binary mask
+    Args:
+        minimum_volume (int, default=0): The minimum volume of the connected compoent to be retained
+    """
+
+    def __init__(self, minimum_volume=0):
+        """
+        resize
+        """
+        self.minimum_volume = minimum_volume
+        super().__init__()
+
+    def __call__(self, pred, label=None):
+        """
+        Args:
+            img (numpy ndarray): Image to be scaled.
+            label (numpy ndarray) : Label to be scaled
+        Returns:
+            numpy ndarray: Rescaled image.
+            numpy ndarray: Rescaled label.
+        """
+        pred = F.extract_connect_compoent(pred, self.minimum_volume)
+        if label is not None:
+            label = F.extract_connect_compoent(label, self.minimum_volume)
+        return pred, label
