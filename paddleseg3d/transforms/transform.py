@@ -337,7 +337,7 @@ class RandomResizedCrop3D:
         return img, label
 
 @manager.TRANSFORMS.add_component
-class BinaryMaskConnectCompoent:
+class BinaryMaskToConnectCompoent:
     """Got the connect compoent from binary mask
     Args:
         minimum_volume (int, default=0): The minimum volume of the connected compoent to be retained
@@ -362,4 +362,32 @@ class BinaryMaskConnectCompoent:
         pred = F.extract_connect_compoent(pred, self.minimum_volume)
         if label is not None:
             label = F.extract_connect_compoent(label, self.minimum_volume)
+        return pred, label
+
+
+@manager.TRANSFORMS.add_component
+class TopkLargestConnectCompoent:
+    """Keep topk largest connect compoent sorted by volume nums, remove others.
+    Args:
+        k (int, default=1): k
+    """
+
+    def __init__(self, k=1):
+        """
+        resize
+        """
+        self.k = k
+        super().__init__()
+
+    def __call__(self, pred, label=None):
+        """
+        Args:
+            img (numpy ndarray): Image to be scaled.
+            label (numpy ndarray) : Label to be scaled
+        Returns:
+            numpy ndarray: Rescaled image.
+            numpy ndarray: Rescaled label.
+        """
+        pred = F.extract_connect_compoent(pred)
+        pred[pred > k] = 0
         return pred, label
