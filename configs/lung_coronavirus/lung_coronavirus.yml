@@ -20,8 +20,6 @@ val_dataset:
     - type: RandomFlip3D
   mode: val
   num_classes: 3
-  post_transforms:
-    - type: BinaryMaskConnectCompoent
 
 optimizer:
   type: sgd

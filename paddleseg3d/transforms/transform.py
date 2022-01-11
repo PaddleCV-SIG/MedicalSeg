@@ -337,10 +337,10 @@ class RandomResizedCrop3D:
         return img, label
 
 @manager.TRANSFORMS.add_component
-class BinaryMaskToConnectCompoent:
+class BinaryMaskToConnectComponent:
     """Got the connect compoent from binary mask
     Args:
-        minimum_volume (int, default=0): The minimum volume of the connected compoent to be retained
+        minimum_volume (int, default=0): The minimum volume of the connected component to be retained
     """
 
     def __init__(self, minimum_volume=0):
@@ -366,8 +366,8 @@ class BinaryMaskToConnectCompoent:
 
 
 @manager.TRANSFORMS.add_component
-class TopkLargestConnectCompoent:
-    """Keep topk largest connect compoent sorted by volume nums, remove others.
+class TopkLargestConnectComponent:
+    """Keep topk largest connect component sorted by volume nums, remove others.
     Args:
         k (int, default=1): k
     """
