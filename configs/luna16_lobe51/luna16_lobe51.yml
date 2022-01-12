@@ -4,9 +4,9 @@ batch_size: 4
 iters: 15000
 
 train_dataset:
-  type: LungCoronavirus
-  dataset_root: lung_coronavirus/lung_coronavirus_phase0
-  result_dir: lung_coronavirus/lung_coronavirus_phase1
+  type: Luna16Lobe51
+  dataset_root: luna16_lobe51/luna16_lobe51_phase0
+  result_dir: luna16_lobe51/luna16_lobe51_phase1
   transforms:
     - type: RandomResizedCrop3D
       size: 128
@@ -18,9 +18,9 @@ train_dataset:
   num_classes: 3
 
 val_dataset:
-  type: LungCoronavirus
-  dataset_root: lung_coronavirus/lung_coronavirus_phase0
-  result_dir: lung_coronavirus/lung_coronavirus_phase1
+  type: Luna16Lobe51
+  dataset_root: luna16_lobe51/luna16_lobe51_phase0
+  result_dir: luna16_lobe51/luna16_lobe51_phase1
   num_classes: 3
   transforms: []
   mode: val

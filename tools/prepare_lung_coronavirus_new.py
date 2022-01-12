@@ -1,3 +1,6 @@
+#  HU_min -1250，HU_max 250
+# resample size 128, 128, 128，整CT直接resize，order=1
+# LUNA的label mapping就是上午给你的那个{1:0, 4:3, 5:4, 6:5, 7:1, 8:2, 512:0, 516:0, 517:0, 518:0, 519:0, 520:0}
 # Copyright (c) 2021 PaddlePaddle Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-File: prepare_lung_coronavirus.py
 The file structure is as following:
 lung_coronavirus
 |--20_ncov_scan.zip
@@ -52,9 +54,10 @@ import nibabel as nib
 sys.path.append(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 
-from prepare_utils import list_files
+from utils import list_files
 from paddleseg3d.datasets.preprocess_utils import uncompressor
-from paddleseg3d.datasets.preprocess_utils import HU2float32, resample
+from paddleseg3d.datasets.preprocess_utils import HU2float32, resample, label_remap
+from prepare import Prep
 
 urls = {
     "lung_infection.zip":
@@ -67,68 +70,25 @@ urls = {
     "https://bj.bcebos.com/v1/ai-studio-online/12b02c4d5f9d44c5af53d17bbd4f100888b5be1dbc3d40d6b444f383540bd36c?responseContentDisposition=attachment%3B%20filename%3D20_ncov_scan.zip&authorization=bce-auth-v1%2F0ef6765c1e494918bc0d4c3ca3e5c6d1%2F2020-05-10T14%3A54%3A21Z%2F-1%2F%2F1d812ca210f849732feadff9910acc9dcf98ae296988546115fa7b987d856b85"
 }
 
+# TODO: wait validation
 
-class Prep:
-    dataset_root = "data/lung_coronavirus"
-    phase0_path = os.path.join(dataset_root, "lung_coronavirus_phase0/")
-    raw_data_path = os.path.join(dataset_root, "lung_coronavirus_raw/")
-    image_dir = os.path.join(raw_data_path, "20_ncov_scan")
-    label_dir = os.path.join(raw_data_path, "lung_mask")
 
-    def __init__(self, phase_path=phase0_path, train_split=15):
-        self.train_split = train_split
-        self.phase_path = phase_path
-        self.image_path = os.path.join(self.phase_path, "images")
-        self.label_path = os.path.join(self.phase_path, "labels")
-        os.makedirs(self.image_path, exist_ok=True)
-        os.makedirs(self.label_path, exist_ok=True)
+class Prep_luna(Prep):
+    def __init__(self):
+        self.dataset_root = "data/lung_coronavirus"
+        self.phase_path = os.path.join(self.dataset_root,
+                                       "lung_coronavirus_phase0/")
+        super().__init__(
+            phase_path=self.phase_path, dataset_root=self.dataset_root)
 
-    def uncompress_file(self, num_zipfiles):
-        uncompress_tool = uncompressor(
-            download_params=(urls, self.dataset_root, True))
-        """unzip all the file in the root directory"""
-        zipfiles = glob.glob(os.path.join(self.dataset_root, "*.zip"))
-
-        assert len(zipfiles) == num_zipfiles, print(
-            "The file directory should include {} zip file, but there is only {}"
-            .format(num_zipfiles, len(zipfiles)))
-
-        for f in zipfiles:
-            extract_path = os.path.join(self.raw_data_path,
-                                        f.split("/")[-1].split('.')[0])
-            uncompress_tool._uncompress_file(
-                f, extract_path, delete_file=False, print_progress=True)
-
-    def load_save(self,
-                  file_dir,
-                  load_type=np.float32,
-                  savepath=None,
-                  preprocess=None,
-                  tag="image"):
-        """
-        Load the file in file dir, preprocess it and save it to the directory.
-        """
-        files = list_files(file_dir)
-        assert len(files) != 0, print(
-            "The data directory you assigned is wrong, there is no file in it."
-        )
-
-        for f in files:
-            filename = f.split("/")[-1].split(".")[0]
-            nii_np = nib.load(f).get_fdata(dtype=load_type)
-
-            if preprocess is not None:
-                for op in preprocess:
-                    nii_np = op(nii_np)
-
-            np.save(os.path.join(savepath, filename), nii_np)
-
-        print("Sucessfully convert medical images to numpy array!")
+        self.raw_data_path = os.path.join(self.dataset_root,
+                                          "lung_coronavirus_raw/")
+        self.image_dir = os.path.join(self.raw_data_path, "20_ncov_scan")
+        self.label_dir = os.path.join(self.raw_data_path, "lung_mask")
+        self.urls = urls
 
     def convert_path(self):
         """convert nii.gz file to numpy array in the right directory"""
-        import pdb
-        pdb.set_trace()
 
         print("Start convert images to numpy array, please wait patiently")
         self.load_save(
@@ -137,7 +97,8 @@ class Prep:
             savepath=self.image_path,
             preprocess=[
                 HU2float32,
-                functools.partial(resample, new_shape=[128, 128, 128])
+                functools.partial(
+                    resample, new_shape=[128, 128, 128], order=1)
             ])
         print("start convert labels to numpy array, please wait patiently")
 
@@ -147,41 +108,29 @@ class Prep:
             self.label_path,
             preprocess=[
                 functools.partial(
-                    resample, new_shape=[128, 128, 128], order=0)
+                    resample, new_shape=[128, 128, 128], order=0),
             ],
             tag="label")
 
-    def generate_txt(self):
+    def generate_txt(self, train_split=15):
         """generate the train_list.txt and val_list.txt"""
-
-        def write_txt(txt, files):
-            with open(txt, 'w') as f:
-                if "train" in txt:
-                    image_names = files[:self.train_split]
-                else:
-                    image_names = files[self.train_split:]
-
-                label_names = [
-                    name.replace("_org_covid-19-pneumonia-", "_").replace(
-                        "-dcm", "").replace("_org_", "_")
-                    for name in image_names
-                ]  # todo: remove specific for this class
-
-                for i in range(len(image_names)):
-                    string = "{} {}\n".format('images/' + image_names[i],
-                                              'labels/' + label_names[i])
-                    f.write(string)
-            print("successfully write to {}".format(txt))
 
         txtname = [
             os.path.join(self.phase_path, 'train_list.txt'),
             os.path.join(self.phase_path, 'val_list.txt')
         ]
 
-        files = os.listdir(self.image_path)
-        random.shuffle(files)
-        write_txt(txtname[0], files)
-        write_txt(txtname[1], files)
+        image_files = os.listdir(self.image_path)  # only write txt in
+        label_files = [
+            name.replace("_org_covid-19-pneumonia-",
+                         "_").replace("-dcm", "").replace("_org_", "_")
+            for name in image_files
+        ]
+
+        self.write_txt(
+            txtname[0], image_files, label_files, train_split=train_split)
+        self.write_txt(
+            txtname[1], image_files, label_files, train_split=train_split)
 
 
 if __name__ == "__main__":

@@ -20,7 +20,9 @@ from PIL import Image
 
 from paddleseg3d.cvlibs import manager
 from paddleseg3d.transforms import Compose
+from paddleseg3d.utils.env_util import seg_env
 import paddleseg3d.transforms.functional as F
+from paddleseg3d.utils.download import download_file_and_uncompress
 
 
 @manager.DATASETS.add_component
@@ -32,113 +34,78 @@ class MedicalDataset(paddle.io.Dataset):
         transforms (list): Transforms for image.
         dataset_root (str): The dataset directory.
         num_classes (int): Number of classes.
+        result_dir (str): The directory to save the next phase result.
         mode (str, optional): which part of dataset to use. it is one of ('train', 'val', 'test'). Default: 'train'.
-        train_path (str, optional): The train dataset file. When mode is 'train', train_path is necessary.
-            The contents of train_path file are as follow:
-            image1.jpg ground_truth1.png
-            image2.jpg ground_truth2.png
-        val_path (str. optional): The evaluation dataset file. When mode is 'val', val_path is necessary.
-            The contents is the same as train_path
-        test_path (str, optional): The test dataset file. When mode is 'test', test_path is necessary.
-            The annotation file is not necessary in test_path file.
-        separator (str, optional): The separator of dataset list. Default: ' '.
-        edge (bool, optional): Whether to compute edge while training. Default: False
+        ignore_index (int, optional): The index that ignore when calculate loss.
 
         Examples:
 
             import paddleseg3d.transforms as T
             from paddleseg.datasets import MedicalDataset
 
-            transforms = [T.RandomPaddingCrop(crop_size=(512,512)), T.Normalize()]
+            transforms = [T.RandomRotation3D(degrees=90)]
             dataset_root = 'dataset_root_path'
-            train_path = 'train_path'
-            num_classes = 2
             dataset = MedicalDataset(transforms = transforms,
                               dataset_root = dataset_root,
-                              num_classes = 2,
-                              train_path = train_path,
+                              num_classes = 3,
                               mode = 'train')
+
+            for data in dataset:
+                img, label = data
+                print(img.shape, label.shape)
+                print(np.unique(label))
 
     """
 
     def __init__(self,
-                 transforms,
                  dataset_root,
                  result_dir,
+                 transforms,
                  num_classes,
                  mode='train',
-                 train_path=None,
-                 val_path=None,
-                 test_path=None,
-                 separator=' ',
                  ignore_index=255,
-                 edge=False):
+                 data_URL=""):
         self.dataset_root = dataset_root
         self.result_dir = result_dir
         self.transforms = Compose(transforms)
         self.file_list = list()
         self.mode = mode.lower()
         self.num_classes = num_classes
-        self.ignore_index = ignore_index
-        self.edge = edge
+        self.ignore_index = ignore_index  # todo: if labels only have 1/0/2, ignore_index is not necessary
 
-        if self.mode not in ['train', 'val', 'test']:
-            raise ValueError(
-                "mode should be 'train', 'val' or 'test', but got {}.".format(
-                    self.mode))
+        if self.dataset_root is None:
+            self.dataset_root = download_file_and_uncompress(
+                url=data_URL,
+                savepath=seg_env.DATA_HOME,
+                extrapath=seg_env.DATA_HOME)
+        elif not os.path.exists(self.dataset_root):
+            self.dataset_root = os.path.normpath(self.dataset_root)
+            savepath, extraname = self.dataset_root.rsplit(
+                sep=os.path.sep, maxsplit=1)
+            self.dataset_root = download_file_and_uncompress(
+                url=data_URL,
+                savepath=savepath,
+                extrapath=savepath,
+                extraname=extraname)
 
-        if self.transforms is None:
-            raise ValueError("`transforms` is necessary, but it is None.")
-
-        if not os.path.exists(self.dataset_root):
-            raise FileNotFoundError('there is not `dataset_root`: {}.'.format(
-                self.dataset_root))
-
-        if self.mode == 'train':
-            if train_path is None:
-                raise ValueError(
-                    'When `mode` is "train", `train_path` is necessary, but it is None.'
-                )
-            elif not os.path.exists(train_path):
-                raise FileNotFoundError(
-                    '`train_path` is not found: {}'.format(train_path))
-            else:
-                file_path = train_path
-        elif self.mode == 'val':
-            if val_path is None:
-                raise ValueError(
-                    'When `mode` is "val", `val_path` is necessary, but it is None.'
-                )
-            elif not os.path.exists(val_path):
-                raise FileNotFoundError(
-                    '`val_path` is not found: {}'.format(val_path))
-            else:
-                file_path = val_path
+        if mode == 'train':
+            file_path = os.path.join(self.dataset_root, 'train_list.txt')
+        elif mode == 'val':
+            file_path = os.path.join(self.dataset_root, 'val_list.txt')
         else:
-            if test_path is None:
-                raise ValueError(
-                    'When `mode` is "test", `test_path` is necessary, but it is None.'
-                )
-            elif not os.path.exists(test_path):
-                raise FileNotFoundError(
-                    '`test_path` is not found: {}'.format(test_path))
-            else:
-                file_path = test_path
+            raise ValueError(
+                "`mode` should be 'train' or 'val', but got {}.".format(mode))
 
         with open(file_path, 'r') as f:
             for line in f:
-                items = line.strip().split(separator)
+                items = line.strip().split()
                 if len(items) != 2:
-                    if self.mode == 'train' or self.mode == 'val':
-                        raise ValueError(
-                            "File list format incorrect! In training or evaluation task it should be"
-                            " image_name{}label_name\\n".format(separator))
-                    image_path = os.path.join(self.dataset_root, items[0])
-                    label_path = None
+                    raise Exception("File list format incorrect! It should be"
+                                    " image_name label_name\\n")
                 else:
                     image_path = os.path.join(self.dataset_root, items[0])
-                    label_path = os.path.join(self.dataset_root, items[1])
-                self.file_list.append([image_path, label_path])
+                    grt_path = os.path.join(self.dataset_root, items[1])
+                self.file_list.append([image_path, grt_path])
 
     def __getitem__(self, idx):
         image_path, label_path = self.file_list[idx]
@@ -146,11 +113,6 @@ class MedicalDataset(paddle.io.Dataset):
             im, _ = self.transforms(im=image_path)
             im = im[np.newaxis, ...]
             return im, image_path
-        # elif self.mode == 'val':
-        #     im, _ = self.transforms(im=image_path)
-        #     label = np.asarray(Image.open(label_path))
-        #     label = label[np.newaxis, :, :]
-        #     return im, label
         else:
             im, label = self.transforms(im=image_path, label=label_path)
 

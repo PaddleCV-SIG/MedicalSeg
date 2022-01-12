@@ -14,8 +14,23 @@
 
 import numpy as np
 
+# TODO add clip [0.9%, 99.1%]
 
-def HU2float32(image, HU_min=-1200, HU_max=600, HU_nan=-2000, dtype="float32"):
+
+def label_remap(label, map_dict=None):
+    """
+    Convert labels using label map
+
+    label: 3D numpy array in [z, y, x] order.
+    map_dict: the label transfer map dict. key is the original label, value is the remaped one.
+    """
+    for key, val in map_dict.items():
+        label[label == key] = val
+
+    return label
+
+
+def HU2float32(image, HU_min=-1000, HU_max=600, HU_nan=-2000, dtype="float32"):
     """
     Convert HU unit into uint8 values. First bound HU values by predfined min
     and max, and then normalize. Due to paddle.nn.conv3D doesn't support uint8, we need to convert
