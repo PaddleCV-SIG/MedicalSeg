@@ -23,13 +23,13 @@ from paddleseg3d.cvlibs import manager
 from paddleseg3d.transforms import Compose
 from paddleseg3d.datasets import MedicalDataset
 
-URL = ' '  # todo: add coronavirus url
+URL = ' '  # todo: add luna url
 
 
 @manager.DATASETS.add_component
-class LungCoronavirus(MedicalDataset):
+class Luna16Lobe51(MedicalDataset):
     """
-    The Lung cornavirus dataset is ...(todo: add link and description)
+    The Luna16 dataset is ...(todo: add link and description)
 
     Args:
         dataset_root (str): The dataset directory. Default: None
@@ -40,9 +40,8 @@ class LungCoronavirus(MedicalDataset):
         Examples:
 
             transforms=[]
-            dataset_root = "data/lung_coronavirus/lung_coronavirus_phase0/"
-            dataset = LungCoronavirus(dataset_root=dataset_root, transforms=[], num_classes=3, mode="train")
-
+            dataset_root = "data/luna16_lobe51/luna16_lobe51_phase0/"
+            dataset = Luna16Lobe51(dataset_root=dataset_root, transforms=[], num_classes=3, mode="train")
             for data in dataset:
                 img, label = data
                 print(img.shape, label.shape) # (1, 128, 128, 128) (128, 128, 128)
@@ -58,7 +57,7 @@ class LungCoronavirus(MedicalDataset):
                  num_classes=None,
                  mode='train',
                  ignore_index=255):
-        super(LungCoronavirus, self).__init__(
+        super(Luna16Lobe51, self).__init__(
             dataset_root,
             result_dir,
             transforms,
