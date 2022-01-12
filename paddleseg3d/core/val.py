@@ -56,6 +56,7 @@ def evaluate(model,
         num_workers (int, optional): Num workers for data loader. Default: 0.
         print_detail (bool, optional): Whether to print detailed information about the evaluation process. Default: True.
         auc_roc(bool, optional): whether add auc_roc metric
+        save_dir(str, optional): the path to save predicted result.
 
     Returns:
         float: The mIoU of validation datasets.
@@ -69,10 +70,8 @@ def evaluate(model,
         if not paddle.distributed.parallel.parallel_helper._is_parallel_ctx_initialized(
         ):
             paddle.distributed.init_parallel_env()
-    batch_sampler = paddle.io.DistributedBatchSampler(eval_dataset,
-                                                      batch_size=1,
-                                                      shuffle=False,
-                                                      drop_last=False)
+    batch_sampler = paddle.io.DistributedBatchSampler(
+        eval_dataset, batch_size=1, shuffle=False, drop_last=False)
     loader = paddle.io.DataLoader(
         eval_dataset,
         batch_sampler=batch_sampler,
@@ -91,8 +90,8 @@ def evaluate(model,
         logger.info(
             "Start evaluating (total_samples: {}, total_iters: {})...".format(
                 len(eval_dataset), total_iters))
-    progbar_val = progbar.Progbar(target=total_iters,
-                                  verbose=1 if nranks < 2 else 2)
+    progbar_val = progbar.Progbar(
+        target=total_iters, verbose=1 if nranks < 2 else 2)
     reader_cost_averager = TimeAverager()
     batch_cost_averager = TimeAverager()
     batch_start = time.time()
@@ -110,20 +109,22 @@ def evaluate(model,
                 transforms=eval_dataset.transforms.transforms)
 
             if save_dir is not None:
-                import pdb
-                pdb.set_trace()
                 np.save('{}/{}_pred.npy'.format(save_dir, iter),
                         pred.clone().detach().numpy())
                 np.save('{}/{}_label.npy'.format(save_dir, iter),
                         label.clone().detach().numpy())
-                logger.info("[EVAL] Sucessfully save iter {} pred and label.")
+                np.save('{}/{}_img.npy'.format(save_dir, iter),
+                        im.clone().detach().numpy())
+                logger.info(
+                    "[EVAL] Sucessfully save iter {} pred and label.".format(
+                        iter))
 
             # Post process
-            if eval_dataset.post_transform is not None:
-                pred, label = eval_dataset.post_transform(
-                    pred.numpy(), label.numpy())
-                pred = paddle.to_tensor(pred)
-                label = paddle.to_tensor(label)
+            # if eval_dataset.post_transform is not None:
+            #     pred, label = eval_dataset.post_transform(
+            #         pred.numpy(), label.numpy())
+            #     pred = paddle.to_tensor(pred)
+            #     label = paddle.to_tensor(label)
 
             intersect_area, pred_area, label_area = metric.calculate_area(
                 pred,
@@ -168,8 +169,8 @@ def evaluate(model,
                             [logits_all, logits.numpy()])  # (KN, C, H, W)
                         label_all = np.concatenate([label_all, label.numpy()])
 
-            batch_cost_averager.record(time.time() - batch_start,
-                                       num_samples=len(label))
+            batch_cost_averager.record(
+                time.time() - batch_start, num_samples=len(label))
             batch_cost = batch_cost_averager.get_average()
             reader_cost = reader_cost_averager.get_average()
 
@@ -188,9 +189,8 @@ def evaluate(model,
                                     label_area_all)
 
     if auc_roc:
-        auc_roc = metric.auc_roc(logits_all,
-                                 label_all,
-                                 num_classes=eval_dataset.num_classes)
+        auc_roc = metric.auc_roc(
+            logits_all, label_all, num_classes=eval_dataset.num_classes)
         auc_infor = ' Auc_roc: {:.4f}'.format(auc_roc)
 
     if print_detail:
