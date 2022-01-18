@@ -45,9 +45,7 @@ def HU2float32(image, HU_min=-1000, HU_max=600, HU_nan=-2000, dtype="float32"):
         image = np.array(image)
     image = np.nan_to_num(image, copy=False, nan=HU_nan)
 
-    # normalize to [0, 1]
     image = (image - HU_min) / ((HU_max - HU_min) / 255)
     np.clip(image, 0, 255, out=image)
-    image = image.astype(dtype)
 
     return image

@@ -65,6 +65,7 @@ class Compose:
             if len(outputs) == 2:
                 label = outputs[1]
         im = np.expand_dims(im, axis=0)
+        im /= im.max()
         return (im, label)
 
 
@@ -335,6 +336,7 @@ class RandomResizedCrop3D:
             label = F.resized_crop_3d(label, i, j, k, d, h, w, self.size, 0)
 
         return img, label
+
 
 @manager.TRANSFORMS.add_component
 class BinaryMaskConnectCompoent:
