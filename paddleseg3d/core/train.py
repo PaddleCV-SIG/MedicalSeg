@@ -150,7 +150,8 @@ def train(model,
 
     iter = start_iter
     while iter < iters:
-        # import pdb; pdb.set_trace()
+        import pdb
+        pdb.set_trace()
         for data in loader:
             iter += 1
             if iter > iters:
@@ -161,7 +162,7 @@ def train(model,
                     break
             reader_cost_averager.record(time.time() - batch_start)
             images = data[0]
-            labels = data[1].astype('int64')
+            labels = data[1].astype('int32')
 
             if hasattr(model, 'data_format') and model.data_format == 'NDHWC':
                 images = images.transpose((0, 2, 3, 4, 1))

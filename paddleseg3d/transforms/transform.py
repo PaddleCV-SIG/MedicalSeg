@@ -65,6 +65,7 @@ class Compose:
             if len(outputs) == 2:
                 label = outputs[1]
         im = np.expand_dims(im, axis=0)
+        im /= im.max()
         return (im, label)
 
 
@@ -336,6 +337,7 @@ class RandomResizedCrop3D:
 
         return img, label
 
+
 @manager.TRANSFORMS.add_component
 class BinaryMaskToConnectComponent:
     """Got the connect compoent from binary mask
@@ -389,5 +391,5 @@ class TopkLargestConnectComponent:
             numpy ndarray: Rescaled label.
         """
         pred = F.extract_connect_compoent(pred)
-        pred[pred > k] = 0
+        pred[pred > self.k] = 0
         return pred, label
