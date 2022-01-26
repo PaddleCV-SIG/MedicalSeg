@@ -51,7 +51,10 @@ class MixedLoss(nn.Layer):
 
     def forward(self, logits, labels):
         loss_list = []
+        per_channel_dice = None
         for i, loss in enumerate(self.losses):
             output = loss(logits, labels)
+            if type(loss).__name__ == "DiceLoss":
+                output, per_channel_dice = output
             loss_list.append(output * self.coef[i])
-        return loss_list
+        return loss_list, per_channel_dice

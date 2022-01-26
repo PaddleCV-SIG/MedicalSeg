@@ -80,8 +80,8 @@ class MedicalDataset(paddle.io.Dataset):
                 extrapath=seg_env.DATA_HOME)
         elif not os.path.exists(self.dataset_root):
             self.dataset_root = os.path.normpath(self.dataset_root)
-            savepath, extraname = self.dataset_root.rsplit(
-                sep=os.path.sep, maxsplit=1)
+            savepath, extraname = self.dataset_root.rsplit(sep=os.path.sep,
+                                                           maxsplit=1)
             self.dataset_root = download_file_and_uncompress(
                 url=data_URL,
                 savepath=savepath,
@@ -92,9 +92,12 @@ class MedicalDataset(paddle.io.Dataset):
             file_path = os.path.join(self.dataset_root, 'train_list.txt')
         elif mode == 'val':
             file_path = os.path.join(self.dataset_root, 'val_list.txt')
+        elif mode == 'test':
+            file_path = os.path.join(self.dataset_root, 'test_list.txt')
         else:
             raise ValueError(
-                "`mode` should be 'train' or 'val', but got {}.".format(mode))
+                "`mode` should be 'train', 'val' or 'test', but got {}.".
+                format(mode))
 
         with open(file_path, 'r') as f:
             for line in f:

@@ -58,21 +58,21 @@ class InputTransition(nn.Layer):
         self.num_features = 16
         self.in_channels = in_channels
 
-        self.conv = nn.Conv3D(self.in_channels,
-                              self.num_features,
-                              kernel_size=5,
-                              padding=2)
+        self.conv1 = nn.Conv3D(self.in_channels,
+                               self.num_features,
+                               kernel_size=5,
+                               padding=2)
 
-        self.bn = nn.BatchNorm3D(self.num_features)
+        self.bn1 = nn.BatchNorm3D(self.num_features)
 
-        self.relu = nn.ELU() if elu else nn.PReLU(self.num_features)
+        self.relu1 = nn.ELU() if elu else nn.PReLU(self.num_features)
 
     def forward(self, x):
-        out = self.conv(x)
+        out = self.conv1(x)
         repeat_rate = int(self.num_features / self.in_channels)
-        out = self.bn(out)
+        out = self.bn1(out)
         x_tile = x.tile([1, repeat_rate, 1, 1, 1])
-        return self.relu(paddle.add(out, x_tile))
+        return self.relu1(paddle.add(out, x_tile))
 
 
 class DownTransition(nn.Layer):
@@ -255,12 +255,121 @@ class VNetLight(nn.Layer):
 
 
 if __name__ == "__main__":
-    m = VNet(in_channels=1, num_classes=3)
-    # m.test()
-    x = paddle.randn([2, 1, 128, 128, 128])
-    out = m(x)
-    out[0].backward()
-    for name, tensor in m.named_parameters():
-        grad = tensor.grad
-        if grad is not None:
-            print(name, grad.mean())
+    from reprod_log import ReprodLogger, ReprodDiffHelper
+    import numpy as np
+    diff_helper = ReprodDiffHelper()
+    import pdb
+    pdb.set_trace()
+    torch_info = diff_helper.load_info("../../data/vnet_align/train_ref.npy")
+    paddle_info = diff_helper.load_info(
+        "../../data/vnet_align/train_paddle.npy")
+    diff_helper.compare_info(torch_info, paddle_info)
+    diff_helper.report(path="../../data/vnet_align/train_diff.log")
+
+    # m = VNet(in_channels=1, num_classes=3)
+    # # paddle.save(m.state_dict(), "../../data/vnet_align/paddlemodelorg.pdparams")
+    # m.set_dict(paddle.load("../../data/vnet_align/paddlemodel.pdparams"))
+    # m.eval()
+
+    # x = paddle.to_tensor(np.load("../../data/vnet_align/fake_data.npy"), dtype="float32")
+    # y = paddle.to_tensor(np.load("../../data/vnet_align/fake_label.npy"), dtype="int64")
+    # x.stop_gradient = False
+    # out = m(x)[0]
+
+    # test forward
+    # reprod_logger = ReprodLogger()
+    # reprod_logger.add("x", x.cpu().detach().numpy())
+    # reprod_logger.add("y", y.cpu().detach().numpy())
+    # reprod_logger.add("logits", out.cpu().detach().numpy())
+    # reprod_logger.save("../../data/vnet_align/forward_paddle.npy")
+
+    # # implement loss
+    # from paddleseg3d.models.losses import CrossEntropyLoss, DiceLoss
+    # criterion = [DiceLoss(), CrossEntropyLoss()]
+
+    # losses = None
+    # reprod_logger = ReprodLogger()
+    # for i, loss in enumerate(criterion):
+    #     if type(loss).__name__ == 'DiceLoss':
+    #         loss_val, per_channel_dice = loss(out, y)
+    #     else:
+
+    #         loss_val = loss(out, y)
+
+    #     if losses is None:
+    #         losses = loss_val
+    #     else:
+    #         losses += loss_val
+
+    #     reprod_logger.add("loss_{}".format(i), loss_val.cpu().detach().numpy())
+    # print("loss_{}".format(i), loss_val, loss_val.cpu().detach().numpy())
+
+    # reprod_logger.save("../../data/vnet_align/losses_paddle.npy")
+
+    # # compare forward result and produce log
+    # diff_helper = ReprodDiffHelper()
+    # torch_info = diff_helper.load_info("../../data/vnet_align/forward_torch.npy")
+    # paddle_info = diff_helper.load_info("../../data/vnet_align/forward_paddle.npy")
+    # diff_helper.compare_info(torch_info, paddle_info)
+    # diff_helper.report(path="../../data/vnet_align/forward_diff.log")
+
+    # # compare loss result and produce log
+    # diff_helper = ReprodDiffHelper()
+    # torch_info = diff_helper.load_info("../../data/vnet_align/losses_torch.npy")
+    # paddle_info = diff_helper.load_info("../../data/vnet_align/losses_paddle.npy")
+    # diff_helper.compare_info(torch_info, paddle_info)
+    # diff_helper.report(path="../../data/vnet_align/losses_diff.log")
+
+    # from paddleseg3d.models.losses import CrossEntropyLoss, DiceLoss
+    # reprod_logger = ReprodLogger()
+    # # init optimizer
+    # max_iter = 5
+    # lr = 1e-3
+    # momentum = 0.9
+
+    # m = VNet(in_channels=1, num_classes=3)
+    # m.set_dict(paddle.load("../../data/vnet_align/paddlemodel.pdparams"))
+    # m.eval()
+
+    # criterion = [DiceLoss(), CrossEntropyLoss()]
+    # opt_paddle = paddle.optimizer.Momentum(
+    #     learning_rate=lr,
+    #     momentum=momentum,
+    #     parameters=m.parameters())
+
+    # x = paddle.to_tensor(np.load("../../data/vnet_align/fake_data.npy"), dtype="float32")
+    # y = paddle.to_tensor(np.load("../../data/vnet_align/fake_label.npy"), dtype="int64")
+    # x.stop_gradient = False
+
+    # for idx in range(max_iter):
+    #     out = m(x)[0]
+
+    #     # compute loss
+    #     losses = None
+    #     for i, loss in enumerate(criterion):
+    #         if type(loss).__name__ == 'DiceLoss':
+    #             loss_val, per_channel_dice = loss(out, y)
+    #         else:
+
+    #             loss_val = loss(out, y)
+
+    #         if losses is None:
+    #             losses = loss_val
+    #         else:
+    #             losses += loss_val
+
+    #     reprod_logger.add("loss_{}".format(idx), losses.cpu().detach().numpy())
+    #     print("loss_{}".format(idx), losses)
+
+    #     opt_paddle.clear_grad()
+    #     losses.backward()
+    #     opt_paddle.step()
+
+    # reprod_logger.save("../../data/vnet_align/backward_paddle.npy")
+
+    # # # compare loss result and produce log
+    # diff_helper = ReprodDiffHelper()
+    # torch_info = diff_helper.load_info("../../data/vnet_align/backward_ref.npy")
+    # paddle_info = diff_helper.load_info("../../data/vnet_align/backward_paddle.npy")
+    # diff_helper.compare_info(torch_info, paddle_info)
+    # diff_helper.report(path="../../data/vnet_align/backward_diff.log")

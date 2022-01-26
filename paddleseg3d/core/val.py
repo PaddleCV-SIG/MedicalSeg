@@ -19,6 +19,7 @@ import time
 import paddle
 import paddle.nn.functional as F
 
+from paddleseg3d.core.utils import loss_computation
 from paddleseg3d.utils import metric, TimeAverager, calculate_eta, logger, progbar
 from paddleseg3d.core import infer
 
@@ -27,6 +28,7 @@ np.set_printoptions(suppress=True)
 
 def evaluate(model,
              eval_dataset,
+             losses,
              aug_eval=False,
              scales=1.0,
              flip_horizontal=False,
@@ -44,6 +46,7 @@ def evaluate(model,
     Args:
         model（nn.Layer): A sementic segmentation model.
         eval_dataset (paddle.io.Dataset): Used to read and process validation datasets.
+        losses(dict): Used to calculate the loss. e.g: {"types":[loss_1...], "coef": [0.5,...]}
         aug_eval (bool, optional): Whether to use mulit-scales and flip augment for evaluation. Default: False.
         scales (list|float, optional): Scales for augment. It is valid when `aug_eval` is True. Default: 1.0.
         flip_horizontal (bool, optional): Whether to use flip horizontally augment. It is valid when `aug_eval` is True. Default: True.
@@ -70,8 +73,10 @@ def evaluate(model,
         if not paddle.distributed.parallel.parallel_helper._is_parallel_ctx_initialized(
         ):
             paddle.distributed.init_parallel_env()
-    batch_sampler = paddle.io.DistributedBatchSampler(
-        eval_dataset, batch_size=1, shuffle=False, drop_last=False)
+    batch_sampler = paddle.io.DistributedBatchSampler(eval_dataset,
+                                                      batch_size=1,
+                                                      shuffle=False,
+                                                      drop_last=False)
     loader = paddle.io.DataLoader(
         eval_dataset,
         batch_sampler=batch_sampler,
@@ -80,9 +85,6 @@ def evaluate(model,
     )
 
     total_iters = len(loader)
-    intersect_area_all = 0
-    pred_area_all = 0
-    label_area_all = 0
     logits_all = None
     label_all = None
 
@@ -90,25 +92,28 @@ def evaluate(model,
         logger.info(
             "Start evaluating (total_samples: {}, total_iters: {})...".format(
                 len(eval_dataset), total_iters))
-    progbar_val = progbar.Progbar(
-        target=total_iters, verbose=1 if nranks < 2 else 2)
+    progbar_val = progbar.Progbar(target=total_iters,
+                                  verbose=1 if nranks < 2 else 2)
     reader_cost_averager = TimeAverager()
     batch_cost_averager = TimeAverager()
     batch_start = time.time()
+
+    mdice = 0.0
+    channel_dice_array = np.array([])
+    loss_all = 0.0
+
     with paddle.no_grad():
         for iter, (im, label) in enumerate(loader):
             reader_cost_averager.record(time.time() - batch_start)
-            label = label.unsqueeze(1).astype('int64')
+            label = label.astype('int64').unsqueeze(1)
 
-            ori_shape = label.shape[-3:]
-
-            pred, logits = infer.inference(
+            pred, logits = infer.inference(  # reverse transform here
                 model,
                 im,
-                ori_shape=ori_shape,
+                ori_shape=label.shape[-3:],
                 transforms=eval_dataset.transforms.transforms)
 
-            if save_dir is not None:
+            if save_dir is not None:  # TODO transfer to vdl image
                 np.save('{}/{}_pred.npy'.format(save_dir, iter),
                         pred.clone().detach().numpy())
                 np.save('{}/{}_label.npy'.format(save_dir, iter),
@@ -126,51 +131,29 @@ def evaluate(model,
             #     pred = paddle.to_tensor(pred)
             #     label = paddle.to_tensor(label)
 
-            intersect_area, pred_area, label_area = metric.calculate_area(
-                pred,
-                label,
-                eval_dataset.num_classes,
-                ignore_index=eval_dataset.ignore_index)
+            loss, per_channel_dice = loss_computation(logits, label, losses)
+            loss = sum(loss)
 
-            # Gather from all ranks
-            if nranks > 1:
-                intersect_area_list = []
-                pred_area_list = []
-                label_area_list = []
-                paddle.distributed.all_gather(intersect_area_list,
-                                              intersect_area)
-                paddle.distributed.all_gather(pred_area_list, pred_area)
-                paddle.distributed.all_gather(label_area_list, label_area)
+            if auc_roc:
+                logits = F.softmax(logits, axis=1)
+                if logits_all is None:
+                    logits_all = logits.numpy()
+                    label_all = label.numpy()
+                else:
+                    logits_all = np.concatenate([logits_all,
+                                                 logits.numpy()
+                                                 ])  # (KN, C, H, W)
+                    label_all = np.concatenate([label_all, label.numpy()])
 
-                # Some image has been evaluated and should be eliminated in last iter
-                if (iter + 1) * nranks > len(eval_dataset):
-                    valid = len(eval_dataset) - iter * nranks
-                    intersect_area_list = intersect_area_list[:valid]
-                    pred_area_list = pred_area_list[:valid]
-                    label_area_list = label_area_list[:valid]
-
-                for i in range(len(intersect_area_list)):
-                    intersect_area_all = intersect_area_all + intersect_area_list[
-                        i]
-                    pred_area_all = pred_area_all + pred_area_list[i]
-                    label_area_all = label_area_all + label_area_list[i]
+            loss_all += loss.numpy()
+            mdice += np.mean(per_channel_dice)
+            if not channel_dice_array:
+                channel_dice_array = per_channel_dice
             else:
-                intersect_area_all = intersect_area_all + intersect_area
-                pred_area_all = pred_area_all + pred_area
-                label_area_all = label_area_all + label_area
+                channel_dice_array += per_channel_dice
 
-                if auc_roc:
-                    logits = F.softmax(logits, axis=1)
-                    if logits_all is None:
-                        logits_all = logits.numpy()
-                        label_all = label.numpy()
-                    else:
-                        logits_all = np.concatenate(
-                            [logits_all, logits.numpy()])  # (KN, C, H, W)
-                        label_all = np.concatenate([label_all, label.numpy()])
-
-            batch_cost_averager.record(
-                time.time() - batch_start, num_samples=len(label))
+            batch_cost_averager.record(time.time() - batch_start,
+                                       num_samples=len(label))
             batch_cost = batch_cost_averager.get_average()
             reader_cost = reader_cost_averager.get_average()
 
@@ -181,24 +164,24 @@ def evaluate(model,
             batch_cost_averager.reset()
             batch_start = time.time()
 
-    class_iou, miou = metric.mean_iou(intersect_area_all, pred_area_all,
-                                      label_area_all)
-    class_acc, acc = metric.accuracy(intersect_area_all, pred_area_all)
-    kappa = metric.kappa(intersect_area_all, pred_area_all, label_area_all)
-    class_dice, mdice = metric.dice(intersect_area_all, pred_area_all,
-                                    label_area_all)
+    mdice /= total_iters
+    channel_dice_array /= total_iters
+    loss_all /= total_iters
 
+    result_dict = {"mdice": mdice}
     if auc_roc:
-        auc_roc = metric.auc_roc(
-            logits_all, label_all, num_classes=eval_dataset.num_classes)
-        auc_infor = ' Auc_roc: {:.4f}'.format(auc_roc)
+        auc_roc = metric.auc_roc(logits_all,
+                                 label_all,
+                                 num_classes=eval_dataset.num_classes)
+        auc_infor = 'Auc_roc: {:.4f}'.format(auc_roc)
+        result_dict['auc_roc'] = auc_roc
 
     if print_detail:
-        infor = "[EVAL] #Images: {} mIoU: {:.4f} Acc: {:.4f} Kappa: {:.4f} Dice: {:.4f}".format(
-            len(eval_dataset), miou, acc, kappa, mdice)
+        infor = "[EVAL] #Images: {}, Dice: {:.4f}, Loss: {:6f}".format(
+            len(eval_dataset), mdice, loss_all)
         infor = infor + auc_infor if auc_roc else infor
         logger.info(infor)
-        logger.info("[EVAL] Class IoU: \n" + str(np.round(class_iou, 4)))
-        logger.info("[EVAL] Class Acc: \n" + str(np.round(class_acc, 4)))
+        logger.info("[EVAL] Class dice: \n" +
+                    str(np.round(channel_dice_array, 4)))
 
-    return miou, mdice, class_iou, class_acc, kappa,
+    return result_dict
