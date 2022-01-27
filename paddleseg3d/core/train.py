@@ -87,10 +87,8 @@ def train(model,
             optimizer)  # The return is Fleet object
         ddp_model = paddle.distributed.fleet.distributed_model(model)
 
-    batch_sampler = paddle.io.DistributedBatchSampler(train_dataset,
-                                                      batch_size=batch_size,
-                                                      shuffle=False,
-                                                      drop_last=True)
+    batch_sampler = paddle.io.DistributedBatchSampler(
+        train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
 
     loader = paddle.io.DataLoader(
         train_dataset,
@@ -184,8 +182,8 @@ def train(model,
                 for i in range(len(loss_list)):
                     avg_loss_list[i] += loss_list[i].numpy()
 
-            batch_cost_averager.record(time.time() - batch_start,
-                                       num_samples=batch_size)
+            batch_cost_averager.record(
+                time.time() - batch_start, num_samples=batch_size)
 
             if (iter) % log_iters == 0 and local_rank == 0:
                 avg_loss /= log_iters
@@ -226,18 +224,19 @@ def train(model,
                 reader_cost_averager.reset()
                 batch_cost_averager.reset()
 
-            if (iter % save_interval == 0 or iter == iters) and (val_dataset
-                                                                 is not None):
+            if (iter % save_interval == 0
+                    or iter == iters) and (val_dataset is not None):
                 num_workers = 1 if num_workers > 0 else 0
 
                 if test_config is None:
                     test_config = {}
 
-                result_dict = evaluate(model,
-                                       val_dataset,
-                                       losses,
-                                       num_workers=num_workers,
-                                       **test_config)
+                result_dict = evaluate(
+                    model,
+                    val_dataset,
+                    losses,
+                    num_workers=num_workers,
+                    **test_config)
 
                 model.train()
 
