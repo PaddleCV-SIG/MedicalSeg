@@ -115,14 +115,10 @@ class MedicalDataset(paddle.io.Dataset):
 
     def __getitem__(self, idx):
         image_path, label_path = self.file_list[idx]
-        if self.mode == 'test':
-            im, _ = self.transforms(im=image_path)
-            im = im[np.newaxis, ...]
-            return im, image_path
-        else:
-            im, label = self.transforms(im=image_path, label=label_path)
 
-            return im, label
+        im, label = self.transforms(im=image_path, label=label_path)
+
+        return im, label
 
     def save_transformed(self):
         """Save the preprocessed images to the result_dir"""

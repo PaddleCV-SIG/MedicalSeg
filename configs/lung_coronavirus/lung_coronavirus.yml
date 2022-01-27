@@ -44,5 +44,5 @@ loss:
         - type: CrossEntropyLoss
           weight: Null
         - type: DiceLoss
-      coef: [0.5, 0.5]
+      coef: [1, 1]
   coef: [1]

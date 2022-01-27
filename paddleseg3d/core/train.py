@@ -125,25 +125,16 @@ def train(model,
     reprod_logger = reprod_log.ReprodLogger()
     while iter < iters:
         for data in loader:
-            if iter > 5:
-                print("finish logging")
-                break
-            iter += 1
-            if iter > iters:
-                version = paddle.__version__
-                if version == '2.1.2':
-                    continue
-                else:
-                    break
+            # if iter > 10:
+            #     print("finish logging")
+            #     break
             reader_cost_averager.record(time.time() - batch_start)
             images = data[0]
             labels = data[1].astype('int32')
-            import pdb
-            pdb.set_trace()
-            reprod_logger.add('input_{}'.format(iter),
-                              images.detach().cpu().numpy())
-            reprod_logger.add('target_{}'.format(iter),
-                              labels.detach().cpu().numpy())
+            # reprod_logger.add('input_{}'.format(iter),
+            #                   images.detach().cpu().numpy())
+            # reprod_logger.add('target_{}'.format(iter),
+            #                   labels.detach().cpu().numpy())
 
             if hasattr(model, 'data_format') and model.data_format == 'NDHWC':
                 images = images.transpose((0, 2, 3, 4, 1))
@@ -152,20 +143,20 @@ def train(model,
                 logits_list = ddp_model(images)
             else:
                 logits_list = model(images)
-            reprod_logger.add('logit_{}'.format(iter),
-                              logits_list[0].detach().cpu().numpy())
-
+            # reprod_logger.add('logit_{}'.format(iter),
+            #                   logits_list[0].detach().cpu().numpy())
+            # label.shape: │[3, 128, 128, 128] logit.shape: [3, 3, 128, 128, 128]
             loss_list, per_channel_dice = loss_computation(
                 logits_list=logits_list, labels=labels, losses=losses)
             loss = sum(loss_list)
-            reprod_logger.add('loss_{}'.format(iter),
-                              loss.detach().cpu().numpy())
+            # reprod_logger.add('loss_{}'.format(iter),
+            #                   loss.detach().cpu().numpy())
 
             loss.backward()  # grad is nan when set elu=True
             optimizer.step()
 
-            lr = optimizer.get_lr()
-            reprod_logger.add('lr_{}'.format(iter), np.array(lr))
+            lr = optimizer.get_lr()  # lr checked is the same
+            iter += 1
 
             # update lr
             if isinstance(optimizer, paddle.distributed.fleet.Fleet):
@@ -285,8 +276,8 @@ def train(model,
                                                   result_dict['auc_roc'], iter)
 
             batch_start = time.time()
-        reprod_logger.save("../../data/vnet_align/train_paddle.npy")
-        break
+
+        # reprod_logger.save("../../data/vnet_align/train_paddle.npy")
 
     # Calculate flops.
     if local_rank == 0:

@@ -105,7 +105,7 @@ def evaluate(model,
     with paddle.no_grad():
         for iter, (im, label) in enumerate(loader):
             reader_cost_averager.record(time.time() - batch_start)
-            label = label.astype('int64').unsqueeze(1)
+            label = label.astype('int64')
 
             pred, logits = infer.inference(  # reverse transform here
                 model,
@@ -131,6 +131,7 @@ def evaluate(model,
             #     pred = paddle.to_tensor(pred)
             #     label = paddle.to_tensor(label)
 
+            # logits [1, 3, 128, 128, 128]
             loss, per_channel_dice = loss_computation(logits, label, losses)
             loss = sum(loss)
 
@@ -147,7 +148,7 @@ def evaluate(model,
 
             loss_all += loss.numpy()
             mdice += np.mean(per_channel_dice)
-            if not channel_dice_array:
+            if channel_dice_array.size == 0:
                 channel_dice_array = per_channel_dice
             else:
                 channel_dice_array += per_channel_dice
@@ -178,7 +179,7 @@ def evaluate(model,
 
     if print_detail:
         infor = "[EVAL] #Images: {}, Dice: {:.4f}, Loss: {:6f}".format(
-            len(eval_dataset), mdice, loss_all)
+            len(eval_dataset), mdice, loss_all[0])
         infor = infor + auc_infor if auc_roc else infor
         logger.info(infor)
         logger.info("[EVAL] Class dice: \n" +

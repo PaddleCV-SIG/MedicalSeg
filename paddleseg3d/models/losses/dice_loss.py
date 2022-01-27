@@ -83,7 +83,8 @@ class DiceLoss(nn.Layer):
         """
         assert "int" in str(labels.dtype), print(
             "The label should be int but got {}".format(type(labels)))
-        # import pdb; pdb.set_trace()
+        if len(logits.shape) == 4:
+            logits = logits.unsqueeze(0)
 
         labels_one_hot = F.one_hot(
             labels, num_classes=logits.shape[1])  # [B, D, H, W, C]
