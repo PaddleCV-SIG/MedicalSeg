@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from .utils import loss_computation
 from .train import train
 from .val import evaluate
 from . import infer

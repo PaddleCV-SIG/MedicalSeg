@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from .loss_utils import flatten, class_weights
 from .dice_loss import DiceLoss
 from .binary_cross_entropy_loss import BCELoss
 from .cross_entropy_loss import CrossEntropyLoss

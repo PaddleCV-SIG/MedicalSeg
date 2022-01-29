@@ -15,6 +15,7 @@
 import os
 import time
 import shutil
+import numpy as np
 from collections import deque
 
 import paddle
@@ -23,40 +24,7 @@ import paddle.nn.functional as F
 from paddleseg3d.utils import (TimeAverager, calculate_eta, resume, logger,
                                worker_init_fn, train_profiler, op_flops_run)
 from paddleseg3d.core.val import evaluate
-
-
-def check_logits_losses(logits_list, losses):
-    len_logits = len(logits_list)
-    len_losses = len(losses['types'])
-    if len_logits != len_losses:
-        raise RuntimeError(
-            'The length of logits_list should equal to the types of loss config: {} != {}.'
-            .format(len_logits, len_losses))
-
-
-def loss_computation(logits_list, labels, losses, edges=None):
-    check_logits_losses(logits_list, losses)
-    loss_list = []
-
-    for i in range(len(logits_list)):
-        logits = logits_list[i]
-        loss_i = losses['types'][i]
-        coef_i = losses['coef'][i]
-
-        if loss_i.__class__.__name__ in ('BCELoss',
-                                         'FocalLoss') and loss_i.edge_label:
-            # If use edges as labels According to loss type.
-            loss_list.append(coef_i * loss_i(logits, edges))
-        elif loss_i.__class__.__name__ == 'MixedLoss':
-            mixed_loss_list = loss_i(logits, labels)
-            for mixed_loss in mixed_loss_list:
-                loss_list.append(coef_i * mixed_loss)
-        elif loss_i.__class__.__name__ in ("KLLoss", ):
-            loss_list.append(
-                coef_i * loss_i(logits_list[0], logits_list[1].detach()))
-        else:
-            loss_list.append(coef_i * loss_i(logits, labels))
-    return loss_list
+from paddleseg3d.core.utils import loss_computation
 
 
 def train(model,
@@ -119,8 +87,10 @@ def train(model,
             optimizer)  # The return is Fleet object
         ddp_model = paddle.distributed.fleet.distributed_model(model)
 
-    batch_sampler = paddle.io.DistributedBatchSampler(
-        train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
+    batch_sampler = paddle.io.DistributedBatchSampler(train_dataset,
+                                                      batch_size=batch_size,
+                                                      shuffle=True,
+                                                      drop_last=True)
 
     loader = paddle.io.DataLoader(
         train_dataset,
@@ -140,6 +110,8 @@ def train(model,
 
     avg_loss = 0.0
     avg_loss_list = []
+    mdice = 0.0
+    channel_dice_array = np.array([])
     iters_per_epoch = len(batch_sampler)
     best_mean_dice = -1.0
     best_model_iter = -1
@@ -150,16 +122,7 @@ def train(model,
 
     iter = start_iter
     while iter < iters:
-        import pdb
-        pdb.set_trace()
         for data in loader:
-            iter += 1
-            if iter > iters:
-                version = paddle.__version__
-                if version == '2.1.2':
-                    continue
-                else:
-                    break
             reader_cost_averager.record(time.time() - batch_start)
             images = data[0]
             labels = data[1].astype('int32')
@@ -171,13 +134,17 @@ def train(model,
                 logits_list = ddp_model(images)
             else:
                 logits_list = model(images)
-            loss_list = loss_computation(
+
+            # label.shape: (num_class, D, H, W) logit.shape: (N, num_class, D, H, W)
+            loss_list, per_channel_dice = loss_computation(
                 logits_list=logits_list, labels=labels, losses=losses)
             loss = sum(loss_list)
+
             loss.backward()  # grad is nan when set elu=True
             optimizer.step()
 
             lr = optimizer.get_lr()
+            iter += 1
 
             # update lr
             if isinstance(optimizer, paddle.distributed.fleet.Fleet):
@@ -190,39 +157,51 @@ def train(model,
             train_profiler.add_profiler_step(profiler_options)
 
             model.clear_gradients()
-            avg_loss += loss.numpy()[0]
-            if not avg_loss_list:
+            avg_loss += loss.numpy()[
+                0]  # TODO use a function to record, print lossetc
+            mdice += np.mean(per_channel_dice) * 100
+
+            if channel_dice_array.size == 0:
+                channel_dice_array = per_channel_dice
+            else:
+                channel_dice_array += per_channel_dice
+
+            if len(avg_loss_list) == 0:
                 avg_loss_list = [l.numpy() for l in loss_list]
             else:
                 for i in range(len(loss_list)):
                     avg_loss_list[i] += loss_list[i].numpy()
-            batch_cost_averager.record(
-                time.time() - batch_start, num_samples=batch_size)
+
+            batch_cost_averager.record(time.time() - batch_start,
+                                       num_samples=batch_size)
 
             if (iter) % log_iters == 0 and local_rank == 0:
                 avg_loss /= log_iters
                 avg_loss_list = [l[0] / log_iters for l in avg_loss_list]
+                mdice /= log_iters
+                channel_dice_array = channel_dice_array / log_iters
+
                 remain_iters = iters - iter
                 avg_train_batch_cost = batch_cost_averager.get_average()
                 avg_train_reader_cost = reader_cost_averager.get_average()
                 eta = calculate_eta(remain_iters, avg_train_batch_cost)
                 logger.info(
-                    "[TRAIN] epoch: {}, iter: {}/{}, loss: {:.4f}, lr: {:.6f}, batch_cost: {:.4f}, reader_cost: {:.5f}, ips: {:.4f} samples/sec | ETA {}"
-                    .format((iter - 1) // iters_per_epoch + 1, iter, iters,
-                            avg_loss, lr, avg_train_batch_cost,
+                    "[TRAIN] epoch: {}, iter: {}/{}, loss: {:.4f}, DSC: {:.4f}, "
+                    "lr: {:.6f}, batch_cost: {:.4f}, reader_cost: {:.5f}, ips: {:.4f} samples/sec | ETA {}"
+                    .format((iter) // iters_per_epoch, iter, iters, avg_loss,
+                            mdice, lr, avg_train_batch_cost,
                             avg_train_reader_cost,
                             batch_cost_averager.get_ips_average(), eta))
+
                 if use_vdl:
                     log_writer.add_scalar('Train/loss', avg_loss, iter)
                     # Record all losses if there are more than 2 losses.
                     if len(avg_loss_list) > 1:
-                        avg_loss_dict = {}
-                        for i, value in enumerate(avg_loss_list):
-                            avg_loss_dict['loss_' + str(i)] = value
-                        for key, value in avg_loss_dict.items():
-                            log_tag = 'Train/' + key
-                            log_writer.add_scalar(log_tag, value, iter)
+                        for i, loss in enumerate(avg_loss_list):
+                            log_writer.add_scalar('Train/loss_{}'.format(i),
+                                                  loss, iter)
 
+                    log_writer.add_scalar('Train/mdice', mdice, iter)
                     log_writer.add_scalar('Train/lr', lr, iter)
                     log_writer.add_scalar('Train/batch_cost',
                                           avg_train_batch_cost, iter)
@@ -230,18 +209,23 @@ def train(model,
                                           avg_train_reader_cost, iter)
                 avg_loss = 0.0
                 avg_loss_list = []
+                mdice = 0.0
+                channel_dice_array = np.array([])
                 reader_cost_averager.reset()
                 batch_cost_averager.reset()
 
-            if (iter % save_interval == 0
-                    or iter == iters) and (val_dataset is not None):
+            if (iter % save_interval == 0 or iter == iters) and (val_dataset
+                                                                 is not None):
                 num_workers = 1 if num_workers > 0 else 0
 
                 if test_config is None:
                     test_config = {}
 
-                mean_iou, mdice, _, _, _ = evaluate(
-                    model, val_dataset, num_workers=num_workers, **test_config)
+                result_dict = evaluate(model,
+                                       val_dataset,
+                                       losses,
+                                       num_workers=num_workers,
+                                       **test_config)
 
                 model.train()
 
@@ -261,8 +245,8 @@ def train(model,
                     shutil.rmtree(model_to_remove)
 
                 if val_dataset is not None:
-                    if mdice > best_mean_dice:
-                        best_mean_dice = mdice
+                    if result_dict['mdice'] > best_mean_dice:
+                        best_mean_dice = result_dict['mdice']
                         best_model_iter = iter
                         best_model_dir = os.path.join(save_dir, "best_model")
                         paddle.save(
@@ -273,11 +257,14 @@ def train(model,
                         .format(best_mean_dice, best_model_iter))
 
                     if use_vdl:
-                        log_writer.add_scalar('Evaluate/Dice', mdice, iter)
-                        log_writer.add_scalar('Evaluate/mIoU', mean_iou, iter)
+                        log_writer.add_scalar('Evaluate/Dice',
+                                              result_dict['mdice'], iter)
+                        if "auc_roc" in result_dict:
+                            log_writer.add_scalar('Evaluate/auc_roc',
+                                                  result_dict['auc_roc'], iter)
+
             batch_start = time.time()
 
-    # Calculate flops.
     if local_rank == 0:
         _, c, d, h, w = images.shape
         _ = paddle.flops(

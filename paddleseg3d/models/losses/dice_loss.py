@@ -1,3 +1,6 @@
+# Copyright (c) 2022 PaddlePaddle Authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
@@ -13,6 +16,7 @@ import paddle
 from paddle import nn
 import paddle.nn.functional as F
 
+from paddleseg3d.models.losses import flatten
 from paddleseg3d.cvlibs import manager
 
 
@@ -29,36 +33,74 @@ class DiceLoss(nn.Layer):
             https://github.com/pytorch/pytorch/issues/1249#issuecomment-337999895
     """
 
-    def __init__(self, ignore_index=255, smooth=0.):
+    def __init__(self, sigmoid_norm=True, weight=None):
         super(DiceLoss, self).__init__()
-        self.ignore_index = ignore_index
+        self.weight = weight
         self.eps = 1e-5
-        self.smooth = smooth
+        if sigmoid_norm:
+            self.norm = nn.Sigmoid()
+        else:
+            self.norm = nn.Softmax(axis=1)
 
-    def forward(self, logits, labels):  # second round logit is NAN
+    def compute_per_channel_dice(self,
+                                 input,
+                                 target,
+                                 epsilon=1e-6,
+                                 weight=None):
+        """
+        Computes DiceCoefficient as defined in https://arxiv.org/abs/1606.04797 given  a multi channel input and target.
+        Assumes the input is a normalized probability, e.g. a result of Sigmoid or Softmax function.
+
+        Args:
+            input (torch.Tensor): NxCxSpatial input tensor
+            target (torch.Tensor): NxCxSpatial target tensor
+            epsilon (float): prevents division by zero
+            weight (torch.Tensor): Cx1 tensor of weight per channel/class
+        """
+
+        # input and target shapes must match
+        assert input.shape == target.shape, "'input' and 'target' must have the same shape but input is {} and target is {}".format(
+            input.shape, target.shape)
+
+        input = flatten(input)  # C, N*D*H*W
+        target = flatten(target)
+        target = paddle.cast(target, "float32")
+
+        # compute per channel Dice Coefficient
+        intersect = (input * target).sum(-1)  # sum at the spatial dimension
+        if weight is not None:
+            intersect = weight * intersect  # give different class different weight
+
+        # Use standard dice: (input + target).sum(-1) or V-Net extension: (input^2 + target^2).sum(-1)
+        denominator = (input * input).sum(-1) + (target * target).sum(-1)
+
+        return 2 * (intersect / paddle.clip(denominator, min=epsilon))
+
+    def forward(self, logits, labels):
         """
         logits: tensor of [B, C, D, H, W]
         labels: tensor of shape [B, D, H, W]
         """
-        labels = paddle.cast(labels, dtype='int32')
-        labels_one_hot = F.one_hot(labels, num_classes=logits.shape[1])
+        assert "int" in str(labels.dtype), print(
+            "The label should be int but got {}".format(type(labels)))
+        if len(logits.shape) == 4:
+            logits = logits.unsqueeze(0)
+
+        labels_one_hot = F.one_hot(
+            labels, num_classes=logits.shape[1])  # [B, D, H, W, C]
         labels_one_hot = paddle.transpose(labels_one_hot,
                                           [0, 4, 1, 2, 3])  # [B, C, D, H, W]
+
         labels_one_hot = paddle.cast(labels_one_hot, dtype='float32')
 
-        logits = F.softmax(logits, axis=1)  # [B, C, D, H, W]
+        logits = self.norm(logits)  # softmax to sigmoid
 
-        mask = (paddle.unsqueeze(labels, 1) != self.ignore_index
-                )  # [B, C, D, H, W]
-        logits = logits * mask
-        labels_one_hot = labels_one_hot * mask
+        per_channel_dice = self.compute_per_channel_dice(logits,
+                                                         labels_one_hot,
+                                                         weight=self.weight)
 
-        dims = (0, ) + tuple(range(2, labels.ndimension() + 1))  # 0, 2, 3, 4
+        dice_loss = (1. - paddle.mean(per_channel_dice))
+        per_channel_dice = per_channel_dice.detach().cpu().numpy(
+        )  # vnet variant dice
 
-        intersection = paddle.sum(logits * labels_one_hot, dims)
-
-        cardinality = paddle.sum(logits + labels_one_hot, dims)
-        dice_loss = ((2. * intersection + self.smooth) /
-                     (cardinality + self.eps + self.smooth)).mean()
-
-        return 1 - dice_loss
+        return dice_loss, per_channel_dice

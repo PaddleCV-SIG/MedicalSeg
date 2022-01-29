@@ -48,23 +48,27 @@ import functools
 import numpy as np
 import nibabel as nib
 
-sys.path.append(
-    os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                             ".."))
 
 from prepare import Prep
 from paddleseg3d.datasets.preprocess_utils import uncompressor
-from paddleseg3d.datasets.preprocess_utils import HU2float32, resample, label_remap
+from paddleseg3d.datasets.preprocess_utils import HUNorm, resample, label_remap
 
-urls = {"annotation.zip": "", "images.zip": ""}
+urls = {
+    "annotation.zip": "",
+    "images.zip": ""
+}  # TODO: Add urls and test uncompress file as aforementioned format
 
 
 class Prep_luna(Prep):
+
     def __init__(self):
         self.dataset_root = "data/luna16_lobe51"
         self.phase_path = os.path.join(self.dataset_root,
-                                       "luna16_lobe51_phase0/")
-        super().__init__(
-            phase_path=self.phase_path, dataset_root=self.dataset_root)
+                                       "luna16_lobe51_test/")
+        super().__init__(phase_path=self.phase_path,
+                         dataset_root=self.dataset_root)
 
         self.raw_data_path = os.path.join(self.dataset_root,
                                           "luna16_lobe51_raw/")
@@ -72,49 +76,52 @@ class Prep_luna(Prep):
         self.label_dir = os.path.join(self.raw_data_path, "annotations")
         self.urls = urls
 
-    def convert_path(self):  # TODO filter files based on the name
+    def convert_path(self):
         """convert nii.gz file to numpy array in the right directory"""
 
         print("Start convert images to numpy array, please wait patiently")
-        self.load_save(
-            self.image_dir,
-            load_type=np.float32,
-            savepath=self.image_path,
-            preprocess=[
-                functools.partial(HU2float32, HU_min=-1250, HU_max=250),
-                functools.partial(
-                    resample, new_shape=[128, 128, 128], order=1)
-            ],
-            filter_suffix='mhd')
+        self.load_save(self.image_dir,
+                       savepath=self.image_path,
+                       preprocess=[
+                           functools.partial(HUNorm, HU_min=-1250, HU_max=250),
+                           functools.partial(resample,
+                                             new_shape=[128, 128, 128],
+                                             order=1)
+                       ],
+                       filter={
+                           "filter_suffix": 'mhd',
+                           "filter_key": None
+                       })
 
         print("start convert labels to numpy array, please wait patiently")
 
-        self.load_save(
-            self.label_dir,
-            np.float32,
-            self.label_path,
-            preprocess=[
-                functools.partial(
-                    resample, new_shape=[128, 128, 128], order=0),
-                functools.partial(
-                    label_remap,
-                    map_dict={
-                        1: 0,
-                        4: 2,
-                        5: 2,
-                        6: 2,
-                        7: 1,
-                        8: 1,
-                        512: 0,
-                        516: 0,
-                        517: 0,
-                        518: 0,
-                        519: 0,
-                        520: 0
-                    })
-            ],
-            filter_suffix='nrrd',
-            tag="label")
+        self.load_save(self.label_dir,
+                       self.label_path,
+                       preprocess=[
+                           functools.partial(resample,
+                                             new_shape=[128, 128, 128],
+                                             order=0),
+                           functools.partial(label_remap,
+                                             map_dict={
+                                                 1: 0,
+                                                 4: 2,
+                                                 5: 2,
+                                                 6: 2,
+                                                 7: 1,
+                                                 8: 1,
+                                                 512: 0,
+                                                 516: 0,
+                                                 517: 0,
+                                                 518: 0,
+                                                 519: 0,
+                                                 520: 0
+                                             })
+                       ],
+                       filter={
+                           "filter_suffix": 'nrrd',
+                           "filter_key": None
+                       },
+                       tag="label")
 
     def generate_txt(self):
         """generate the train_list.txt and val_list.txt"""
@@ -129,12 +136,18 @@ class Prep_luna(Prep):
             name.replace("_LobeSegmentation", "") for name in label_files
         ]
 
-        self.write_txt(txtname[0], image_files, label_files, train_split=45)
-        self.write_txt(txtname[1], image_files, label_files, train_split=45)
+        self.split_files_txt(txtname[0],
+                             image_files,
+                             label_files,
+                             train_split=45)
+        self.split_files_txt(txtname[1],
+                             image_files,
+                             label_files,
+                             train_split=45)
 
 
 if __name__ == "__main__":
     prep = Prep_luna()
     # prep.uncompress_file(num_zipfiles=4)
-    # prep.convert_path()
+    prep.convert_path()
     prep.generate_txt()
