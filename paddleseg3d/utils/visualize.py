@@ -1,4 +1,4 @@
-# Copyright (c) 2020 PaddlePaddle Authors. All Rights Reserved.
+# Copyright (c) 2022 PaddlePaddle Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +17,31 @@ import os
 import cv2
 import numpy as np
 from PIL import Image as PILImage
+
+
+def add_image_vdl(writer, im, pred, label, epoch, channel, with_overlay=True):
+    # different channel, overlay, different epoch, multiple image in a epoch
+    im_clone = im.clone().detach().squeeze().numpy()
+    pred_clone = pred.clone().detach().squeeze().numpy()  # [D, H, W]
+    label_clone = label.clone().detach().squeeze().numpy()
+
+    import pdb
+    pdb.set_trace()
+    step = pred_clone.shape[0] // 5
+    for i in range(5):
+        index = i * step
+        writer.add_image('Evaluate/image_{}'.format(i),
+                         im_clone[:, :, index:index + 1], iter)
+        writer.add_image('Evaluate/pred_{}'.format(i),
+                         pred_clone[:, :, index:index + 1], iter)
+        writer.add_image(
+            'Evaluate/imagewithpred_{}'.format(i),
+            0.2 * pred_clone[:, :, index:index + 1] +
+            0.8 * im_clone[:, :, index:index + 1], iter)
+        writer.add_image('Evaluate/label_{}'.format(i),
+                         label_clone[:, :, index:index + 1], iter)
+
+    print("[EVAL] Sucessfully save iter {} pred and label.".format(iter))
 
 
 def visualize(image, result, color_map, save_dir=None, weight=0.6):

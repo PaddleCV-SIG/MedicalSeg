@@ -88,8 +88,9 @@ class Config(object):
         self._model = None
         self._losses = None
 
-        self.update(
-            learning_rate=learning_rate, batch_size=batch_size, iters=iters)
+        self.update(learning_rate=learning_rate,
+                    batch_size=batch_size,
+                    iters=iters)
 
     def _update_dic(self, dic, base_dic):
         """
@@ -213,11 +214,14 @@ class Config(object):
             return paddle.optimizer.Momentum(
                 lr, parameters=self.model.parameters(), **args)
         elif optimizer_type == 'adam':
-            return paddle.optimizer.Adam(
-                lr, parameters=self.model.parameters(), **args)
+            return paddle.optimizer.Adam(lr,
+                                         parameters=self.model.parameters(),
+                                         **args)
         elif optimizer_type in paddle.optimizer.__all__:
-            return getattr(paddle.optimizer, optimizer_type)(
-                lr, parameters=self.model.parameters(), **args)
+            return getattr(paddle.optimizer,
+                           optimizer_type)(lr,
+                                           parameters=self.model.parameters(),
+                                           **args)
 
         raise RuntimeError('Unknown optimizer type {}.'.format(optimizer_type))
 
@@ -400,10 +404,6 @@ class Config(object):
                 params[key] = val
 
         return component(**params)
-
-    @property
-    def test_config(self) -> Dict:
-        return self.dic.get('test_config', {})
 
     @property
     def export_config(self) -> Dict:
