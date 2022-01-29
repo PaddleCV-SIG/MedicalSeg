@@ -131,7 +131,7 @@ def evaluate(model,
             #     pred = paddle.to_tensor(pred)
             #     label = paddle.to_tensor(label)
 
-            # logits [1, 3, 128, 128, 128]
+            # logits [N, num_classes, D, H, W]
             loss, per_channel_dice = loss_computation(logits, label, losses)
             loss = sum(loss)
 

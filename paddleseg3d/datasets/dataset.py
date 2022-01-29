@@ -111,7 +111,7 @@ class MedicalDataset(paddle.io.Dataset):
                 self.file_list.append([image_path, grt_path])
 
         if mode == 'train':
-            self.file_list = self.file_list * 100
+            self.file_list = self.file_list * 10
 
     def __getitem__(self, idx):
         image_path, label_path = self.file_list[idx]

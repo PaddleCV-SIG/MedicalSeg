@@ -87,8 +87,10 @@ def train(model,
             optimizer)  # The return is Fleet object
         ddp_model = paddle.distributed.fleet.distributed_model(model)
 
-    batch_sampler = paddle.io.DistributedBatchSampler(
-        train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
+    batch_sampler = paddle.io.DistributedBatchSampler(train_dataset,
+                                                      batch_size=batch_size,
+                                                      shuffle=True,
+                                                      drop_last=True)
 
     loader = paddle.io.DataLoader(
         train_dataset,
@@ -170,8 +172,8 @@ def train(model,
                 for i in range(len(loss_list)):
                     avg_loss_list[i] += loss_list[i].numpy()
 
-            batch_cost_averager.record(
-                time.time() - batch_start, num_samples=batch_size)
+            batch_cost_averager.record(time.time() - batch_start,
+                                       num_samples=batch_size)
 
             if (iter) % log_iters == 0 and local_rank == 0:
                 avg_loss /= log_iters
@@ -186,8 +188,8 @@ def train(model,
                 logger.info(
                     "[TRAIN] epoch: {}, iter: {}/{}, loss: {:.4f}, DSC: {:.4f}, "
                     "lr: {:.6f}, batch_cost: {:.4f}, reader_cost: {:.5f}, ips: {:.4f} samples/sec | ETA {}"
-                    .format((iter - 1) // iters_per_epoch + 1, iter, iters,
-                            avg_loss, mdice, lr, avg_train_batch_cost,
+                    .format((iter) // iters_per_epoch, iter, iters, avg_loss,
+                            mdice, lr, avg_train_batch_cost,
                             avg_train_reader_cost,
                             batch_cost_averager.get_ips_average(), eta))
 
@@ -212,19 +214,18 @@ def train(model,
                 reader_cost_averager.reset()
                 batch_cost_averager.reset()
 
-            if (iter % save_interval == 0
-                    or iter == iters) and (val_dataset is not None):
+            if (iter % save_interval == 0 or iter == iters) and (val_dataset
+                                                                 is not None):
                 num_workers = 1 if num_workers > 0 else 0
 
                 if test_config is None:
                     test_config = {}
 
-                result_dict = evaluate(
-                    model,
-                    val_dataset,
-                    losses,
-                    num_workers=num_workers,
-                    **test_config)
+                result_dict = evaluate(model,
+                                       val_dataset,
+                                       losses,
+                                       num_workers=num_workers,
+                                       **test_config)
 
                 model.train()
 
