@@ -22,9 +22,9 @@ import paddle
 import paddle.nn.functional as F
 
 from paddleseg3d.utils import (TimeAverager, calculate_eta, resume, logger,
-                               worker_init_fn, train_profiler, op_flops_run)
+                               worker_init_fn, train_profiler, op_flops_run,
+                               loss_computation)
 from paddleseg3d.core.val import evaluate
-from paddleseg3d.core.utils import loss_computation
 
 
 def train(model,

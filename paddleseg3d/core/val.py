@@ -19,9 +19,8 @@ import time
 import paddle
 import paddle.nn.functional as F
 
-from paddleseg3d.core.utils import loss_computation, add_image_vdl
-from paddleseg3d.utils import metric, TimeAverager, calculate_eta, logger, progbar
 from paddleseg3d.core import infer
+from paddleseg3d.utils import metric, TimeAverager, calculate_eta, logger, progbar, loss_computation, add_image_vdl
 
 np.set_printoptions(suppress=True)
 
