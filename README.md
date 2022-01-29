@@ -1,6 +1,15 @@
 # Paddleseg3D
 Welcome to PaddleSeg3D! PaddleSeg3D is a easy-to-use 3D medical image segmentation toolkit that covers various datasets including lung, brain and spine.
 
+## 0. Model performance
+We have sucessfully validate our framework with [Vnet](https://arxiv.org/abs/1606.04797) on the [COVID-19 CT scans](https://www.kaggle.com/andrewmvd/covid19-ct-scans) dataset. With lung mask as label, we reach dice coefficient of 97.04%. You can download the log to see the result or load the model and validate by yourself :).
+
+
+| Backbone | Resolution | lr | Training Iters | Dice | Links |
+|:-:|:-:|:-:|:-:|:-:|:-:|
+|-|128x128x128|0.001|15000|97.04%|[model](https://bj.bcebos.com/paddleseg/paddleseg3d/lung_coronavirus/vnet_lung_coronavirus_128_128_128_15k_1e-3/model.pdparams) \| [log](https://bj.bcebos.com/paddleseg/paddleseg3d/lung_coronavirus/vnet_lung_coronavirus_128_128_128_15k_1e-3/train.log) \| [vdl](https://paddlepaddle.org.cn/paddle/visualdl/service/app?id=9db5c1e11ebc82f9a470f01a9114bd3c)|
+|-|128x128x128|0.0003|15000|92.70%|[model](https://bj.bcebos.com/paddleseg/paddleseg3d/lung_coronavirus/vnet_lung_coronavirus_128_128_128_15k_3e-4/model.pdparams) \| [log](https://bj.bcebos.com/paddleseg/paddleseg3d/lung_coronavirus/vnet_lung_coronavirus_128_128_128_15k_3e-4/train.log) \| [vdl](https://www.paddlepaddle.org.cn/paddle/visualdl/service/app/scalar?id=0fb90ee5a6ea8821c0d61a6857ba4614)|
+
 ## 1. Get started
 1. Download our repo.
     ```
@@ -39,25 +48,25 @@ Our code configs model based on \_base\_ config and dataset-related config.
 After change your config, you are ready to train your model. A basic training and validation example is ./run-vnet.sh. Let's see some of the training and validation configuration in this file.
 ```bash
 # set your GPU ID here
-export CUDA_VISIBLE_DEVICES=4,5,6
+export CUDA_VISIBLE_DEVICES=0
 
 # set the config file name and save directory here
-yml=vnet_lung_coronavirus_128_128_128_10k
-save_dir=saved_model/${yml}_0112_normalize
+yml=vnet_lung_coronavirus_128_128_128_15k
+save_dir=saved_model/${yml}
+mkdir save_dir
 
 # Train the model: see the train.py for detailed explanation on script args
-python3 -m paddle.distributed.launch train.py --config configs/lung_coronavirus/${yml}.yml \
+python3 train.py --config configs/lung_coronavirus/${yml}.yml \
 --save_dir  $save_dir \
 --save_interval 500 --log_iters 100 \
 --num_workers 6 --do_eval --use_vdl \
---keep_checkpoint_max 10  --seed 0
+--keep_checkpoint_max 5  --seed 0  >> $save_dir/train.log
 
 # Validate the model: see the val.py for detailed explanation on script args
-python3 -m paddle.distributed.launch val.py --config configs/lung_coronavirus/${yml}.yml \
+python3 val.py --config configs/lung_coronavirus/${yml}.yml \
 --save_dir  $save_dir/best_model --model_path $save_dir/best_model/model.pdparams
 
 ```
-
 
 ## 3. Train on your dataset
 If you want to train on your dataset, simply add a dataset file and configuration file, and you are good to go. Details on how to add can referred to the dataset file and the configurations(./paddleseg3D/datasets/, ./configs).
