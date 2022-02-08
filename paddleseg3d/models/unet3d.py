@@ -16,16 +16,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import paddle
-import paddle.nn as nn
-import paddle.nn.functional as F
 import os
 import sys
 sys.path.append(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), "../.."))
 
+import paddle
+import paddle.nn as nn
+import paddle.nn.functional as F
+
 from paddleseg3d.cvlibs import manager
-# from paddleseg3d.models import layers
 from paddleseg3d.utils import utils
 
 
@@ -232,7 +232,6 @@ class UNet3D(nn.Layer):
 
     def forward(self, x):
         #  Level 1 context pathway
-        # import pdb; pdb.set_trace()
         out = self.conv3d_c1_1(x)
         residual_1 = out
         out = self.lrelu(out)

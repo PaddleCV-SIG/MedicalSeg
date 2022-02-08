@@ -22,9 +22,9 @@ import paddle
 import paddle.nn.functional as F
 
 from paddleseg3d.utils import (TimeAverager, calculate_eta, resume, logger,
-                               worker_init_fn, train_profiler, op_flops_run)
+                               worker_init_fn, train_profiler, op_flops_run,
+                               loss_computation)
 from paddleseg3d.core.val import evaluate
-from paddleseg3d.core.utils import loss_computation
 
 
 def train(model,
@@ -41,7 +41,6 @@ def train(model,
           use_vdl=False,
           losses=None,
           keep_checkpoint_max=5,
-          test_config=None,
           profiler_options=None,
           to_static_training=False):
     """
@@ -63,7 +62,6 @@ def train(model,
         losses (dict, optional): A dict including 'types' and 'coef'. The length of coef should equal to 1 or len(losses['types']).
             The 'types' item is a list of object of paddleseg.models.losses while the 'coef' item is a list of the relevant coefficient.
         keep_checkpoint_max (int, optional): Maximum number of checkpoints to save. Default: 5.
-        test_config(dict, optional): Evaluation config.
         profiler_options (str, optional): The option of train profiler.
         to_static_training (bool, optional): Whether to use @to_static for training.
     """
@@ -218,14 +216,14 @@ def train(model,
                                                                  is not None):
                 num_workers = 1 if num_workers > 0 else 0
 
-                if test_config is None:
-                    test_config = {}
-
                 result_dict = evaluate(model,
                                        val_dataset,
                                        losses,
                                        num_workers=num_workers,
-                                       **test_config)
+                                       writer=log_writer,
+                                       print_detail=True,
+                                       auc_roc=False,
+                                       save_dir=save_dir)
 
                 model.train()
 

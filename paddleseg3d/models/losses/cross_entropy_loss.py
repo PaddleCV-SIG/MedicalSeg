@@ -58,15 +58,15 @@ class CrossEntropyLoss(nn.Layer):
         Returns:
             (Tensor): The average loss.
         """
-        label = label.astype(
-            "int64"
-        )  # label.shape: │[3, 128, 128, 128] logit.shape: [3, 3, 128, 128, 128]
+        label = label.astype("int64")
+        # label.shape: │[3, 128, 128, 128] logit.shape: [3, 3, 128, 128, 128]
         channel_axis = self.data_format.index("C")  # NCDHW -> 1, NDHWC -> 4
-        if self.weight is None:
-            self.weight = class_weights(logit)
 
         if len(logit.shape) == 4:
             logit = logit.unsqueeze(0)
+
+        if self.weight is None:
+            self.weight = class_weights(logit)
 
         if self.weight is not None and logit.shape[channel_axis] != len(
                 self.weight):

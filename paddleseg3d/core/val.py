@@ -19,9 +19,8 @@ import time
 import paddle
 import paddle.nn.functional as F
 
-from paddleseg3d.core.utils import loss_computation
-from paddleseg3d.utils import metric, TimeAverager, calculate_eta, logger, progbar
 from paddleseg3d.core import infer
+from paddleseg3d.utils import metric, TimeAverager, calculate_eta, logger, progbar, loss_computation, add_image_vdl
 
 np.set_printoptions(suppress=True)
 
@@ -29,16 +28,10 @@ np.set_printoptions(suppress=True)
 def evaluate(model,
              eval_dataset,
              losses,
-             aug_eval=False,
-             scales=1.0,
-             flip_horizontal=False,
-             flip_vertical=False,
-             is_slide=False,
-             stride=None,
-             crop_size=None,
              num_workers=0,
              print_detail=True,
              auc_roc=False,
+             writer=None,
              save_dir=None):
     """
     Launch evalution.
@@ -47,18 +40,10 @@ def evaluate(model,
         model（nn.Layer): A sementic segmentation model.
         eval_dataset (paddle.io.Dataset): Used to read and process validation datasets.
         losses(dict): Used to calculate the loss. e.g: {"types":[loss_1...], "coef": [0.5,...]}
-        aug_eval (bool, optional): Whether to use mulit-scales and flip augment for evaluation. Default: False.
-        scales (list|float, optional): Scales for augment. It is valid when `aug_eval` is True. Default: 1.0.
-        flip_horizontal (bool, optional): Whether to use flip horizontally augment. It is valid when `aug_eval` is True. Default: True.
-        flip_vertical (bool, optional): Whether to use flip vertically augment. It is valid when `aug_eval` is True. Default: False.
-        is_slide (bool, optional): Whether to evaluate by sliding window. Default: False.
-        stride (tuple|list, optional): The stride of sliding window, the first is width and the second is height.
-            It should be provided when `is_slide` is True.
-        crop_size (tuple|list, optional):  The crop size of sliding window, the first is width and the second is height.
-            It should be provided when `is_slide` is True.
         num_workers (int, optional): Num workers for data loader. Default: 0.
         print_detail (bool, optional): Whether to print detailed information about the evaluation process. Default: True.
-        auc_roc(bool, optional): whether add auc_roc metric
+        auc_roc(bool, optional): whether add auc_roc metric.
+        writer: visualdl log writer.
         save_dir(str, optional): the path to save predicted result.
 
     Returns:
@@ -113,16 +98,8 @@ def evaluate(model,
                 ori_shape=label.shape[-3:],
                 transforms=eval_dataset.transforms.transforms)
 
-            if save_dir is not None:  # TODO transfer to vdl image
-                np.save('{}/{}_pred.npy'.format(save_dir, iter),
-                        pred.clone().detach().numpy())
-                np.save('{}/{}_label.npy'.format(save_dir, iter),
-                        label.clone().detach().numpy())
-                np.save('{}/{}_img.npy'.format(save_dir, iter),
-                        im.clone().detach().numpy())
-                logger.info(
-                    "[EVAL] Sucessfully save iter {} pred and label.".format(
-                        iter))
+            if writer is not None:  # TODO visualdl single channel pseudo label map transfer to
+                pass
 
             # Post process
             # if eval_dataset.post_transform is not None:
