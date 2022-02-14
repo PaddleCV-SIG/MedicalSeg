@@ -145,6 +145,6 @@ class Prep_luna(Prep):
 
 if __name__ == "__main__":
     prep = Prep_luna()
-    prep.uncompress_file(num_zipfiles=4)
+    # prep.uncompress_file(num_zipfiles=4)
     prep.convert_path()
     prep.generate_txt()

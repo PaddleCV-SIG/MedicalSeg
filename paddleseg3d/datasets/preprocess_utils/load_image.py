@@ -12,10 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import math
 
 import numpy as np
 import SimpleITK as sitk
 import pydicom
+
+# DEBUG:
+import matplotlib.pyplot as plt
 
 
 def load_slices(dcm_dir):
@@ -57,15 +61,29 @@ def reverse_axes(image):
 
 
 def sitk_read(volume_path, orient=True, split=False, load_type=np.float32):
+    # 1. get scan data
     # sitk wont load files without orthonormal direction cosines, try/catch next line
     sitk_f = sitk.ReadImage(volume_path)
-
     volume_np = sitk.GetArrayFromImage(sitk_f).astype(load_type)
+    dim = sitk_f.GetDimension()
+
+    # 2. change dimensions to z, y, x
+    # s = volume_np.shape
+    # if len(volume_np.shape) == 3:
+    #     if s[0] == s[1]:
+
     print("volume_np.shape", volume_np.shape)
-    if orient:
-        volume_np = reverse_axes(
-            sitk.GetArrayFromImage(sitk_f))  # switch from zyx to xyz
-        cosine = np.asarray(sitk_f.GetDirection()).reshape(3, 3)
+    print(sitk_f.GetDirection())
+    print(dim, sitk_f.GetDepth(), sitk_f.GetHeight(), sitk_f.GetWidth())
+    # 3. correct scan orientation, currently only works with 3d image
+    if orient and dim == 3:  # TODO: add 4d orient support
+        # sitk_f.SetDirection((1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 1.0))
+        # (-1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0)
+        # volume_np = volume_np[:, ::-1, :]
+        volume_np = reverse_axes(sitk.GetArrayFromImage(sitk_f))  # xyz
+        direction = np.asarray(sitk_f.GetDirection())
+        s = int(math.sqrt(direction.size))
+        cosine = direction.reshape(s, s)
         cosine_inv = np.linalg.inv(np.round(cosine))
         swap = np.argmax(abs(cosine_inv), axis=0)
         flip = np.sum(cosine_inv, axis=0)
@@ -73,9 +91,10 @@ def sitk_read(volume_path, orient=True, split=False, load_type=np.float32):
         volume_np = volume_np[tuple(slice(None, None, int(f)) for f in flip)]
         volume_np = np.rot90(volume_np, -1)
         volume_np = np.transpose(volume_np, (2, 0, 1))
+
+    # 4. split 4d series
     if not split:
         return volume_np
-    dim = sitk_f.GetDimension()
     if dim == 3:
         return [volume_np]
     elif dim == 4:

@@ -26,11 +26,13 @@ import os.path as osp
 import sys
 import glob
 import zipfile
+import random
 
 import numpy as np
 import nibabel as nib
 import nrrd
 import SimpleITK as sitk
+import cv2
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              ".."))
@@ -39,6 +41,11 @@ from paddleseg3d.datasets.preprocess_utils import uncompressor, sitk_read, list_
 
 # DEBUG:
 import matplotlib.pyplot as plt
+"""
+axis: z y x
+matplolib: h w c
+sitk: c z y x
+"""
 
 
 class Prep:
@@ -52,6 +59,7 @@ class Prep:
         phase_fdr="phase0",
         raw_fdr="raw",
         datasets_root="data",
+        visualize_fdr="vis",
     ):
         # self.raw_data_path = None
         # self.image_dir = None
@@ -64,6 +72,7 @@ class Prep:
         self.image_dir = osp.join(self.raw_data_path, image_fdr)
         self.label_dir = osp.join(self.raw_data_path, label_fdr)
         self.urls = urls
+        self.visualize_path = osp.join(self.dataset_root, visualize_fdr)
 
         self.image_path = os.path.join(self.phase_path, "images")
         self.label_path = os.path.join(self.phase_path, "labels")
@@ -110,13 +119,13 @@ class Prep:
 
         for f in files:
             filename = f.split("/")[-1]
-            # load data based on format, axis should be in order z, y, x
-
+            # load data based on ext, result axis should be in order z, y, x
             if "nii.gz" in filename:
                 try:
                     f_nps = sitk_read(f, split=True)
                 except RuntimeError:
                     # TODO: nib read 4d series
+                    # TODO: support orient
                     f_np = nib.load(f).get_fdata(dtype="float32")
                     f_nps = [f_np.swapaxes(0, 2)]
                 file_suffix = "nii.gz"
@@ -145,7 +154,7 @@ class Prep:
                 if preprocess is not None:
                     for op in preprocess:
                         f_np = op(f_np)
-                part_id = f"-s{idx}" if len(f_nps) != 1 else ""
+                part_id = "-t" + str(idx).zfill(3) if len(f_nps) != 1 else ""
                 np.save(os.path.join(savepath, f"{file_prefix}{part_id}"),
                         f_np)
 
@@ -160,8 +169,76 @@ class Prep:
         raise NotImplementedError
 
     # TODO add data visualize method, such that data can be checked every time after preprocess.
-    def visualize(self):
-        pass
+    def visualize(self, idx=None, alpha=0.8, mode="show"):
+        if mode == "save":
+            os.makedirs(self.visualize_path, exist_ok=True)
+        # 1. read training list
+        # TODO: add other two lists
+        with open(osp.join(self.phase_path, "train_list.txt"), "r") as f:
+            train_list = f.readlines()
+        train_list = [l.strip().split(" ") for l in train_list]
+        # 2. generate id of record to visualize
+        if idx is None:
+            idxs = range(len(train_list))
+        elif idx == -1:
+            idxs = [int(random.random() * len(train_list))]
+        else:
+            idxs = [idx]
+
+        for idx in idxs:
+            image_path, label_path = train_list[idx]
+            image = np.load(osp.join(self.phase_path, image_path)) * 255
+            image = image.astype("uint8")
+            label = np.load(osp.join(self.phase_path, label_path))
+            label = label.astype("uint8")
+            assert (
+                image.shape == label.shape
+            ), f"image shape: {image.shape} != label shape: {label.shape}"
+            label_max = label.max()
+            color_step = int(255 / (label_max + 1))
+            for z_idx in range(image.shape[0]):
+                # 3. visualize image and label
+                # 3.1 get image and label slice, prep
+                image_slice = image[z_idx, :, :]
+                image_slice = cv2.cvtColor(image_slice, cv2.COLOR_GRAY2RGB)
+                label_slice = label[z_idx, :, :]
+                # 3.2 show two images directly
+                if mode == "show":
+                    if label_slice.sum() != 0:
+                        plt.subplot(1, 2, 1)
+                        plt.imshow(image_slice)
+                        plt.subplot(1, 2, 2)
+                        plt.imshow(label_slice)
+                        manager = plt.get_current_fig_manager()
+                        manager.full_screen_toggle()
+                        plt.show()
+                    continue
+                # 3.3 generate color label mask
+                curr_color = 0
+                label_mask = np.zeros([*label_slice.shape, 3], dtype="uint8")
+                for ann in range(1, label_max + 1):
+                    curr_color += color_step
+                    color = cv2.applyColorMap(
+                        np.array([curr_color]).astype("uint8"),
+                        cv2.COLORMAP_JET)
+                    mask = label_slice == ann
+                    for i in range(label_slice.shape[0]):
+                        for j in range(label_slice.shape[1]):
+                            if mask[i][j]:
+                                label_mask[i, j, :] = color[0][0]
+                # 3.4 blend image and label mask
+                for i in range(label_slice.shape[0]):
+                    for j in range(label_slice.shape[1]):
+                        if (label_mask[i, j] != [0, 0, 0]).any():
+                            image_slice[i, j] = (label_mask[i, j] * alpha +
+                                                 image_slice[i, j] *
+                                                 (1 - alpha)).astype("uint8")
+                # 3.5 save blended image
+                vis_name = f"{osp.basename(image_path.split('.')[0])}-z{str(z_idx)}.png"
+                image_slice = cv2.cvtColor(image_slice, cv2.COLOR_RGB2BGR)
+                cv2.imwrite(osp.join(self.visualize_path, vis_name),
+                            image_slice)
+
         # imga = Image.fromarray(np.int8(imga))
         # #当要保存的图片为灰度图像时，灰度图像的 numpy 尺度是 [1, h, w]。需要将 [1, h, w] 改变为 [h, w]
         # imgb = np.squeeze(imgb)
