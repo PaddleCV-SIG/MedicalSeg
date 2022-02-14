@@ -1,6 +1,3 @@
-#  HU_min -1250，HU_max 250
-# resample size 128, 128, 128，整CT直接resize，order=1
-# LUNA的label mapping就是上午给你的那个{1:0, 4:3, 5:4, 6:5, 7:1, 8:2, 512:0, 516:0, 517:0, 518:0, 519:0, 520:0}
 # Copyright (c) 2021 PaddlePaddle Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,8 +45,7 @@ import functools
 import numpy as np
 import nibabel as nib
 
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                             ".."))
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 
 from prepare import Prep
 from paddleseg3d.datasets.preprocess_utils import uncompressor
@@ -57,21 +53,17 @@ from paddleseg3d.datasets.preprocess_utils import HUNorm, resample, label_remap
 
 urls = {
     "annotation.zip": "",
-    "images.zip": ""
+    "images.zip": "",
 }  # TODO: Add urls and test uncompress file as aforementioned format
 
 
 class Prep_luna(Prep):
-
     def __init__(self):
         self.dataset_root = "data/luna16_lobe51"
-        self.phase_path = os.path.join(self.dataset_root,
-                                       "luna16_lobe51_test/")
-        super().__init__(phase_path=self.phase_path,
-                         dataset_root=self.dataset_root)
+        self.phase_path = os.path.join(self.dataset_root, "luna16_lobe51_test/")
+        super().__init__(phase_path=self.phase_path, dataset_root=self.dataset_root)
 
-        self.raw_data_path = os.path.join(self.dataset_root,
-                                          "luna16_lobe51_raw/")
+        self.raw_data_path = os.path.join(self.dataset_root, "luna16_lobe51_raw/")
         self.image_dir = os.path.join(self.raw_data_path, "images")
         self.label_dir = os.path.join(self.raw_data_path, "annotations")
         self.urls = urls
@@ -80,70 +72,58 @@ class Prep_luna(Prep):
         """convert nii.gz file to numpy array in the right directory"""
 
         print("Start convert images to numpy array, please wait patiently")
-        self.load_save(self.image_dir,
-                       savepath=self.image_path,
-                       preprocess=[
-                           functools.partial(HUNorm, HU_min=-1250, HU_max=250),
-                           functools.partial(resample,
-                                             new_shape=[128, 128, 128],
-                                             order=1)
-                       ],
-                       filter={
-                           "filter_suffix": 'mhd',
-                           "filter_key": None
-                       })
+        self.load_save(
+            self.image_dir,
+            savepath=self.image_path,
+            preprocess=[
+                functools.partial(HUNorm, HU_min=-1250, HU_max=250),
+                functools.partial(resample, new_shape=[128, 128, 128], order=1),
+            ],
+            filter={"filter_suffix": "mhd", "filter_key": None},
+        )
 
         print("start convert labels to numpy array, please wait patiently")
 
-        self.load_save(self.label_dir,
-                       self.label_path,
-                       preprocess=[
-                           functools.partial(resample,
-                                             new_shape=[128, 128, 128],
-                                             order=0),
-                           functools.partial(label_remap,
-                                             map_dict={
-                                                 1: 0,
-                                                 4: 2,
-                                                 5: 2,
-                                                 6: 2,
-                                                 7: 1,
-                                                 8: 1,
-                                                 512: 0,
-                                                 516: 0,
-                                                 517: 0,
-                                                 518: 0,
-                                                 519: 0,
-                                                 520: 0
-                                             })
-                       ],
-                       filter={
-                           "filter_suffix": 'nrrd',
-                           "filter_key": None
-                       },
-                       tag="label")
+        self.load_save(
+            self.label_dir,
+            self.label_path,
+            preprocess=[
+                functools.partial(resample, new_shape=[128, 128, 128], order=0),
+                functools.partial(
+                    label_remap,
+                    map_dict={
+                        1: 0,
+                        4: 2,
+                        5: 2,
+                        6: 2,
+                        7: 1,
+                        8: 1,
+                        512: 0,
+                        516: 0,
+                        517: 0,
+                        518: 0,
+                        519: 0,
+                        520: 0,
+                    },
+                ),
+            ],
+            filter={"filter_suffix": "nrrd", "filter_key": None},
+            tag="label",
+        )
 
     def generate_txt(self):
         """generate the train_list.txt and val_list.txt"""
 
         txtname = [
-            os.path.join(self.phase_path, 'train_list.txt'),
-            os.path.join(self.phase_path, 'val_list.txt')
+            os.path.join(self.phase_path, "train_list.txt"),
+            os.path.join(self.phase_path, "val_list.txt"),
         ]
 
         label_files = os.listdir(self.label_path)
-        image_files = [
-            name.replace("_LobeSegmentation", "") for name in label_files
-        ]
+        image_files = [name.replace("_LobeSegmentation", "") for name in label_files]
 
-        self.split_files_txt(txtname[0],
-                             image_files,
-                             label_files,
-                             train_split=45)
-        self.split_files_txt(txtname[1],
-                             image_files,
-                             label_files,
-                             train_split=45)
+        self.split_files_txt(txtname[0], image_files, label_files, train_split=45)
+        self.split_files_txt(txtname[1], image_files, label_files, train_split=45)
 
 
 if __name__ == "__main__":
