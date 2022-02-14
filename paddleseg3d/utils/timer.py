@@ -16,6 +16,7 @@ import time
 
 
 class TimeAverager(object):
+
     def __init__(self):
         self.reset()
 

@@ -57,12 +57,11 @@ class Luna16Lobe51(MedicalDataset):
                  num_classes=None,
                  mode='train',
                  ignore_index=255):
-        super(Luna16Lobe51, self).__init__(
-            dataset_root,
-            result_dir,
-            transforms,
-            num_classes,
-            mode,
-            ignore_index,
-            data_URL=URL)
+        super(Luna16Lobe51, self).__init__(dataset_root,
+                                           result_dir,
+                                           transforms,
+                                           num_classes,
+                                           mode,
+                                           ignore_index,
+                                           data_URL=URL)
         self.num_classes = num_classes

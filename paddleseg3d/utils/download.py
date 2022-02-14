@@ -102,8 +102,8 @@ def _uncompress_file(filepath, extrapath, delete_file, print_progress):
     for total_num, index, rootpath in handler(filepath, extrapath):
         if print_progress:
             done = int(50 * float(index) / total_num)
-            progress("[%-50s] %.2f%%" % ('=' * done,
-                                         float(100 * index) / total_num))
+            progress("[%-50s] %.2f%%" %
+                     ('=' * done, float(100 * index) / total_num))
     if print_progress:
         progress("[%-50s] %.2f%%" % ('=' * 50, 100), end=True)
 

@@ -44,7 +44,9 @@ def resample(image,
 
     resize_factor = new_shape / image.shape
 
-    image_new = scipy.ndimage.interpolation.zoom(
-        image, resize_factor, mode='nearest', order=order)
+    image_new = scipy.ndimage.interpolation.zoom(image,
+                                                 resize_factor,
+                                                 mode='nearest',
+                                                 order=order)
 
     return image_new

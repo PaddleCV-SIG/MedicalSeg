@@ -21,17 +21,17 @@ import argparse
 def parse_args():
     parser = argparse.ArgumentParser(
         description="The config for train scheduler")
-    parser.add_argument(
-        "--config",
-        dest="cfg",
-        help="The config file.",
-        default=None,
-        type=str)
+    parser.add_argument("--config",
+                        dest="cfg",
+                        help="The config file.",
+                        default=None,
+                        type=str)
 
     return parser.parse_args()
 
 
 class train_scheduler:
+
     def __init__(self, args):
         self.cfg = self._parse_from_yaml(args.config)
 

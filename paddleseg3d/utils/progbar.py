@@ -122,7 +122,8 @@ class Progbar(object):
 
             if self.target is not None:
                 numdigits = int(np.log10(self.target)) + 1
-                bar = ('%' + str(numdigits) + 'd/%d [') % (current, self.target)
+                bar = ('%' + str(numdigits) + 'd/%d [') % (current,
+                                                           self.target)
                 prog = float(current) / self.target
                 prog_width = int(self.width * prog)
                 if prog_width > 0:
@@ -148,14 +149,17 @@ class Progbar(object):
                 if time_per_unit >= 1 or time_per_unit == 0:
                     info += ' %.0fs/%s' % (time_per_unit, self.unit_name)
                 elif time_per_unit >= 1e-3:
-                    info += ' %.0fms/%s' % (time_per_unit * 1e3, self.unit_name)
+                    info += ' %.0fms/%s' % (time_per_unit * 1e3,
+                                            self.unit_name)
                 else:
-                    info += ' %.0fus/%s' % (time_per_unit * 1e6, self.unit_name)
+                    info += ' %.0fus/%s' % (time_per_unit * 1e6,
+                                            self.unit_name)
             else:
                 eta = time_per_unit * (self.target - current)
                 if eta > 3600:
                     eta_format = '%d:%02d:%02d' % (eta // 3600,
-                                                   (eta % 3600) // 60, eta % 60)
+                                                   (eta % 3600) // 60,
+                                                   eta % 60)
                 elif eta > 60:
                     eta_format = '%d:%02d' % (eta // 60, eta % 60)
                 else:
@@ -166,8 +170,8 @@ class Progbar(object):
             for k in self._values_order:
                 info += ' - %s:' % k
                 if isinstance(self._values[k], list):
-                    avg = np.mean(
-                        self._values[k][0] / max(1, self._values[k][1]))
+                    avg = np.mean(self._values[k][0] /
+                                  max(1, self._values[k][1]))
                     if abs(avg) > 1e-3:
                         info += ' %.4f' % avg
                     else:
@@ -188,12 +192,13 @@ class Progbar(object):
         elif self.verbose == 2:
             if finalize:
                 numdigits = int(np.log10(self.target)) + 1
-                count = ('%' + str(numdigits) + 'd/%d') % (current, self.target)
+                count = ('%' + str(numdigits) + 'd/%d') % (current,
+                                                           self.target)
                 info = count + info
                 for k in self._values_order:
                     info += ' - %s:' % k
-                    avg = np.mean(
-                        self._values[k][0] / max(1, self._values[k][1]))
+                    avg = np.mean(self._values[k][0] /
+                                  max(1, self._values[k][1]))
                     if avg > 1e-3:
                         info += ' %.4f' % avg
                     else:
