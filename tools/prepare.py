@@ -22,6 +22,7 @@ support:
 
 """
 import os
+import os.path as osp
 import sys
 import glob
 import zipfile
@@ -31,53 +32,73 @@ import nibabel as nib
 import nrrd
 import SimpleITK as sitk
 
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                             ".."))
 
-from prepare_utils import list_files
-from paddleseg3d.datasets.preprocess_utils import uncompressor, sitk_read
+from paddleseg3d.datasets.preprocess_utils import uncompressor, sitk_read, list_files
+
+# DEBUG:
+import matplotlib.pyplot as plt
 
 
 class Prep:
-    def __init__(self, phase_path=None, dataset_root=None):
-        self.raw_data_path = None
-        self.image_dir = None
-        self.label_dir = None
-        self.urls = None
 
-        self.dataset_root = dataset_root
-        self.phase_path = phase_path
+    def __init__(
+        self,
+        dataset_fdr,
+        urls,
+        image_fdr,
+        label_fdr,
+        phase_fdr="phase0",
+        raw_fdr="raw",
+        datasets_root="data",
+    ):
+        # self.raw_data_path = None
+        # self.image_dir = None
+        # self.label_dir = None
+        # self.urls = None
+
+        self.dataset_root = osp.join(datasets_root, dataset_fdr)
+        self.phase_path = osp.join(self.dataset_root, phase_fdr)
+        self.raw_data_path = osp.join(self.dataset_root, raw_fdr)
+        self.image_dir = osp.join(self.raw_data_path, image_fdr)
+        self.label_dir = osp.join(self.raw_data_path, label_fdr)
+        self.urls = urls
+
         self.image_path = os.path.join(self.phase_path, "images")
         self.label_path = os.path.join(self.phase_path, "labels")
+
         os.makedirs(self.image_path, exist_ok=True)
         os.makedirs(self.label_path, exist_ok=True)
 
     def uncompress_file(self, num_zipfiles):
-        uncompress_tool = uncompressor(
-            download_params=(self.urls, self.dataset_root, True)
-        )
-        """unzip all the file in the root directory"""
+        uncompress_tool = uncompressor(download_params=(self.urls,
+                                                        self.dataset_root,
+                                                        True))
+        """unzip all the file in the dataset_root directory"""
         zipfiles = []
         for ext in ["zip", "tar", "tar.gz", "tgz"]:
             zipfiles += glob.glob(os.path.join(self.dataset_root, f"*.{ext}"))
 
         assert len(zipfiles) == num_zipfiles, print(
-            "The file directory should include {} zip file, but there is only {}".format(
-                num_zipfiles, len(zipfiles)
-            )
-        )
+            "The file directory should include {} zip file, but there is only {}"
+            .format(num_zipfiles, len(zipfiles)))
 
         for f in zipfiles:
-            # TODO: dont include file name
-            extract_path = os.path.join(
-                self.raw_data_path, f.split("/")[-1].split(".")[0]
-            )
-            uncompress_tool._uncompress_file(
-                f, extract_path, delete_file=False, print_progress=True
-            )
+            extract_path = os.path.join(self.raw_data_path,
+                                        f.split("/")[-1].split(".")[0])
+            uncompress_tool._uncompress_file(f,
+                                             extract_path,
+                                             delete_file=False,
+                                             print_progress=True)
 
-    def load_save(
-        self, file_dir, savepath=None, preprocess=None, filter=None, tag="image"
-    ):
+    def load_save(self,
+                  file_dir,
+                  savepath=None,
+                  preprocess=None,
+                  filter=None,
+                  tag="image"):
+        # TODO: add support for multiprocess
         """
         Load the needed file with filter, preprocess it transfer to the correct type and save it to the directory.
         """
@@ -89,12 +110,14 @@ class Prep:
 
         for f in files:
             filename = f.split("/")[-1]
-            # axis should be in order z, y, x
+            # load data based on format, axis should be in order z, y, x
+
             if "nii.gz" in filename:
                 try:
                     f_nps = sitk_read(f, split=True)
                 except RuntimeError:
-                    f_np = nib.load(f).get_fdata(dtype=load_type)
+                    # TODO: nib read 4d series
+                    f_np = nib.load(f).get_fdata(dtype="float32")
                     f_nps = [f_np.swapaxes(0, 2)]
                 file_suffix = "nii.gz"
             elif "nrrd" in filename:
@@ -102,57 +125,31 @@ class Prep:
                 file_suffix = "nrrd"
                 f_nps = [f_np]
             elif "mhd" in filename or "raw" in filename:
+                # TODO： check if all data read with sitk need shuffle axes, this is needed in luna16_lobe51
                 f_nps = sitk_read(f, split=True)
                 file_suffix = "mhd"
             else:
                 raise NotImplementedError
-            file_prefix = filename[: -len(file_suffix) - 1]
+            file_prefix = filename[:-len(file_suffix) - 1]
 
-            plt.imshow(f_nps[0][10])
-            plt.show()
+            # plt.imshow(f_nps[0][10])
+            # plt.show()
+
+            # Set image to a uniform format before save.
+            if tag == "image":
+                f_nps = [f_np.astype("float32") for f_np in f_nps]
+            else:
+                f_nps = [f_np.astype("int64") for f_np in f_nps]
 
             for idx, f_np in enumerate(f_nps):
                 if preprocess is not None:
                     for op in preprocess:
                         f_np = op(f_np)
-                part_id = str(-idx) if len(f_nps) != 1 else ""
-                np.save(os.path.join(savepath, part_id + file_prefix), f_np)
+                part_id = f"-s{idx}" if len(f_nps) != 1 else ""
+                np.save(os.path.join(savepath, f"{file_prefix}{part_id}"),
+                        f_np)
 
-        for f in files:
-            filename = f.split("/")[-1]
-
-            # load data based the format
-            if "nii.gz" in filename:
-                f_np = nib.load(f).get_fdata(dtype=np.float32)
-                file_suffix = "nii.gz"
-            elif "nrrd" in filename:
-                f_np, header = nrrd.read(f)
-                file_suffix = "nrrd"
-            elif "mhd" in filename or "raw" in filename:
-                itkimage = sitk.ReadImage(f)
-                # Convert the image to a  numpy array first and then shuffle the dimensions to get axis in the order z,y,x
-                f_np = sitk.GetArrayFromImage(itkimage)
-                f_np = np.transpose(
-                    f_np, [2, 1, 0]
-                )  # TODO  check if this suits to other datasets, this is needed in luna16_lobe51
-                file_suffix = "mhd"
-            else:
-                raise NotImplementedError
-
-            if preprocess is not None:
-                for op in preprocess:
-                    f_np = op(f_np)
-
-            # Set image to a uniform format before save.
-            if tag == "image":
-                f_np = f_np.astype("float32")
-            else:
-                f_np = f_np.astype("int64")
-
-            file_prefix = filename[: -len(file_suffix) - 1]
-            np.save(os.path.join(savepath, file_prefix), f_np)
-
-        print("Sucessfully convert medical images to numpy array!")
+        print("Sucessfully converted medical images to numpy array!")
 
     def convert_path(self):
         """convert nii.gz file to numpy array in the right directory"""
@@ -191,9 +188,8 @@ class Prep:
         with open(txt, "w") as f:
             for i in range(len(image_names)):
                 if label_names is not None:
-                    string = "{} {}\n".format(
-                        "images/" + image_names[i], "labels/" + label_names[i]
-                    )
+                    string = "{} {}\n".format("images/" + image_names[i],
+                                              "labels/" + label_names[i])
                 else:
                     string = "{}\n".format("images/" + image_names[i])
 
@@ -201,7 +197,11 @@ class Prep:
 
         print("successfully write to {}".format(txt))
 
-    def split_files_txt(self, txt, image_files, label_files=None, train_split=None):
+    def split_files_txt(self,
+                        txt,
+                        image_files,
+                        label_files=None,
+                        train_split=None):
         """
         split filenames and write the image names and label names on train.txt, val.txt or test.txt
 

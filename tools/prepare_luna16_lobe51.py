@@ -45,7 +45,8 @@ import functools
 import numpy as np
 import nibabel as nib
 
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                             ".."))
 
 from prepare import Prep
 from paddleseg3d.datasets.preprocess_utils import uncompressor
@@ -58,15 +59,24 @@ urls = {
 
 
 class Prep_luna(Prep):
-    def __init__(self):
-        self.dataset_root = "data/luna16_lobe51"
-        self.phase_path = os.path.join(self.dataset_root, "luna16_lobe51_test/")
-        super().__init__(phase_path=self.phase_path, dataset_root=self.dataset_root)
 
-        self.raw_data_path = os.path.join(self.dataset_root, "luna16_lobe51_raw/")
-        self.image_dir = os.path.join(self.raw_data_path, "images")
-        self.label_dir = os.path.join(self.raw_data_path, "annotations")
-        self.urls = urls
+    def __init__(self):
+        # self.dataset_root = "data/luna16_lobe51"
+        # self.phase_path = os.path.join(self.dataset_root, "luna16_lobe51_test/")
+        # super().__init__(phase_path=self.phase_path, dataset_root=self.dataset_root)
+        #
+        # self.raw_data_path = os.path.join(self.dataset_root, "luna16_lobe51_raw/")
+        # self.image_dir = os.path.join(self.raw_data_path, "images")
+        # self.label_dir = os.path.join(self.raw_data_path, "annotations")
+        # self.urls = urls
+
+        super().__init__(
+            dataset_fdr="luna16_lobe51",
+            urls=urls,
+            image_fdr="images",
+            label_fdr="annotations",
+            phase_fdr="phase0",
+        )
 
     def convert_path(self):
         """convert nii.gz file to numpy array in the right directory"""
@@ -77,9 +87,13 @@ class Prep_luna(Prep):
             savepath=self.image_path,
             preprocess=[
                 functools.partial(HUNorm, HU_min=-1250, HU_max=250),
-                functools.partial(resample, new_shape=[128, 128, 128], order=1),
+                functools.partial(resample, new_shape=[128, 128, 128],
+                                  order=1),
             ],
-            filter={"filter_suffix": "mhd", "filter_key": None},
+            filter={
+                "filter_suffix": "mhd",
+                "filter_key": None
+            },
         )
 
         print("start convert labels to numpy array, please wait patiently")
@@ -88,7 +102,8 @@ class Prep_luna(Prep):
             self.label_dir,
             self.label_path,
             preprocess=[
-                functools.partial(resample, new_shape=[128, 128, 128], order=0),
+                functools.partial(resample, new_shape=[128, 128, 128],
+                                  order=0),
                 functools.partial(
                     label_remap,
                     map_dict={
@@ -107,7 +122,10 @@ class Prep_luna(Prep):
                     },
                 ),
             ],
-            filter={"filter_suffix": "nrrd", "filter_key": None},
+            filter={
+                "filter_suffix": "nrrd",
+                "filter_key": None
+            },
             tag="label",
         )
 
@@ -120,14 +138,22 @@ class Prep_luna(Prep):
         ]
 
         label_files = os.listdir(self.label_path)
-        image_files = [name.replace("_LobeSegmentation", "") for name in label_files]
+        image_files = [
+            name.replace("_LobeSegmentation", "") for name in label_files
+        ]
 
-        self.split_files_txt(txtname[0], image_files, label_files, train_split=45)
-        self.split_files_txt(txtname[1], image_files, label_files, train_split=45)
+        self.split_files_txt(txtname[0],
+                             image_files,
+                             label_files,
+                             train_split=45)
+        self.split_files_txt(txtname[1],
+                             image_files,
+                             label_files,
+                             train_split=45)
 
 
 if __name__ == "__main__":
     prep = Prep_luna()
-    # prep.uncompress_file(num_zipfiles=4)
+    prep.uncompress_file(num_zipfiles=4)
     prep.convert_path()
     prep.generate_txt()

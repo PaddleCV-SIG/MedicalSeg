@@ -15,6 +15,7 @@ import os
 
 import numpy as np
 import SimpleITK as sitk
+import pydicom
 
 
 def load_slices(dcm_dir):
@@ -49,3 +50,39 @@ def load_series(mhd_path):
     numpySpacing = np.array(list(reversed(itkimage.GetSpacing())))
 
     return numpyImage, numpyOrigin, numpySpacing
+
+
+def reverse_axes(image):
+    return np.transpose(image, tuple(reversed(range(image.ndim))))
+
+
+def sitk_read(volume_path, orient=True, split=False, load_type=np.float32):
+    # sitk wont load files without orthonormal direction cosines, try/catch next line
+    sitk_f = sitk.ReadImage(volume_path)
+
+    volume_np = sitk.GetArrayFromImage(sitk_f).astype(load_type)
+    print("volume_np.shape", volume_np.shape)
+    if orient:
+        volume_np = reverse_axes(
+            sitk.GetArrayFromImage(sitk_f))  # switch from zyx to xyz
+        cosine = np.asarray(sitk_f.GetDirection()).reshape(3, 3)
+        cosine_inv = np.linalg.inv(np.round(cosine))
+        swap = np.argmax(abs(cosine_inv), axis=0)
+        flip = np.sum(cosine_inv, axis=0)
+        volume_np = np.transpose(volume_np, tuple(swap))
+        volume_np = volume_np[tuple(slice(None, None, int(f)) for f in flip)]
+        volume_np = np.rot90(volume_np, -1)
+        volume_np = np.transpose(volume_np, (2, 0, 1))
+    if not split:
+        return volume_np
+    dim = sitk_f.GetDimension()
+    if dim == 3:
+        return [volume_np]
+    elif dim == 4:
+        volumes = []
+        for idx in range(volume_np.shape[0]):
+            volumes.append(volume_np[idx])
+        return volumes
+    else:
+        raise RuntimeError(
+            f"{volume_path} has {dim} dimensions, expecting 3D or 4D files")

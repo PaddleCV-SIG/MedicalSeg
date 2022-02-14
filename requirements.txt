@@ -10,3 +10,4 @@ opencv-python
 visualdl
 sklearn
 nibabel
+pydicom
