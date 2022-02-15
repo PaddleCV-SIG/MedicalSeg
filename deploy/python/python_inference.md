@@ -51,7 +51,7 @@ wget https://paddle-inference-dist.bj.bcebos.com/tensorrt_test/cuda10.2-cudnn8.0
 ## 2. 准备模型和数据
 
 1. 下载[样例模型](https://bj.bcebos.com/paddleseg/paddleseg3d/lung_coronavirus/vnet_lung_coronavirus_128_128_128_15k_1e-3/model.pdparams)用于导出
-2. 下载预处理好的一个[肺部数组](https://paddleseg.bj.bcebos.com/dygraph/demo/cityscapes_demo.png)用于预测。
+2. 下载预处理好的一个[肺部数组](https://bj.bcebos.com/paddleseg/paddleseg3d/lung_coronavirus/vnet_lung_coronavirus_128_128_128_15k_1e-3/coronacases_org_007.npy)用于预测。
 
 
     ```bash
