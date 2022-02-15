@@ -141,7 +141,8 @@ def worker_init_fn(worker_id):
 def get_image_list(image_path):
     """Get image list"""
     valid_suffix = [
-        '.JPEG', '.jpeg', '.JPG', '.jpg', '.BMP', '.bmp', '.PNG', '.png'
+        '.JPEG', '.jpeg', '.JPG', '.jpg', '.BMP', '.bmp', '.PNG', '.png',
+        '.npy'
     ]
     image_list = []
     image_dir = None
