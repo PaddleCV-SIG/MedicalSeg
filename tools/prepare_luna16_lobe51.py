@@ -81,17 +81,15 @@ class Prep_luna(Prep):
 
         print("Start convert images to numpy array, please wait patiently")
         self.load_save(self.image_dir,
-                       savepath=self.image_path,
+                       save_path=self.image_path,
                        preprocess=[
                            functools.partial(HUNorm, HU_min=-1250, HU_max=250),
                            functools.partial(resample,
                                              new_shape=[128, 128, 128],
                                              order=1)
                        ],
-                       filter={
-                           "filter_suffix": 'mhd',
-                           "filter_key": None
-                       })
+                       valid_suffix='mhd',
+                       filter_key=None)
 
         print("start convert labels to numpy array, please wait patiently")
 
@@ -117,10 +115,8 @@ class Prep_luna(Prep):
                                                  520: 0
                                              })
                        ],
-                       filter={
-                           "filter_suffix": 'nrrd',
-                           "filter_key": None
-                       },
+                       valid_suffix='nrrd',
+                       filter_key=None,
                        tag="label")
 
     def generate_txt(self):

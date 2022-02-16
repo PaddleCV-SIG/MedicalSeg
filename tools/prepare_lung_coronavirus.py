@@ -50,7 +50,6 @@ import numpy as np
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              ".."))
 
-from prepare_utils import list_files
 from paddleseg3d.datasets.preprocess_utils import HUNorm, resample
 from prepare import Prep
 
@@ -65,10 +64,8 @@ urls = {
     "https://bj.bcebos.com/v1/ai-studio-online/12b02c4d5f9d44c5af53d17bbd4f100888b5be1dbc3d40d6b444f383540bd36c?responseContentDisposition=attachment%3B%20filename%3D20_ncov_scan.zip&authorization=bce-auth-v1%2F0ef6765c1e494918bc0d4c3ca3e5c6d1%2F2020-05-10T14%3A54%3A21Z%2F-1%2F%2F1d812ca210f849732feadff9910acc9dcf98ae296988546115fa7b987d856b85"
 }
 
-# TODO: wait validation
 
-
-class Prep_luna(Prep):
+class Prep_lung_coronavirus(Prep):
 
     def __init__(self):
         self.dataset_root = "data/lung_coronavirus_test"
@@ -88,17 +85,15 @@ class Prep_luna(Prep):
 
         print("Start convert images to numpy array, please wait patiently")
         self.load_save(self.image_dir,
-                       savepath=self.image_path,
+                       save_path=self.image_path,
                        preprocess=[
                            HUNorm,
                            functools.partial(resample,
                                              new_shape=[128, 128, 128],
                                              order=1)
                        ],
-                       filter={
-                           "filter_suffix": None,
-                           "filter_key": None
-                       })
+                       valid_suffix=("nii.gz"),
+                       filter_key=None)
         print("start convert labels to numpy array, please wait patiently")
 
         self.load_save(self.label_dir,
@@ -108,10 +103,8 @@ class Prep_luna(Prep):
                                              new_shape=[128, 128, 128],
                                              order=0),
                        ],
-                       filter={
-                           "filter_suffix": None,
-                           "filter_key": None
-                       },
+                       valid_suffix=("nii.gz"),
+                       filter_key=None,
                        tag="label")
 
     def generate_txt(self, train_split=15):
@@ -140,7 +133,7 @@ class Prep_luna(Prep):
 
 
 if __name__ == "__main__":
-    prep = Prep_luna()
+    prep = Prep_lung_coronavirus()
     prep.uncompress_file(num_zipfiles=4)
     prep.convert_path()
     prep.generate_txt()

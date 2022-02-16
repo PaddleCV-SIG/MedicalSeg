@@ -33,7 +33,7 @@ import SimpleITK as sitk
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              ".."))
 
-from prepare_utils import list_files
+from paddleseg3d.utils import get_image_list
 from paddleseg3d.datasets.preprocess_utils import uncompressor
 
 
@@ -71,41 +71,57 @@ class Prep:
                                              delete_file=False,
                                              print_progress=True)
 
-    def load_save(self,
-                  file_dir,
-                  savepath=None,
+    @staticmethod
+    def load_medical_data(f):
+        """
+        load data of different format into numpy array
+
+        f: the complete path to the file that you want to load
+
+        """
+        filename = f.split("/")[-1]
+        if "nii.gz" in filename:
+            f_np = nib.load(f).get_fdata(dtype=np.float32)
+        elif "nrrd" in filename:
+            f_np, _ = nrrd.read(f)
+        elif "mhd" in filename or "raw" in filename:
+            itkimage = sitk.ReadImage(f)
+            f_np = sitk.GetArrayFromImage(itkimage)
+            # shuffle the dimensions to get axis in the order z, y, x
+            f_np = np.transpose(
+                f_np, [2, 1, 0]
+            )  # TODO  check if this suits to other datasets, this is needed in luna16_lobe51
+        else:
+            raise NotImplementedError
+
+        return f_np
+
+    @staticmethod
+    def load_save(file_path,
+                  save_path=None,
                   preprocess=None,
-                  filter=None,
+                  valid_suffix=None,
+                  filter_key=None,
                   tag="image"):
         """
         Load the needed file with filter, preprocess it transfer to the correct type and save it to the directory.
         """
-        files = list_files(file_dir, **filter)
+
+        if os.path.isdir(file_path):
+            files = get_image_list(file_path, valid_suffix, filter_key)
+        elif os.path.isfile(file_path):
+            files = [file_path]
+        else:
+            raise RuntimeError(
+                "The file_path `{}` need to be a file or a directory".format(
+                    file_path))
 
         assert len(files) != 0, print(
             "The data directory you assigned is wrong, there is no file in it."
         )
 
         for f in files:
-            filename = f.split("/")[-1]
-
-            # load data based the format
-            if "nii.gz" in filename:
-                f_np = nib.load(f).get_fdata(dtype=np.float32)
-                file_suffix = "nii.gz"
-            elif "nrrd" in filename:
-                f_np, header = nrrd.read(f)
-                file_suffix = "nrrd"
-            elif "mhd" in filename or "raw" in filename:
-                itkimage = sitk.ReadImage(f)
-                # Convert the image to a  numpy array first and then shuffle the dimensions to get axis in the order z,y,x
-                f_np = sitk.GetArrayFromImage(itkimage)
-                f_np = np.transpose(
-                    f_np, [2, 1, 0]
-                )  # TODO  check if this suits to other datasets, this is needed in luna16_lobe51
-                file_suffix = "mhd"
-            else:
-                raise NotImplementedError
+            f_np = Prep.load_medical_data(f)
 
             if preprocess is not None:
                 for op in preprocess:
@@ -117,8 +133,9 @@ class Prep:
             else:
                 f_np = f_np.astype("int64")
 
-            file_prefix = filename[:-len(file_suffix) - 1]
-            np.save(os.path.join(savepath, file_prefix), f_np)
+            np.save(
+                os.path.join(save_path,
+                             f.split("/")[-1].split(".", maxsplit=1)[0]), f_np)
 
         print("Sucessfully convert medical images to numpy array!")
 

@@ -110,3 +110,8 @@ python deploy/python/infer.py \
     * 加载量化预测模型，设置precision为int8，此时执行int8数值精度，可以加快推理速度
 * 如果在Nvidia GPU上使用TensorRT方式部署模型，出现错误信息`(InvalidArgument) some trt inputs dynamic shape inof not set`，可以设置enable_auto_tune参数为True。此时，使用部分测试数据离线收集动态shape，使用收集到的动态shape用于TRT部署。（注意，少部分模型暂时不支持在Nvidia GPU上使用TensorRT方式部署）。
 * 如果要开启`--benchmark`的话需要安装auto_log，请参考[安装方式](https://github.com/LDOUBLEV/AutoLog)。
+
+
+**参考**
+
+- Paddle Inference部署（Python), PaddleSeg https://github.com/PaddlePaddle/PaddleSeg/blob/release/2.3/docs/deployment/inference/python_inference.md

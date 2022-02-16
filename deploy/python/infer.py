@@ -22,6 +22,8 @@ sys.path.append(os.path.join(LOCAL_PATH, '..', '..'))
 
 import yaml
 import numpy as np
+import functools
+
 from paddle.inference import create_predictor, PrecisionType
 from paddle.inference import Config as PredictConfig
 
@@ -29,6 +31,8 @@ import paddleseg3d.transforms as T
 from paddleseg3d.cvlibs import manager
 from paddleseg3d.utils import get_sys_env, logger, get_image_list
 from paddleseg3d.utils.visualize import get_pseudo_color_map
+from paddleseg3d.datasets import HUNorm, resample
+from tools.prepare import Prep
 
 
 def parse_args():
@@ -331,7 +335,7 @@ class Predictor:
             if i == 0 and args.benchmark:
                 for j in range(5):
                     data = np.array([
-                        self._preprocess(img)
+                        self._preprocess(img)  # load from original
                         for img in imgs_path[0:args.batch_size]
                     ])
                     input_handle.reshape(data.shape)
@@ -368,6 +372,27 @@ class Predictor:
         logger.info("Finish")
 
     def _preprocess(self, img):
+        """load img and transform it
+
+        Args:
+        Img(str): A batch of image path
+
+        """
+        if not "npy" in img:
+            Prep.load_save(
+                file_path=img,
+                save_path=os.path.dirname(img),
+                preprocess=[
+                    HUNorm,
+                    functools.partial(
+                        resample,  # TODO: config preprocess in deply.yaml to set params
+                        new_shape=[128, 128, 128],
+                        order=1)
+                ],
+                valid_suffix=None,
+                filter_key=None)
+            img = img.split(".", maxsplit=1)[0] + ".npy"
+
         return self.cfg.transforms(img)[0]
 
     def _postprocess(self, results):
@@ -385,7 +410,7 @@ class Predictor:
 
 
 def main(args):
-    imgs_list, _ = get_image_list(
+    imgs_list = get_image_list(
         args.image_path)  # get image list from image path
 
     # support autotune to collect dynamic shape, works only with trt on.

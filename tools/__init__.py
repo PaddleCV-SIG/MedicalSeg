@@ -1,2 +1,1 @@
-from utils import *
-from prepare_lung_coronavirus import Prep
+from .prepare import Prep

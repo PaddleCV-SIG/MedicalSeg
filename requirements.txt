@@ -6,6 +6,8 @@ SimpleITK>=2.1.1
 PyYAML
 pynrrd
 tqdm
-opencv-python
+nrrd
 visualdl
 sklearn
+filelock
+contextlib
