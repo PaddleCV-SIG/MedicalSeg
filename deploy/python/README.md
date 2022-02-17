@@ -59,7 +59,7 @@ wget https://paddle-inference-dist.bj.bcebos.com/tensorrt_test/cuda10.2-cudnn8.0
 
     wget https://bj.bcebos.com/paddleseg/paddleseg3d/lung_coronavirus/vnet_lung_coronavirus_128_128_128_15k_1e-3/model.pdparams
 
-    wget TODO
+    wget https://bj.bcebos.com/paddleseg/paddleseg3d/lung_coronavirus/vnet_lung_coronavirus_128_128_128_15k_1e-3/coronacases_org_007.npy
     ```
 
 ## 3. 模型导出：
@@ -72,12 +72,12 @@ python export.py --config configs/lung_coronavirus/vnet_lung_coronavirus_128_128
 
 ## 4. 预测
 
-在PaddleSeg根目录，执行以下命令进行预测:
+在PaddleSeg根目录，执行以下命令进行预测，其中传入数据我们支持:
 
 ```shell
 python deploy/python/infer.py \
     --config /path/to/model/deploy.yaml \
-    --image_path /path/to/image/path/or/dir
+    --image_path /path/to/image/path/or/dir/
     --benchmark True   # 安装 AutoLog 后启用，可以用于测试时间，安装说明见后文
 ```
 若输出结果 `Finish` 且没有报错，则说明预测成功，且在启用 benchmark 后会生成预测信息和时间。
@@ -88,7 +88,7 @@ python deploy/python/infer.py \
 |参数名|用途|是否必选项|默认值|
 |-|-|-|-|
 |config|**导出模型时生成的配置文件**, 而非configs目录下的配置文件|是|-|
-|image_path|预测图片的路径或者目录或者文件列表|是|-|
+|image_path|预测图像的路径或者目录或者文件列表，支持预处理好的npy文件，或者原始数据（支持使用固定参数 HU 值变换和 Resample）|是|-|
 |batch_size|单卡batch size|否|1|
 |save_dir|保存预测结果的目录|否|output|
 |device|预测执行设备，可选项有'cpu','gpu'|否|'gpu'|

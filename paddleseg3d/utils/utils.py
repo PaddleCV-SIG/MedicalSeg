@@ -152,12 +152,14 @@ def get_image_list(image_path, valid_suffix=None, filter_key=None):
 
     """
     if valid_suffix is None:
-        valid_suffix = ['nii.gz', 'nii', 'dcm', 'nrrd', 'mhd', 'raw', 'npy']
+        valid_suffix = [
+            'nii.gz', 'nii', 'dcm', 'nrrd', 'mhd', 'raw', 'npy', 'mha'
+        ]
 
     image_list = []
     if os.path.isfile(image_path):
-        if image_path.split("/")[-1].split('.',
-                                           maxsplit=1)[-1] in valid_suffix:
+        if image_path.split("/")[-1].split(
+                '.', maxsplit=1)[-1] in valid_suffix:
             if filter_key is not None:
                 f_name = image_path.split("/")[
                     -1]  # TODO change to system invariant
