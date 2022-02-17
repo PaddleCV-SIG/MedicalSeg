@@ -51,6 +51,7 @@ Our code configs model based on \_base\_ config and dataset-related config.
 
 ### 2.2 Train & Validate
 After change your config, you are ready to train your model. A basic training and validation example is ./run-vnet.sh. Let's see some of the training and validation configuration in this file.
+
 ```bash
 # set your GPU ID here
 export CUDA_VISIBLE_DEVICES=0
@@ -72,6 +73,24 @@ python3 val.py --config configs/lung_coronavirus/${yml}.yml \
 --save_dir  $save_dir/best_model --model_path $save_dir/best_model/model.pdparams
 
 ```
+
+## 2.3 deploy the model
+With a trained model, we support deply it with paddle inference such that the infer speed can be boosted. The instruction to do so is as following, and you can see a detailed tutorial [here](./deploy/python/README.md)
+
+```bash
+cd PaddleSeg3D/
+
+# Export the model with trained parameter
+python export.py --config configs/lung_coronavirus/vnet_lung_coronavirus_128_128_128_15k.yml --model_path /path/to/your/trained/model
+
+# Infer it with Paddle Inference Python API
+python deploy/python/infer.py \
+    --config /path/to/model/deploy.yaml \
+    --image_path /path/to/image/path/or/dir/
+    --benchmark True   # Use it after installed AutoLog, to record the speed.
+
+```
+If you see the "finish" output, you have sucessfully upgrade your model's infer speed.
 
 ## 3. Train on your dataset
 If you want to train on your dataset, simply add a dataset file and configuration file, and you are good to go. Details on how to add can referred to the dataset file and the configurations(./paddleseg3D/datasets/, ./configs).
