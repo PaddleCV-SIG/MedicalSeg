@@ -72,7 +72,7 @@ python export.py --config configs/lung_coronavirus/vnet_lung_coronavirus_128_128
 
 ## 4. 预测
 
-在PaddleSeg根目录，执行以下命令进行预测，其中传入数据我们支持:
+在PaddleSeg根目录，执行以下命令进行预测，其中传入数据我们支持预处理之前的文件（支持使用固定参数 HU 值变换和 Resample），和预处理之后的 npy 文件:
 
 ```shell
 python deploy/python/infer.py \
