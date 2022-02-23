@@ -3,7 +3,7 @@ export CUDA_VISIBLE_DEVICES=6
 
 # set the config file name and save directory here
 yml=vnet_lung_coronavirus_128_128_128_15k
-save_dir=saved_model/${yml}_test
+save_dir=saved_model/${yml}
 mkdir $save_dir
 
 # Train the model: see the train.py for detailed explanation on script args
