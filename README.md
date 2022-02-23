@@ -10,9 +10,9 @@ We have sucessfully validate our framework with [Vnet](https://arxiv.org/abs/160
 |-|128x128x128|0.0003|15000|92.70%|[model](https://bj.bcebos.com/paddleseg/paddleseg3d/lung_coronavirus/vnet_lung_coronavirus_128_128_128_15k_3e-4/model.pdparams) \| [log](https://bj.bcebos.com/paddleseg/paddleseg3d/lung_coronavirus/vnet_lung_coronavirus_128_128_128_15k_3e-4/train.log) \| [vdl](https://www.paddlepaddle.org.cn/paddle/visualdl/service/app/scalar?id=0fb90ee5a6ea8821c0d61a6857ba4614)|
 
 
-The segmentation result of our vnet model is as following:
+The segmentation result of our vnet model is as following, thanks to the powerful 3D visualization toolkit [itkwidgets](https://github.com/InsightSoftwareConsortium/itkwidgets), you can try to play around using our [visualize.ipynb](visualize.ipynb)
 <div align="center">
-<img src="figures/vnet_result.png" width=300 height=300/>
+<img src="figures/lung_prediction.gif" width=500 height=300/>
 </div>
 
 ## 1. Get started
