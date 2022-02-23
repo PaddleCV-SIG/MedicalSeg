@@ -1,8 +1,8 @@
 # Paddleseg3D
-Welcome to PaddleSeg3D! PaddleSeg3D is a easy-to-use 3D medical image segmentation toolkit that covers various datasets including lung, brain and spine.
+Welcome to PaddleSeg3D! PaddleSeg3D is an easy-to-use 3D medical image segmentation toolkit that includes various datasets including lung, brain, and spine. (Currently contains lung-related dataset only.)
 
 ## 0. Model performance
-We have sucessfully validate our framework with [Vnet](https://arxiv.org/abs/1606.04797) on the [COVID-19 CT scans](https://www.kaggle.com/andrewmvd/covid19-ct-scans) dataset. With lung mask as label, we reach dice coefficient of 97.04%. You can download the log to see the result or load the model and validate by yourself :).
+We successfully validate our framework with [Vnet](https://arxiv.org/abs/1606.04797) on the [COVID-19 CT scans](https://www.kaggle.com/andrewmvd/covid19-ct-scans) dataset. With the lung mask as label, we reached dice coefficient of 97.04%. You can download the log to see the result or load the model and validate it by yourself :).
 
 | Backbone | Resolution | lr | Training Iters | Dice | Links |
 |:-:|:-:|:-:|:-:|:-:|:-:|
@@ -10,13 +10,13 @@ We have sucessfully validate our framework with [Vnet](https://arxiv.org/abs/160
 |-|128x128x128|0.0003|15000|92.70%|[model](https://bj.bcebos.com/paddleseg/paddleseg3d/lung_coronavirus/vnet_lung_coronavirus_128_128_128_15k_3e-4/model.pdparams) \| [log](https://bj.bcebos.com/paddleseg/paddleseg3d/lung_coronavirus/vnet_lung_coronavirus_128_128_128_15k_3e-4/train.log) \| [vdl](https://www.paddlepaddle.org.cn/paddle/visualdl/service/app/scalar?id=0fb90ee5a6ea8821c0d61a6857ba4614)|
 
 
-The segmentation result of our vnet model is as following, thanks to the powerful 3D visualization toolkit [itkwidgets](https://github.com/InsightSoftwareConsortium/itkwidgets), you can try to play around using our [visualize.ipynb](visualize.ipynb)
+The segmentation result of our vnet model is presented as follows thanks to the powerful 3D visualization toolkit [itkwidgets](https://github.com/InsightSoftwareConsortium/itkwidgets). You can try to play around using our [visualize.ipynb](visualize.ipynb)
 <div align="center">
 <img src="figures/lung_prediction.gif" width=500 height=300/>
 </div>
 
-## 1. Get started
-1. Download our repo.
+## 1. Run our Vnet demo on [COVID-19 CT scans](https://www.kaggle.com/andrewmvd/covid19-ct-scans)
+1. Download our repository.
     ```
     git clone  https://github.com/PaddleCV-SIG/PaddleSeg3D.git
     cd PaddleSeg3D/
@@ -25,32 +25,42 @@ The segmentation result of our vnet model is as following, thanks to the powerfu
     ```
     pip install -r requirements.txt
     ```
-3. Run the train and validation example in multiple GPU. (Refer to the following usage to get the correct result.)
+3. Get and preprocess the data:
+    ```
+    python prepare_lung_coronavirus.py
+    ```
+
+4. Run the train and validation example. (Refer to the following usage to get the correct result.)
    ```
    sh run-vnet.sh
    ```
 
 
 ## 2. Usage
-This part shows you how to change your configuration and start training.
-Basically, if you don't need to add new code, you only need to focus on configuration、training and validation setting.
+This part shows you the details of the whole training and inference process.
 
 ### 2.1 Set configuration
-Our code configs model based on \_base\_ config and dataset-related config.
+Our code configs model base on \_base\_ config and dataset-related config.
 1. \_base\_ config:
 
     All the config files inherit this one(./configs/\_base\_/global.yml), you need to set your data path here and ensure you have enough space under this path.
 
 2. dataset base config:
 
-    This kind of config files set all the configurations except for models' config, you can change configs about loss, optimizer, dataset and so on in this file. (path example: ./configs/xx_dataset/xx_dataset.yml)
+    This kind of config file set all the configurations except for models' config, you can change configs about loss, optimizer, dataset, and so on in this file. (path example: ./configs/xx_dataset/xx_dataset.yml)
 
 3. model-related config:
 
-    This config inherit the data base config and you can change the model config here.(path example: ./configs/xx_dataset/xxnet_dataset.yml)
+    This config inherits the dataset base config and you can change the model config here.(path example: ./configs/xx_dataset/xxnet_dataset.yml)
 
-### 2.2 Train & Validate
-After change your config, you are ready to train your model. A basic training and validation example is ./run-vnet.sh. Let's see some of the training and validation configuration in this file.
+### 2.2 Prepare the data
+We use the data preparation script to download, preprocess, convert, and split the data automatically. If you want to prepare the data as we did, you can run the data prepare file like the following:
+```
+python prepare_lung_coronavirus.py # take the CONVID-19 CT scans as example.
+```
+
+### 2.3 Train & Validate
+After changing your config, you are ready to train your model. A basic training and validation example is ./run-vnet.sh. Let's see some of the training and validation configurations in this file.
 
 ```bash
 # set your GPU ID here
@@ -74,8 +84,8 @@ python3 val.py --config configs/lung_coronavirus/${yml}.yml \
 
 ```
 
-## 2.3 deploy the model
-With a trained model, we support deply it with paddle inference such that the infer speed can be boosted. The instruction to do so is as following, and you can see a detailed tutorial [here](./deploy/python/README.md)
+## 2.4 deploy the model
+With a trained model, we support deploying it with paddle inference to boost the inference speed. The instruction to do so is as follows, and you can see a detailed tutorial [here](./deploy/python/README.md).
 
 ```bash
 cd PaddleSeg3D/
@@ -92,8 +102,9 @@ python deploy/python/infer.py \
 ```
 If you see the "finish" output, you have sucessfully upgrade your model's infer speed.
 
-## 3. Train on your dataset
-If you want to train on your dataset, simply add a dataset file and configuration file, and you are good to go. Details on how to add can referred to the dataset file and the configurations(./paddleseg3D/datasets/, ./configs).
+## 3. Train on your own dataset
+If you want to train on your dataset, simply add a [dataset file](./paddleseg3d/datasets/lung_coronavirus.py), a [data preprocess file](./tools/prepare_lung_coronavirus.py), and a [configuration directory](./configs/lung_coronavirus), and you are good to go. Details on how to add can refer to the links above.
 
-## 4. Acknowlegement
-Thanks [PaddleSeg](https://github.com/PaddlePaddle/PaddleSeg) for their wonderful framework design that we borrowed from.  
+## 4. Acknowledgements
+Many thanks to [PaddleSeg](https://github.com/PaddlePaddle/PaddleSeg) for wonderful framework design that we borrowed.
+Many thanks to [itkwidgets](https://github.com/InsightSoftwareConsortium/itkwidgets) for their powerful visualization toolkit that we used to present our visualizations.
