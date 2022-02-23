@@ -1,6 +1,3 @@
-#  HU_min -1250，HU_max 250
-# resample size 128, 128, 128，整CT直接resize，order=1
-# LUNA的label mapping就是上午给你的那个{1:0, 4:3, 5:4, 6:5, 7:1, 8:2, 512:0, 516:0, 517:0, 518:0, 519:0, 520:0}
 # Copyright (c) 2021 PaddlePaddle Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,6 +36,7 @@ lung_coronavirus
 support:
 1. download and uncompress the file.
 2. save the data as the above format.
+3. split the training data and save the split result in train_list.txt and val_list.txt
 
 """
 import os
@@ -47,8 +45,8 @@ import zipfile
 import functools
 import numpy as np
 
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                             ".."))
+sys.path.append(
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 
 from paddleseg3d.datasets.preprocess_utils import HUNorm, resample
 from prepare import Prep
@@ -66,13 +64,12 @@ urls = {
 
 
 class Prep_lung_coronavirus(Prep):
-
     def __init__(self):
         self.dataset_root = "data/lung_coronavirus_test"
         self.phase_path = os.path.join(self.dataset_root,
                                        "lung_coronavirus_phase0/")
-        super().__init__(phase_path=self.phase_path,
-                         dataset_root=self.dataset_root)
+        super().__init__(
+            phase_path=self.phase_path, dataset_root=self.dataset_root)
 
         self.raw_data_path = os.path.join(self.dataset_root,
                                           "lung_coronavirus_raw/")
@@ -84,28 +81,28 @@ class Prep_lung_coronavirus(Prep):
         """convert nii.gz file to numpy array in the right directory"""
 
         print("Start convert images to numpy array, please wait patiently")
-        self.load_save(self.image_dir,
-                       save_path=self.image_path,
-                       preprocess=[
-                           HUNorm,
-                           functools.partial(resample,
-                                             new_shape=[128, 128, 128],
-                                             order=1)
-                       ],
-                       valid_suffix=("nii.gz"),
-                       filter_key=None)
+        self.load_save(
+            self.image_dir,
+            save_path=self.image_path,
+            preprocess=[
+                HUNorm,
+                functools.partial(
+                    resample, new_shape=[128, 128, 128], order=1)
+            ],
+            valid_suffix=("nii.gz"),
+            filter_key=None)
         print("start convert labels to numpy array, please wait patiently")
 
-        self.load_save(self.label_dir,
-                       self.label_path,
-                       preprocess=[
-                           functools.partial(resample,
-                                             new_shape=[128, 128, 128],
-                                             order=0),
-                       ],
-                       valid_suffix=("nii.gz"),
-                       filter_key=None,
-                       tag="label")
+        self.load_save(
+            self.label_dir,
+            self.label_path,
+            preprocess=[
+                functools.partial(
+                    resample, new_shape=[128, 128, 128], order=0),
+            ],
+            valid_suffix=("nii.gz"),
+            filter_key=None,
+            tag="label")
 
     def generate_txt(self, train_split=15):
         """generate the train_list.txt and val_list.txt"""
@@ -122,14 +119,10 @@ class Prep_lung_coronavirus(Prep):
             for name in image_files
         ]
 
-        self.split_files_txt(txtname[0],
-                             image_files,
-                             label_files,
-                             train_split=train_split)
-        self.split_files_txt(txtname[1],
-                             image_files,
-                             label_files,
-                             train_split=train_split)
+        self.split_files_txt(
+            txtname[0], image_files, label_files, train_split=train_split)
+        self.split_files_txt(
+            txtname[1], image_files, label_files, train_split=train_split)
 
 
 if __name__ == "__main__":
