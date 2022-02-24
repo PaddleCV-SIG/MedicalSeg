@@ -16,8 +16,8 @@ The segmentation result of our vnet model is presented as follows thanks to the 
 </div>
 
 ## 1. Run our Vnet demo on [COVID-19 CT scans](https://www.kaggle.com/andrewmvd/covid19-ct-scans)
+
 You can run the demo in our [Aistudio project](https://aistudio.baidu.com/aistudio/projectdetail/3519594) as well or follow the following steps in your computer.
-- Download our repository.
     ```
     git clone  https://github.com/PaddleCV-SIG/PaddleSeg3D.git
     cd PaddleSeg3D/
@@ -26,15 +26,19 @@ You can run the demo in our [Aistudio project](https://aistudio.baidu.com/aistud
     ```
     pip install -r requirements.txt
     ```
+
 - Get and preprocess the data:
     ```
     python prepare_lung_coronavirus.py
     ```
 
+
 - Run the train and validation example. (Refer to the following usage to get the correct result.)
+
    ```
    sh run-vnet.sh
    ```
+
 
 ## 2. Get to Know our project
 This part shows you the whole picture of our repo and details about the whole training and inference process. Our file tree is as follows:
@@ -71,6 +75,7 @@ Change configuration about loss, optimizer, dataset, and so on here. Our configu
     └── two_stage_coarseseg_fineseg.yml
 ```
 
+
 ### 2.2 Prepare the data
 We use the data preparation script to download, preprocess, convert, and split the data automatically. If you want to prepare the data as we did, you can run the data prepare file like the following:
 ```
@@ -78,7 +83,9 @@ python prepare_lung_coronavirus.py # take the CONVID-19 CT scans as example.
 ```
 
 ### 2.3 Train & Validate
+
 After changing your config, you are ready to train your model. A basic training and validation example is [run-vnet.sh](./run-vnet.sh). Let's see some of the training and validation configurations in this file.
+
 
 ```bash
 # set your GPU ID here
@@ -102,7 +109,9 @@ python3 val.py --config configs/lung_coronavirus/${yml}.yml \
 
 ```
 
+
 ### 2.4 deploy the model
+
 With a trained model, we support deploying it with paddle inference to boost the inference speed. The instruction to do so is as follows, and you can see a detailed tutorial [here](./deploy/python/README.md).
 
 ```bash
@@ -165,6 +174,7 @@ config_name = vnet_lung_coronavirus_128_128_128_15k         # name of the config
 save_dir_all=saved_model                                    # overall save dir
 save_dir=saved_model/${config_name}                         # savedir of this exp
 ```
+
 
 ## 4. Acknowledgements
 Many thanks to [PaddleSeg](https://github.com/PaddlePaddle/PaddleSeg) for wonderful framework design that we borrowed.
