@@ -49,7 +49,6 @@ class LungCoronavirus(MedicalDataset):
                 print(np.unique(label))
 
     """
-    num_classes = 3
 
     def __init__(self,
                  dataset_root=None,
