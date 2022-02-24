@@ -6,8 +6,7 @@ SimpleITK>=2.1.1
 PyYAML
 pynrrd
 tqdm
-nrrd
 visualdl
 sklearn
 filelock
-contextlib
+nibabel
