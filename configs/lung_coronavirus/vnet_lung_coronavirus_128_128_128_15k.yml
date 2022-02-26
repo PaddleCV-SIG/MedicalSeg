@@ -5,4 +5,4 @@ model:
   elu: False
   in_channels: 1
   num_classes: 3
-  pretrained: /ssd2/tangshiyu/Code/MedicalZooPytorch/data/vnet_align/paddlemodel.pdparams
+  pretrained: null
