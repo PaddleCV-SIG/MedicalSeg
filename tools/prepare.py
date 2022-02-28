@@ -90,9 +90,9 @@ class Prep:
     @staticmethod
     def load_medical_data(f):
         """
-        load data of different format into numpy array
+        load data of various format into numpy array
 
-        f: the complete path to the file that you want to load
+        f: the absolute path to the file that you want to load
 
         """
         filename = f.split("/")[-1]
