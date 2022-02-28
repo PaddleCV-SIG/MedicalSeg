@@ -71,7 +71,9 @@ class Prep:
                                                         self.dataset_root,
                                                         True))
         """unzip all the file in the root directory"""
-        zipfiles = glob.glob(os.path.join(self.dataset_root, "*.zip"))
+        zipfiles = []
+        for ext in ["zip", "tar", "tar.gz", "tgz"]:
+            zipfiles += glob.glob(os.path.join(self.dataset_root, f"*.{ext}"))
 
         assert len(zipfiles) == num_zipfiles, print(
             "The file directory should include {} zip file, but there is only {}"
