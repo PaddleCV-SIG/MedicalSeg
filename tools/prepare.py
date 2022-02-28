@@ -52,6 +52,24 @@ class Prep:
         datasets_root="data",
         visualize_fdr="vis",
     ):
+        """Create proprosessor for medical dataset.
+
+        Folder structure:
+            datasets_root
+            ├── archive_1.zip
+            ├── archive_2.zip
+            ├── ... archives ...
+            ├── dataset_fdr
+            ├── phase_fdr
+            │   ├── image_fdr
+            │   ├── label_fdr
+            │   ├── train_list.txt
+            │   └── val_list.txt
+            └── visualize_fdr
+
+        Args:
+            urls (dict): Urls to download dataset archive. Key will be used as archive name.
+        """
         self.dataset_root = osp.join(datasets_root, dataset_fdr)
         self.phase_path = osp.join(self.dataset_root, phase_fdr)
         self.raw_data_path = osp.join(self.dataset_root, raw_fdr)
