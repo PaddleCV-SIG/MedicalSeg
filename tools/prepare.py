@@ -22,9 +22,11 @@ support:
 
 """
 import os
+import os.path as osp
 import sys
 import glob
 import zipfile
+
 import numpy as np
 import nibabel as nib
 import nrrd
@@ -39,16 +41,28 @@ from paddleseg3d.datasets.preprocess_utils import uncompressor
 
 class Prep:
 
-    def __init__(self, phase_path=None, dataset_root=None):
-        self.raw_data_path = None
-        self.image_dir = None
-        self.label_dir = None
-        self.urls = None
+    def __init__(
+        self,
+        dataset_fdr,
+        urls,
+        image_fdr,
+        label_fdr,
+        phase_fdr="phase0",
+        raw_fdr="raw",
+        datasets_root="data",
+        visualize_fdr="vis",
+    ):
+        self.dataset_root = osp.join(datasets_root, dataset_fdr)
+        self.phase_path = osp.join(self.dataset_root, phase_fdr)
+        self.raw_data_path = osp.join(self.dataset_root, raw_fdr)
+        self.image_dir = osp.join(self.raw_data_path, image_fdr)
+        self.label_dir = osp.join(self.raw_data_path, label_fdr)
+        self.urls = urls
+        self.visualize_path = osp.join(self.dataset_root, visualize_fdr)
 
-        self.dataset_root = dataset_root
-        self.phase_path = phase_path
         self.image_path = os.path.join(self.phase_path, "images")
         self.label_path = os.path.join(self.phase_path, "labels")
+
         os.makedirs(self.image_path, exist_ok=True)
         os.makedirs(self.label_path, exist_ok=True)
 

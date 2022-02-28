@@ -64,17 +64,13 @@ urls = {
 class Prep_luna(Prep):
 
     def __init__(self):
-        self.dataset_root = "data/luna16_lobe51"
-        self.phase_path = os.path.join(self.dataset_root,
-                                       "luna16_lobe51_test/")
-        super().__init__(phase_path=self.phase_path,
-                         dataset_root=self.dataset_root)
-
-        self.raw_data_path = os.path.join(self.dataset_root,
-                                          "luna16_lobe51_raw/")
-        self.image_dir = os.path.join(self.raw_data_path, "images")
-        self.label_dir = os.path.join(self.raw_data_path, "annotations")
-        self.urls = urls
+        super().__init__(
+            dataset_fdr="luna16_lobe51",
+            urls=urls,
+            image_fdr="images",
+            label_fdr="annotations",
+            phase_fdr="luna16_lobe51_phase0",
+        )
 
     def convert_path(self):
         """convert nii.gz file to numpy array in the right directory"""
