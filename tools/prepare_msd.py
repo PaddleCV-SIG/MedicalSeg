@@ -101,7 +101,7 @@ class Prep_msd(Prep):
     def __init__(self, task_id):
         self.dataset_name = list(tasks[task_id].keys())[0].split(".")[0]
         super().__init__(
-            dataset_fdr=f"msd/{self.dataset_name}",
+            dataset_fdr=f"{self.dataset_name}",
             urls=tasks[task_id],
             image_fdr=f"{self.dataset_name}/{self.dataset_name}/imagesTr",
             label_fdr=f"{self.dataset_name}/{self.dataset_name}/labelsTr",
