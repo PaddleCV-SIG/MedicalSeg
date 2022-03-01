@@ -101,7 +101,7 @@ class Prep_msd(Prep):
     def __init__(self, task_id):
         self.dataset_name = list(tasks[task_id].keys())[0].split(".")[0]
         super().__init__(
-            dataset_fdr=f"msd/{self.dataset_name}",
+            dataset_fdr=f"{self.dataset_name}",
             urls=tasks[task_id],
             image_fdr=f"{self.dataset_name}/{self.dataset_name}/imagesTr",
             label_fdr=f"{self.dataset_name}/{self.dataset_name}/labelsTr",
@@ -117,8 +117,8 @@ class Prep_msd(Prep):
             save_path=self.image_path,
             preprocess=[
                 HUNorm,
-                functools.partial(resample, new_shape=[128, 128, 128],
-                                  order=1),
+                # functools.partial(resample, new_shape=[128, 128, 128],
+                                  # order=1),
             ],
         )
         print("start convert labels to numpy array, please wait patiently")
@@ -127,8 +127,8 @@ class Prep_msd(Prep):
             self.label_dir,
             self.label_path,
             preprocess=[
-                functools.partial(resample, new_shape=[128, 128, 128],
-                                  order=0),
+                # functools.partial(resample, new_shape=[128, 128, 128],
+                                  # order=0),
             ],
             tag="label",
         )
@@ -159,7 +159,7 @@ if __name__ == "__main__":
         len(sys.argv) == 2
     ), "Please specify msd task id. \n usage: python tools/prepare_msd.py task_id"
     prep = Prep_msd(task_id=int(sys.argv[1]))
-    prep.uncompress_file(num_zipfiles=1)
+    # prep.uncompress_file(num_zipfiles=1)
     prep.convert_path()
     prep.generate_txt()
     # prep.visualize(alpha=0.1, mode="save", idx=-1)

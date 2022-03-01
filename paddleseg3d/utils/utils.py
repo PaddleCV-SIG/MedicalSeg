@@ -156,9 +156,8 @@ def get_image_list(image_path, valid_suffix=None, filter_key={}):
     # TODO: maybe add filter for pixel spacing and 2d slice count. that can be useful for dicom
 
     if valid_suffix is None:
-        valid_suffix = (
-            'nii.gz', 'nii', 'dcm', 'nrrd', 'mhd', 'raw', 'npy', 'mha'
-        )
+        valid_suffix = ('nii.gz', 'nii', 'dcm', 'nrrd', 'mhd', 'raw', 'npy',
+                        'mha')
 
     image_list = []
     # 1. load a single image
@@ -167,7 +166,8 @@ def get_image_list(image_path, valid_suffix=None, filter_key={}):
             image_list = [image_path]
         else:
             raise FileNotFoundError(
-                "{} doesn't end with any of the supported suffix: {}.".format(image_path, valid_suffix))
+                "{} doesn't end with any of the supported suffix: {}.".format(
+                    image_path, valid_suffix))
 
     # 2. load image in a directory
     elif osp.isdir(image_path):
@@ -175,16 +175,19 @@ def get_image_list(image_path, valid_suffix=None, filter_key={}):
             for f in files:
                 if '.ipynb_checkpoints' in root:
                     continue
+                if f[0] == '.':  # skip hidden files
+                    continue
                 if f.endswith(valid_suffix):
                     image_list.append(osp.join(root, f))
 
     # 3. not dir not file, image_path doesn't exist
     else:
         raise FileNotFoundError(
-            'image_path {} is not found. It should be a path of image, or a directory containing images.'.format(image_path)
-        )
+            'image_path {} is not found. It should be a path of image, or a directory containing images.'
+            .format(image_path))
 
     # 4. filter based on filter_key
+
     def satisfy_filter(path):
         f_name = osp.basename(path)
         for key, val in filter_key:
