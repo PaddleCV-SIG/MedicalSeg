@@ -74,7 +74,7 @@ class uncompressor:
 
         if filepath.endswith("zip"):
             handler = self._uncompress_file_zip
-        elif filepath.endswith("tgz"):
+        elif filepath.endswith(("tgz", "tar", "tar.gz")):
             handler = functools.partial(self._uncompress_file_tar, mode="r:*")
         else:
             handler = functools.partial(self._uncompress_file_tar, mode="r")
@@ -96,16 +96,21 @@ class uncompressor:
         if print_progress:
             print("Connecting to {}".format(url))
         r = requests.get(url, stream=True, timeout=15)
-        total_length = r.headers.get('content-length')
+        total_length = r.headers.get("content-length")
 
         if total_length is None:
-            with open(savepath, 'wb') as f:
+            with open(savepath, "wb") as f:
                 shutil.copyfileobj(r.raw, f)
         else:
-            with open(savepath, 'wb') as f:
+            total_length = int(total_length)
+            if os.path.exists(savepath) and total_length == os.path.getsize(savepath):
+                print(
+                    "{} already downloaded, skipping".format(os.path.basename(savepath))
+                )
+                return
+            with open(savepath, "wb") as f:
                 dl = 0
-                total_length = int(total_length)
-                starttime = time.time()
+                tic = time.time()
                 if print_progress:
                     print("Downloading %s" % os.path.basename(savepath))
                 for data in r.iter_content(chunk_size=4096):
@@ -114,7 +119,14 @@ class uncompressor:
                     if print_progress:
                         done = int(50 * dl / total_length)
                         self.progress(
-                            "[%-50s] %.2f%%" %
-                            ('=' * done, float(100 * dl) / total_length))
+                            "[%-50s] %.2f%% %.2fM/%.2fM"
+                            % (
+                                "=" * done,
+                                float(100 * dl) / total_length,
+                                dl / 1024**2,
+                                total_length / 1024**2,
+                            )
+                        )
+
             if print_progress:
-                self.progress("[%-50s] %.2f%%" % ('=' * 50, 100), end=True)
+                self.progress("[%-50s] %.2f%%" % ("=" * 50, 100), end=True)
