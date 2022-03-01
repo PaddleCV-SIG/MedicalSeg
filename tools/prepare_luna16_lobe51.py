@@ -1,6 +1,3 @@
-#  HU_min -1250，HU_max 250
-# resample size 128, 128, 128，整CT直接resize，order=1
-# LUNA的label mapping就是上午给你的那个{1:0, 4:3, 5:4, 6:5, 7:1, 8:2, 512:0, 516:0, 517:0, 518:0, 519:0, 520:0}
 # Copyright (c) 2021 PaddlePaddle Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -64,17 +61,13 @@ urls = {
 class Prep_luna(Prep):
 
     def __init__(self):
-        self.dataset_root = "data/luna16_lobe51"
-        self.phase_path = os.path.join(self.dataset_root,
-                                       "luna16_lobe51_test/")
-        super().__init__(phase_path=self.phase_path,
-                         dataset_root=self.dataset_root)
-
-        self.raw_data_path = os.path.join(self.dataset_root,
-                                          "luna16_lobe51_raw/")
-        self.image_dir = os.path.join(self.raw_data_path, "images")
-        self.label_dir = os.path.join(self.raw_data_path, "annotations")
-        self.urls = urls
+        super().__init__(
+            dataset_fdr="luna16_lobe51",
+            urls=urls,
+            image_fdr="images",
+            label_fdr="annotations",
+            phase_fdr="luna16_lobe51_phase0",
+        )
 
     def convert_path(self):
         """convert nii.gz file to numpy array in the right directory"""
