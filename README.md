@@ -125,7 +125,7 @@ python deploy/python/infer.py \
 If you see the "finish" output, you have sucessfully upgrade your model's infer speed.
 
 ## 3. Train on your own dataset
-If you want to train on your dataset, simply add a [dataset file](./paddleseg3d/datasets/lung_coronavirus.py), a [data preprocess file](./tools/prepare_lung_coronavirus.py), and a [configuration directory](./configs/lung_coronavirus), and you are good to go. Details on how to add can refer to the links above.
+If you want to train on your dataset, simply add a [dataset file](./paddleseg3d/datasets/lung_coronavirus.py), a [data preprocess file](./tools/prepare_lung_coronavirus.py), a [configuration directory](./configs/lung_coronavirus), a [training](run-vnet.sh) script and you are good to go. Details on how to add can refer to the links above.
 
 ### 3.1. Add a configuration directory
 As we mentioned, every dataset has its own configuration directory. If you want to add a new dataset, you can replicate the lung_coronavirus directory and change relevant names and configs.
