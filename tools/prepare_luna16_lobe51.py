@@ -48,6 +48,20 @@ import functools
 import numpy as np
 import nibabel as nib
 
+### Init and set global dict ####
+# These code should be in front of import transform ops,
+# where global var is used
+# Import global_val then everywhere else can change/use the global dict
+import global_var
+
+global_var.init()
+
+# Set use gpu here
+args = global_var.get_argument()
+if args.use_gpu:
+    global_var.set_value('USE_GPU', True)
+##################################
+
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              ".."))
 
@@ -117,8 +131,10 @@ class Prep_luna(Prep):
                        filter_key=None,
                        tag="label")
 
+        gpu_tag = global_var.get_value('USE_GPU')
+
         print("The preprocess time on {} is {}".format(
-            "GPU" if self.use_gpu else "CPU",
+            "GPU" if gpu_tag else "CPU",
             time.time() - time1))
 
     def generate_txt(self):
