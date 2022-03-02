@@ -46,6 +46,19 @@ import zipfile
 import functools
 import numpy as np
 
+### Init and set global dict ####
+# These code should be in front of import transform ops,
+# where global var is used
+# Import global_val then everywhere else can change/use the global dict
+import global_var
+
+global_var.init()
+
+# Set use gpu here
+args = global_var.get_argument()
+if args.use_gpu:
+    global_var.set_value('USE_GPU', True)
+##################################
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              ".."))
 
@@ -66,13 +79,12 @@ urls = {
 
 class Prep_lung_coronavirus(Prep):
 
-    def __init__(self, args):
+    def __init__(self):
         self.dataset_root = "data/lung_coronavirus_test"
         self.phase_path = os.path.join(self.dataset_root,
                                        "lung_coronavirus_phase0/")
         super().__init__(phase_path=self.phase_path,
-                         dataset_root=self.dataset_root,
-                         args=args)
+                         dataset_root=self.dataset_root)
 
         self.raw_data_path = os.path.join(self.dataset_root,
                                           "lung_coronavirus_raw/")
@@ -88,11 +100,10 @@ class Prep_lung_coronavirus(Prep):
         self.load_save(self.image_dir,
                        save_path=self.image_path,
                        preprocess=[
-                           functools.partial(HUNorm, gpu_tag=self.use_gpu),
+                           HUNorm,
                            functools.partial(resample,
                                              new_shape=[128, 128, 128],
-                                             order=1,
-                                             gpu_tag=self.use_gpu)
+                                             order=1)
                        ],
                        valid_suffix=("nii.gz"),
                        filter_key=None)
@@ -102,14 +113,14 @@ class Prep_lung_coronavirus(Prep):
                        preprocess=[
                            functools.partial(resample,
                                              new_shape=[128, 128, 128],
-                                             order=0,
-                                             gpu_tag=self.use_gpu),
+                                             order=0),
                        ],
                        valid_suffix=("nii.gz"),
                        filter_key=None,
                        tag="label")
+        gpu_tag = global_var.get_value('USE_GPU')
         print("The preprocess time on {} is {}".format(
-            "GPU" if self.use_gpu else "CPU",
+            "GPU" if gpu_tag else "CPU",
             time.time() - time1))
 
     def generate_txt(self, train_split=15):
@@ -138,10 +149,8 @@ class Prep_lung_coronavirus(Prep):
 
 
 if __name__ == "__main__":
-    from prepare import get_argument
-    args = get_argument()
 
-    prep = Prep_lung_coronavirus(args)
+    prep = Prep_lung_coronavirus()
     # prep.uncompress_file(num_zipfiles=4)
     prep.convert_path()
     prep.generate_txt()

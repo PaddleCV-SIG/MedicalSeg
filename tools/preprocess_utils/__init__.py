@@ -1,3 +1,3 @@
 from .values import *
-from .geometry import *
 from .uncompress import uncompressor
+from .geometry import *

@@ -15,17 +15,20 @@
 import os
 import pydicom
 import SimpleITK as sitk
+import global_var
+
+gpu_tag = global_var.get_value('USE_GPU')
+if gpu_tag:
+    import cupy as np
+else:
+    import numpy as np
 
 
-def load_slices(dcm_dir, gpu_tag=False):
+def load_slices(dcm_dir):
     """
     Load dcm like images
     Return img array and [z,y,x]-ordered origin and spacing
     """
-    if gpu_tag:
-        import cupy as np
-    else:
-        import numpy as np
 
     dcm_list = [os.path.join(dcm_dir, i) for i in os.listdir(dcm_dir)]
     indices = np.array([pydicom.dcmread(i).InstanceNumber for i in dcm_list])
@@ -40,15 +43,11 @@ def load_slices(dcm_dir, gpu_tag=False):
     return numpyImage, numpyOrigin, numpySpacing
 
 
-def load_series(mhd_path, gpu_tag=False):
+def load_series(mhd_path):
     """
     Load mhd, nii like images
     Return img array and [z,y,x]-ordered origin and spacing
     """
-    if gpu_tag:
-        import cupy as np
-    else:
-        import numpy as np
 
     itkimage = sitk.ReadImage(mhd_path)
     numpyImage = sitk.GetArrayFromImage(itkimage)

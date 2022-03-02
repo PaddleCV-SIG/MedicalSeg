@@ -13,14 +13,23 @@
 # limitations under the License.
 
 import SimpleITK as sitk
+import global_var
+
+gpu_tag = global_var.get_value('USE_GPU')
+if gpu_tag:
+    import cupy as np
+    import cupyx.scipy as scipy
+    import cupyx.scipy.ndimage
+else:
+    import numpy as np
+    import scipy
 
 
 def resample(image,
              spacing=None,
              new_spacing=[1.0, 1.0, 1.0],
              new_shape=None,
-             order=1,
-             gpu_tag=False):
+             order=1):
     """
     Resample image from the original spacing to new_spacing, e.g. 1x1x1
 
@@ -35,13 +44,6 @@ def resample(image,
     return: 3D binary numpy array with the same shape of the image after,
         resampling. The actual resampling spacing is also returned.
     """
-    if gpu_tag:
-        import cupy as np
-        import cupyx.scipy as scipy
-        import cupyx.scipy.ndimage
-    else:
-        import numpy as np
-        import scipy
 
     if not isinstance(image, np.ndarray):
         image = np.array(image)
@@ -51,7 +53,7 @@ def resample(image,
         new_shape = np.round(image.shape * spacing / new_spacing)
     else:
         new_shape = np.array(new_shape)
-    # import pdb; pdb.set_trace()
+
     resize_factor = new_shape / np.array(image.shape)
 
     image_new = scipy.ndimage.zoom(image,

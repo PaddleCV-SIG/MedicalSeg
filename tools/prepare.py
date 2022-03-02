@@ -38,18 +38,9 @@ from paddleseg3d.utils import get_image_list
 from preprocess_utils import uncompressor
 
 
-def get_argument():
-    parser = argparse.ArgumentParser(description='Preprocessor')
-    parser.add_argument('--use_gpu',
-                        dest='use_gpu',
-                        help='Whether to use GPU to accelerate',
-                        action='store_true')
-    return parser.parse_args()
-
-
 class Prep:
 
-    def __init__(self, phase_path=None, dataset_root=None, args=None):
+    def __init__(self, phase_path=None, dataset_root=None):
         self.raw_data_path = None
         self.image_dir = None
         self.label_dir = None
@@ -61,8 +52,6 @@ class Prep:
         self.label_path = os.path.join(self.phase_path, "labels")
         os.makedirs(self.image_path, exist_ok=True)
         os.makedirs(self.label_path, exist_ok=True)
-
-        self.use_gpu = args.use_gpu if args is not None else None
 
     def uncompress_file(self, num_zipfiles):
         uncompress_tool = uncompressor(download_params=(self.urls,
