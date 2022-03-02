@@ -12,25 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
-
 # TODO add clip [0.9%, 99.1%]
 
 
-def label_remap(label, map_dict=None):
+def label_remap(label, map_dict=None, gpu_tag=False):
     """
     Convert labels using label map
 
-    label: 3D numpy array in [z, y, x] order.
+    label: 3D numpy/cupy array in [z, y, x] order.
     map_dict: the label transfer map dict. key is the original label, value is the remaped one.
     """
+    if gpu_tag:
+        import cupy as np
+    else:
+        import numpy as np
+
+    if not isinstance(label, np.ndarray):
+        image = np.array(label)
+
     for key, val in map_dict.items():
         label[label == key] = val
 
     return label
 
 
-def HUNorm(image, HU_min=-1000, HU_max=600, HU_nan=-2000):
+def HUNorm(image, HU_min=-1000, HU_max=600, HU_nan=-2000, gpu_tag=False):
     """
     Convert HU unit into uint8 values. First bound HU values by predfined min
     and max, and then normalize. Due to paddle.nn.conv3D doesn't support uint8, we need to convert
@@ -41,6 +47,11 @@ def HUNorm(image, HU_min=-1000, HU_max=600, HU_nan=-2000):
     HU_max: float, max HU value.
     HU_nan: float, value for nan in the raw CT image.
     """
+    if gpu_tag:
+        import cupy as np
+    else:
+        import numpy as np
+
     if not isinstance(image, np.ndarray):
         image = np.array(image)
     image = np.nan_to_num(image, copy=False, nan=HU_nan)

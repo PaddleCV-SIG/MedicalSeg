@@ -1,7 +1,10 @@
 # Paddleseg3D
-Welcome to PaddleSeg3D! PaddleSeg3D is an easy-to-use 3D medical image segmentation toolkit that includes various datasets including lung, brain, and spine. (Currently contains lung-related dataset only.)
+Welcome to PaddleSeg3D! PaddleSeg3D is an easy-to-use 3D medical image segmentation toolkit that support GPU acceleration from data preprocess to deply. We aims to build our toolkit to support various datasets including lung, brain, and spine. (Currently contains lung-related dataset only.)
 
 ## 0. Model performance
+
+###  1) Accuracy
+
 We successfully validate our framework with [Vnet](https://arxiv.org/abs/1606.04797) on the [COVID-19 CT scans](https://www.kaggle.com/andrewmvd/covid19-ct-scans) dataset. With the lung mask as label, we reached dice coefficient of 97.04%. You can download the log to see the result or load the model and validate it by yourself :).
 
 | Backbone | Resolution | lr | Training Iters | Dice | Links |
@@ -15,6 +18,19 @@ The segmentation result of our vnet model is presented as follows thanks to the 
 <img src="figures/lung_prediction.gif" width=500 height=300/>
 </div>
 
+### 2) Speed
+We add gpu acceleration in data preprocess using [CuPy](https://docs.cupy.dev/en/stable/index.html). Compared with preprocess data on cpu, acceleration enable us to use about 40% less time in data prepeocessing. The following shows the time we spend in process COVID-19 CT scans.
+
+<center>
+
+| Device | Time(s) |
+|:-:|:-:|
+|GPU|50.7|
+|CPU|31.4( &#8595; 38%)|
+
+</center>
+
+
 ## 1. Run our Vnet demo on [COVID-19 CT scans](https://www.kaggle.com/andrewmvd/covid19-ct-scans)
 You can run the demo in our [Aistudio project](https://aistudio.baidu.com/aistudio/projectdetail/3519594) as well or follow the following steps in your computer.
 - Download our repository.
@@ -26,9 +42,11 @@ You can run the demo in our [Aistudio project](https://aistudio.baidu.com/aistud
     ```
     pip install -r requirements.txt
     ```
+- (Optional) Install CuPY if you want to accelerate the preprocess process. [CuPY installation guide](https://docs.cupy.dev/en/latest/install.html)
+
 - Get and preprocess the data:
     ```
-    python prepare_lung_coronavirus.py
+    python prepare_lung_coronavirus.py --use_gpu # preprocess with gpu to accelerate, if not, remove the --use_gpu.
     ```
 
 - Run the train and validation example. (Refer to the following usage to get the correct result.)

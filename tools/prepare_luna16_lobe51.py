@@ -52,8 +52,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              ".."))
 
 from prepare import Prep
-from paddleseg3d.datasets.preprocess_utils import uncompressor
-from paddleseg3d.datasets.preprocess_utils import HUNorm, resample, label_remap
+from preprocess_utils import HUNorm, resample, label_remap
 
 urls = {
     "annotation.zip": "",
@@ -63,12 +62,13 @@ urls = {
 
 class Prep_luna(Prep):
 
-    def __init__(self):
+    def __init__(self, args):
         self.dataset_root = "data/luna16_lobe51"
         self.phase_path = os.path.join(self.dataset_root,
                                        "luna16_lobe51_test/")
         super().__init__(phase_path=self.phase_path,
-                         dataset_root=self.dataset_root)
+                         dataset_root=self.dataset_root,
+                         args=args)
 
         self.raw_data_path = os.path.join(self.dataset_root,
                                           "luna16_lobe51_raw/")
@@ -80,25 +80,29 @@ class Prep_luna(Prep):
         """convert nii.gz file to numpy array in the right directory"""
 
         print("Start convert images to numpy array, please wait patiently")
+        time1 = time.time()
         self.load_save(self.image_dir,
                        save_path=self.image_path,
                        preprocess=[
-                           functools.partial(HUNorm, HU_min=-1250, HU_max=250),
+                           functools.partial(HUNorm,
+                                             HU_min=-1250,
+                                             HU_max=250,
+                                             gpu_tag=self.use_gpu),
                            functools.partial(resample,
                                              new_shape=[128, 128, 128],
-                                             order=1)
+                                             order=1,
+                                             gpu_tag=self.use_gpu)
                        ],
-                       valid_suffix='mhd',
+                       valid_suffix=('mhd'),
                        filter_key=None)
-
-        print("start convert labels to numpy array, please wait patiently")
 
         self.load_save(self.label_dir,
                        self.label_path,
                        preprocess=[
                            functools.partial(resample,
                                              new_shape=[128, 128, 128],
-                                             order=0),
+                                             order=0,
+                                             gpu_tag=self.use_gpu),
                            functools.partial(label_remap,
                                              map_dict={
                                                  1: 0,
@@ -113,11 +117,16 @@ class Prep_luna(Prep):
                                                  518: 0,
                                                  519: 0,
                                                  520: 0
-                                             })
+                                             },
+                                             gpu_tag=self.use_gpu)
                        ],
-                       valid_suffix='nrrd',
+                       valid_suffix=('nrrd'),
                        filter_key=None,
                        tag="label")
+
+        print("The preprocess time on {} is {}".format(
+            "GPU" if self.use_gpu else "CPU",
+            time.time() - time1))
 
     def generate_txt(self):
         """generate the train_list.txt and val_list.txt"""
@@ -143,7 +152,10 @@ class Prep_luna(Prep):
 
 
 if __name__ == "__main__":
-    prep = Prep_luna()
+    from prepare import get_argument
+    args = get_argument()
+
+    prep = Prep_luna(args)
     # prep.uncompress_file(num_zipfiles=4)
     prep.convert_path()
     prep.generate_txt()

@@ -26,14 +26,14 @@ FLUSH_INTERVAL = 0.1
 
 
 class uncompressor:
+
     def __init__(self, download_params):
         if download_params is not None:
             urls, savepath, print_progress = download_params
             for key, url in urls.items():
-                self._download_file(
-                    url,
-                    savepath=os.path.join(savepath, key),
-                    print_progress=print_progress)
+                self._download_file(url,
+                                    savepath=os.path.join(savepath, key),
+                                    print_progress=print_progress)
 
     def _uncompress_file_zip(self, filepath, extrapath):
         files = zipfile.ZipFile(filepath, 'r')
@@ -102,6 +102,12 @@ class uncompressor:
             with open(savepath, 'wb') as f:
                 shutil.copyfileobj(r.raw, f)
         else:
+            total_length = int(total_length)
+            if os.path.exists(savepath) and total_length == os.path.getsize(
+                    savepath):
+                print("{} already downloaded, skipping".format(
+                    os.path.basename(savepath)))
+                return
             with open(savepath, 'wb') as f:
                 dl = 0
                 total_length = int(total_length)
