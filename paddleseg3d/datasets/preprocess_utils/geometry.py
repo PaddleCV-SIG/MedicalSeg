@@ -18,6 +18,7 @@ import scipy
 
 
 def resample(image,
+             label,
              spacing=None,
              new_spacing=[1.0, 1.0, 1.0],
              new_shape=None,
@@ -37,6 +38,7 @@ def resample(image,
         resampling. The actual resampling spacing is also returned.
     """
     if new_shape is None:
+        # just np.array(spacing) ?
         spacing = np.array([spacing[0], spacing[1], spacing[2]])
         new_shape = np.round(image.shape * spacing / new_spacing)
     else:
@@ -44,7 +46,74 @@ def resample(image,
 
     resize_factor = new_shape / image.shape
 
-    image_new = scipy.ndimage.interpolation.zoom(
+    image_new = scipy.ndimage.zoom(
         image, resize_factor, mode='nearest', order=order)
+    label_new = scipy.ndimage.zoom(
+        label, resize_factor, mode='nearest', order=0)
 
-    return image_new
+    return image_new, label_new
+
+def foreground_bb(image, background_value=0):
+    """Get a bounding box for pixels != background_value in image.
+
+    Args:
+        image (np.ndarray): medical image
+        background_value (int): value for background, pixels != this value are considered foreground
+    Returns:
+        list: 2d list, foreground for axis is in range [ret[axis][0], ret[axis][0])
+
+    """
+    assert image.ndim == 3, f"Only supports 3d image while received image of {image.ndim}d"
+
+    mask = image != background_value
+    bb = []
+    for axis in range(3):
+        reduce_axis = tuple(idx for idx in range(3) if idx != axis)
+        non_zero = np.any(mask, axis=reduce_axis)
+        idxs = np.where(non_zero)[0]
+        bb.append([idxs[0], idxs[-1]+1])
+    return bb
+
+def crop_to_foreground(image, label=None, background=0):
+    bb = foreground_bb(image, background)
+    bb = tuple(slice(b[0], b[1]) for b in bb)
+    print(bb)
+    image = image[bb]
+    if label is not None:
+        label = label[bb]
+    return image, label
+
+# DEBUG: for foreground_bb crop_to_foreground
+# image = np.array([
+#     [
+#         [0,0,0,0,0],
+#         [0,0,0,0,0],
+#         [0,0,0,0,0],
+#         [0,0,0,0,0],
+#         [0,0,0,0,0],
+#         [0,0,0,0,0],
+#     ],
+#     [
+#         [0,0,0,0,0],
+#         [0,1,0,0,0],
+#         [0,0,0,0,0],
+#         [0,0,0,1,0],
+#         [0,0,0,0,0],
+#         [0,0,0,0,0],
+#     ],
+#     [
+#         [0,0,0,0,0],
+#         [0,1,0,0,0],
+#         [0,0,0,0,0],
+#         [0,0,0,0,0],
+#         [0,0,0,1,0],
+#         [0,0,0,0,0],
+#     ],
+# ])
+# print(image.ndim, image.shape)
+# print(foreground_bb(image))
+#
+# image = crop_to_foreground(image)
+# print(image.shape)
+# print(image)
+# DEBUG:  debug ends

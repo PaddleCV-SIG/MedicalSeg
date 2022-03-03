@@ -30,7 +30,7 @@ def label_remap(label, map_dict=None):
     return label
 
 
-def HUNorm(image, HU_min=-1000, HU_max=600, HU_nan=-2000):
+def HUNorm(image, label, HU_min=-1000, HU_max=600, HU_nan=-2000):
     """
     Convert HU unit into uint8 values. First bound HU values by predfined min
     and max, and then normalize. Due to paddle.nn.conv3D doesn't support uint8, we need to convert
@@ -48,4 +48,4 @@ def HUNorm(image, HU_min=-1000, HU_max=600, HU_nan=-2000):
     image = (image - HU_min) / ((HU_max - HU_min))
     np.clip(image, 0, 1, out=image)
 
-    return image
+    return image, label

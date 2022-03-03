@@ -172,13 +172,24 @@ def get_image_list(image_path, valid_suffix=None, filter_key={}):
     # 2. load image in a directory
     elif osp.isdir(image_path):
         for root, dirs, files in os.walk(image_path):
+            has_dcm = False
             for f in files:
                 if '.ipynb_checkpoints' in root:
                     continue
                 if f[0] == '.':  # skip hidden files
                     continue
+                if f.endswith(".dcm"):
+                    has_dcm = True
+                    continue
                 if f.endswith(valid_suffix):
                     image_list.append(osp.join(root, f))
+            if has_dcm:
+                dcm_series = []
+                for f in files:
+                    if not f.endswith(".dcm"):
+                        continue
+
+
 
     # 3. not dir not file, image_path doesn't exist
     else:
