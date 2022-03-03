@@ -15,10 +15,12 @@
 import contextlib
 import filelock
 import os
-import tempfile
-import numpy as np
+import os.path as osp
 import random
 from urllib.parse import urlparse, unquote
+
+import tempfile
+import numpy as np
 
 import paddle
 
@@ -138,10 +140,10 @@ def worker_init_fn(worker_id):
     np.random.seed(random.randint(0, 100000))
 
 
-def get_image_list(image_path, valid_suffix=None, filter_key=None):
+def get_image_list(image_path, valid_suffix=None, filter_key={}):
     """Get image list from image name or image directory name with valid suffix.
 
-    if needed, filter_key can be used to whether 'include' the key word.
+    If needed, filter_key can be used to whether 'include' the key word.
     When filter_key is not None，it indicates whether filenames should include certain key.
 
 
@@ -151,46 +153,64 @@ def get_image_list(image_path, valid_suffix=None, filter_key=None):
     filter_key(dict): the key and whether you want to include it. e.g.:{"segmentation": True} will futher filter the imagename with segmentation in it.
 
     """
+    # TODO: maybe add filter for pixel spacing and 2d slice count. that can be useful for dicom
+
     if valid_suffix is None:
-        valid_suffix = [
-            'nii.gz', 'nii', 'dcm', 'nrrd', 'mhd', 'raw', 'npy', 'mha'
-        ]
+        valid_suffix = ('nii.gz', 'nii', 'dcm', 'nrrd', 'mhd', 'raw', 'npy',
+                        'mha')
 
     image_list = []
-    if os.path.isfile(image_path):
-        if image_path.split("/")[-1].split(
-                '.', maxsplit=1)[-1] in valid_suffix:
-            if filter_key is not None:
-                f_name = image_path.split("/")[
-                    -1]  # TODO change to system invariant
-                for key, val in filter_key:
-                    if (key in f_name) is not val:
-                        break
-                else:
-                    image_list.append(image_path)
-
-            else:
-                image_list.append(image_path)
+    # 1. load a single image
+    if osp.isfile(image_path):
+        if osp.basename(image_path).endswith(valid_suffix):
+            image_list = [image_path]
         else:
             raise FileNotFoundError(
-                '{} is not a file end with supported suffix, the support suffixes are {}.'
-                .format(image_path, valid_suffix))
+                "{} doesn't end with any of the supported suffix: {}.".format(
+                    image_path, valid_suffix))
 
-    # load image in a directory
-    elif os.path.isdir(image_path):
+    # 2. load image in a directory
+    elif osp.isdir(image_path):
         for root, dirs, files in os.walk(image_path):
+            has_dcm = False
             for f in files:
                 if '.ipynb_checkpoints' in root:
                     continue
-                if f.split(".", maxsplit=1)[-1] in valid_suffix:
-                    image_list.append(os.path.join(root, f))
+                if f[0] == '.':  # skip hidden files
+                    continue
+                if f.endswith(".dcm"):
+                    has_dcm = True
+                    continue
+                if f.endswith(valid_suffix):
+                    image_list.append(osp.join(root, f))
+            if has_dcm:
+                dcm_series = []
+                for f in files:
+                    if not f.endswith(".dcm"):
+                        continue
+
+
+
+    # 3. not dir not file, image_path doesn't exist
     else:
         raise FileNotFoundError(
-            '`--image_path` is not found. it should be a path of image, or a directory including images.'
-        )
+            'image_path {} is not found. It should be a path of image, or a directory containing images.'
+            .format(image_path))
+
+    # 4. filter based on filter_key
+
+    def satisfy_filter(path):
+        f_name = osp.basename(path)
+        for key, val in filter_key:
+            if (key in f_name) is not val:
+                return False
+        return True
+
+    image_list = list(filter(satisfy_filter, image_list))
+    # TODO: dcm should only return one file in a series
 
     if len(image_list) == 0:
         raise RuntimeError(
-            'There are not image file in `--image_path`={}'.format(image_path))
+            'No image found in `image_path`={}'.format(image_path))
 
     return image_list

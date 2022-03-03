@@ -65,17 +65,13 @@ urls = {
 
 class Prep_lung_coronavirus(Prep):
     def __init__(self):
-        self.dataset_root = "data/lung_coronavirus_test"
-        self.phase_path = os.path.join(self.dataset_root,
-                                       "lung_coronavirus_phase0/")
         super().__init__(
-            phase_path=self.phase_path, dataset_root=self.dataset_root)
-
-        self.raw_data_path = os.path.join(self.dataset_root,
-                                          "lung_coronavirus_raw/")
-        self.image_dir = os.path.join(self.raw_data_path, "20_ncov_scan")
-        self.label_dir = os.path.join(self.raw_data_path, "lung_mask")
-        self.urls = urls
+            dataset_fdr="lung_coronavirus_test",
+            urls=urls,
+            image_fdr="20_ncov_scan",
+            label_fdr="lung_mask",
+            phase_fdr="lung_coronavirus_phase0",
+        )
 
     def convert_path(self):
         """convert nii.gz file to numpy array in the right directory"""

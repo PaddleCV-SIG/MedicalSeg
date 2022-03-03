@@ -1,3 +1,6 @@
+# Project Specific
+data/
+
 # Mac system
 .DS_Store
 

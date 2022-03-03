@@ -22,46 +22,65 @@ support:
 
 """
 import os
+import os.path as osp
 import sys
 import glob
 import zipfile
+import time
+
 import numpy as np
 import nibabel as nib
 import nrrd
 import SimpleITK as sitk
 
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                             ".."))
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 
 from paddleseg3d.utils import get_image_list
 from paddleseg3d.datasets.preprocess_utils import uncompressor
 
+# DEBUG:
+import matplotlib.pyplot as plt
+import cv2
 
 class Prep:
 
-    def __init__(self, phase_path=None, dataset_root=None):
-        self.raw_data_path = None
-        self.image_dir = None
-        self.label_dir = None
-        self.urls = None
+    def __init__(
+        self,
+        dataset_fdr,
+        urls,
+        image_fdr,
+        label_fdr,
+        phase_fdr="phase0",
+        raw_fdr="raw",
+        datasets_root="data",
+        visualize_fdr="vis",
+    ):
+        self.dataset_root = osp.join(datasets_root, dataset_fdr)
+        self.phase_path = osp.join(self.dataset_root, phase_fdr)
+        self.raw_data_path = osp.join(self.dataset_root, raw_fdr)
+        self.image_dir = osp.join(self.raw_data_path, image_fdr)
+        self.label_dir = osp.join(self.raw_data_path, label_fdr)
+        self.urls = urls
+        self.visualize_path = osp.join(self.dataset_root, visualize_fdr)
 
-        self.dataset_root = dataset_root
-        self.phase_path = phase_path
         self.image_path = os.path.join(self.phase_path, "images")
         self.label_path = os.path.join(self.phase_path, "labels")
+
         os.makedirs(self.image_path, exist_ok=True)
         os.makedirs(self.label_path, exist_ok=True)
+        os.makedirs(self.visualize_path, exist_ok=True)
 
     def uncompress_file(self, num_zipfiles):
         uncompress_tool = uncompressor(download_params=(self.urls,
                                                         self.dataset_root,
                                                         True))
         """unzip all the file in the root directory"""
-        zipfiles = glob.glob(os.path.join(self.dataset_root, "*.zip"))
+        zipfiles = []
+        for ext in ["zip", "tar", "tar.gz", "tgz"]:
+            zipfiles += glob.glob(os.path.join(self.dataset_root, f"*.{ext}"))
 
-        assert len(zipfiles) == num_zipfiles, print(
-            "The file directory should include {} zip file, but there is only {}"
-            .format(num_zipfiles, len(zipfiles)))
+        assert len(zipfiles) == num_zipfiles, "The file directory should include {} zip file, but there is only {}"
+            .format(num_zipfiles, len(zipfiles))
 
         for f in zipfiles:
             extract_path = os.path.join(self.raw_data_path,
@@ -73,71 +92,113 @@ class Prep:
 
     @staticmethod
     def load_medical_data(f):
-        """
-        load data of different format into numpy array
+        """ Load data of various format into numpy array, zyx format
+        Args:
+            f (str): the absolute path to the file that you want to load
 
-        f: the complete path to the file that you want to load
-
+        Returns:
+            [np.array], dict: a list of 3d volumes in image zyx format, metadata in image header
         """
-        filename = f.split("/")[-1]
-        if "nii.gz" in filename:
-            f_np = nib.load(f).get_fdata(dtype=np.float32)
-        elif "nrrd" in filename:
-            f_np, _ = nrrd.read(f)
-        elif "mhd" in filename or "raw" in filename:
+        filename = osp.basename(f)
+        images = []
+
+        if "nrrd" in filename:
+            f_np, metadata = nrrd.read(f)
+            f_nps = [f_np]
+        else:
             itkimage = sitk.ReadImage(f)
-            f_np = sitk.GetArrayFromImage(itkimage)
-            # shuffle the dimensions to get axis in the order z, y, x
-            f_np = np.transpose(
-                f_np, [2, 1, 0]
-            )  # TODO  check if this suits to other datasets, this is needed in luna16_lobe51
-        else:
-            raise NotImplementedError
-
-        return f_np
-
-    @staticmethod
-    def load_save(file_path,
-                  save_path=None,
-                  preprocess=None,
-                  valid_suffix=None,
-                  filter_key=None,
-                  tag="image"):
-        """
-        Load the needed file with filter, preprocess it transfer to the correct type and save it to the directory.
-        """
-
-        if os.path.isdir(file_path):
-            files = get_image_list(file_path, valid_suffix, filter_key)
-        elif os.path.isfile(file_path):
-            files = [file_path]
-        else:
-            raise RuntimeError(
-                "The file_path `{}` need to be a file or a directory".format(
-                    file_path))
-
-        assert len(files) != 0, print(
-            "The data directory you assigned is wrong, there is no file in it."
-        )
-
-        for f in files:
-            f_np = Prep.load_medical_data(f)
-
-            if preprocess is not None:
-                for op in preprocess:
-                    f_np = op(f_np)
-
-            # Set image to a uniform format before save.
-            if tag == "image":
-                f_np = f_np.astype("float32")
+            metadata = {}
+            for key in itkimage.GetMetaDataKeys():
+                metadata[key] = itkimage.GetMetaData(key)
+            if itkimage.GetDimension() == 4:
+                extract = sitk.ExtractImageFilter()
+                s = list(itkimage.GetSize())
+                s[-1]=0
+                extract.SetSize(s)
+                for slice_idx in range(itkimage.GetSize()[-1]):
+                    extract.SetIndex([0,0,0, slice_idx])
+                    sitk_volume = extract.Execute(itkimage)
+                    images.append(sitk_volume)
             else:
-                f_np = f_np.astype("int64")
+                images = [itkimage]
 
-            np.save(
-                os.path.join(save_path,
-                             f.split("/")[-1].split(".", maxsplit=1)[0]), f_np)
+            images = [sitk.DICOMOrient(img, 'LPS') for img in images]
+            f_nps = [sitk.GetArrayFromImage(img) for img in images]
+            f_nps = [np.transpose(f_np, [2, 1, 0]) for f_np in f_nps]
 
-        print("Sucessfully convert medical images to numpy array!")
+        # DEBUG: to be removed
+        for f_np in f_nps:
+            vis = f_np[f_np.shape[0]//2,:,:]
+            cv2.imwrite(osp.join("./data/vis", f"{filename}-{f_np.shape[0]//2}.png" ), vis/vis.max()*255)
+        # print(metadata)
+        # DEBUG: debud ends
+
+        return f_nps, metadata
+
+
+    # @staticmethod # want to use some class variable like self.image_path
+    def load_save(self,
+                  image_folder,
+                  label_folder,
+                  preprocess=[],
+                  intermediate_save_paths=[],
+                  image_suffix=None,
+                  label_suffix=None,
+                  filter_key={}):
+                  # TODO: maybe support filtering for scans satisfying certain pixel spacing and have more than certain number of slices. Can be useful on datasets obtained from hospital imaging department
+        """Load and filter image and label, preprocess them and save on disk.
+        Args:
+            image_folder (str): Folder containing images
+            label_folder (str): Folder containing labels
+            intermediate_save_paths (str): Specify save paths for intermediate prep results
+            preprocess (list): List of preprocessing functions
+            image_suffix ([str]): Only include images with these suffix
+            label_suffix ([str]): Only include labels with these suffix
+            filter_key ({"": bool}): Strings image and label name should or shouldn't contain
+        """
+
+        # 0. check image and label input path exists
+        if not osp.exists(self.image_path):
+            raise RuntimeError(f"image_path {self.image_path} doesn't exist")
+        if not osp.exists(self.label_path):
+            raise RuntimeError(f"label_path `{self.label_path}` doesn't exist")
+
+        # 1. get all the image and label paths under specified path
+        image_paths = get_image_list(image_folder, image_suffix, filter_key)
+        label_paths = get_image_list(label_folder, label_suffix, filter_key)
+
+        assert len(image_paths) == len(label_paths), f"The number of images {len(image_paths)} and labels {len(label_paths)} are not equal!"
+
+        image_paths.sort(key=osp.basename)
+        label_paths.sort(key=osp.basename)
+
+        print("Followings are all included image, labels and their matching. ")
+        for img, lab in zip(image_paths, label_paths):
+            print(f"{osp.basename(img)}\t{osp.basename(lab)}")
+
+        # 2. read prep and save
+
+        # TODO: muli-thread
+        for pair_idx in range(len(image_paths)):
+            print(image_paths[pair_idx])
+            img_vols, _ = Prep.load_medical_data(image_paths[pair_idx])
+            lab_vol, _ = Prep.load_medical_data(label_paths[pair_idx])
+            lab_vol = lab_vol[0] # 4D series typically have 3D label
+            img_name = osp.basename(image_paths[pair_idx])
+            lab_name = osp.basename(label_paths[pair_idx])
+
+            for vol_idx, img_vol in enumerate(img_vols):
+                for op in preprocess:
+                    img_vol, lab_vol = op(img_vol, lab_vol)  # TODO: all ops need to change
+
+                img_vol = img_vol.astype("float32") # TODO: move this step to training reader, saves space on disk
+                lab_vol = lab_vol.astype("int64")
+
+                vol_idx = str(-vol_idx) if len(img_vols) != 1 else ""
+                np.save(osp.join(self.image_path, img_name + vol_idx), img_vol)
+                np.save(osp.join(self.label_path, lab_name + vol_idx), lab_vol)
+
+    print("Sucessfully convert medical images to numpy array!")
 
     def convert_path(self):
         """convert nii.gz file to numpy array in the right directory"""
@@ -149,6 +210,7 @@ class Prep:
 
     # TODO add data visualize method, such that data can be checked every time after preprocess.
     def visualize(self):
+        # sitk.LabelMapContourOverlay
         pass
         # imga = Image.fromarray(np.int8(imga))
         # #当要保存的图片为灰度图像时，灰度图像的 numpy 尺度是 [1, h, w]。需要将 [1, h, w] 改变为 [h, w]
