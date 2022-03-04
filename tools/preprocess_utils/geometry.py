@@ -16,7 +16,6 @@ import os
 
 sys.path.append(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), "../.."))
-import SimpleITK as sitk
 import tools.preprocess_utils.global_var as global_var
 
 gpu_tag = global_var.get_value('USE_GPU')
@@ -60,9 +59,7 @@ def resample(image,
 
     resize_factor = new_shape / np.array(image.shape)
 
-    image_new = scipy.ndimage.zoom(image,
-                                   resize_factor,
-                                   mode='nearest',
-                                   order=order)
+    image_new = scipy.ndimage.zoom(
+        image, resize_factor, mode='nearest', order=order)
 
     return image_new
