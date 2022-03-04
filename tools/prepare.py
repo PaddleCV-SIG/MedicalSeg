@@ -34,8 +34,8 @@ import SimpleITK as sitk
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              ".."))
 
-from paddleseg3d.utils import get_image_list
-from preprocess_utils import uncompressor
+from medicalseg.utils import get_image_list
+from tools.preprocess_utils import uncompressor, global_var
 
 
 class Prep:
@@ -52,6 +52,7 @@ class Prep:
         self.label_path = os.path.join(self.phase_path, "labels")
         os.makedirs(self.image_path, exist_ok=True)
         os.makedirs(self.label_path, exist_ok=True)
+        self.gpu_tag = "GPU" if global_var.get_value('USE_GPU') else "CPU"
 
     def uncompress_file(self, num_zipfiles):
         uncompress_tool = uncompressor(download_params=(self.urls,

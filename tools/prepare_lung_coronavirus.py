@@ -46,19 +46,6 @@ import zipfile
 import functools
 import numpy as np
 
-### Init and set global dict ####
-# These code should be in front of import transform ops,
-# where global var is used
-# Import global_val then everywhere else can change/use the global dict
-import global_var
-
-global_var.init()
-
-# Set use gpu here
-args = global_var.get_argument()
-if args.use_gpu:
-    global_var.set_value('USE_GPU', True)
-##################################
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              ".."))
 
@@ -95,7 +82,9 @@ class Prep_lung_coronavirus(Prep):
     def convert_path(self):
         """convert nii.gz file to numpy array in the right directory"""
 
-        print("Start convert images to numpy array, please wait patiently")
+        print(
+            "Start convert images to numpy array using {}, please wait patiently"
+            .format(self.gpu_tag))
         time1 = time.time()
         self.load_save(self.image_dir,
                        save_path=self.image_path,
@@ -118,9 +107,9 @@ class Prep_lung_coronavirus(Prep):
                        valid_suffix=("nii.gz"),
                        filter_key=None,
                        tag="label")
-        gpu_tag = global_var.get_value('USE_GPU')
+
         print("The preprocess time on {} is {}".format(
-            "GPU" if gpu_tag else "CPU",
+            "GPU" if self.gpu_tag else "CPU",
             time.time() - time1))
 
     def generate_txt(self, train_split=15):

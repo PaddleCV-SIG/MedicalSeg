@@ -11,9 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import sys
+import os
 
+sys.path.append(
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), "../.."))
 import SimpleITK as sitk
-import global_var
+import tools.preprocess_utils.global_var as global_var
 
 gpu_tag = global_var.get_value('USE_GPU')
 if gpu_tag:
@@ -39,7 +43,7 @@ def resample(image,
         which means standardizing the raw CT with different spacing all into
         1x1x1 mm.
     new_shape(list|tuple): the new shape of resampled numpy array.
-    order(int): order for resample function scipy.ndimage.interpolation.zoom
+    order(int): order for resample function scipy.ndimage.zoom
 
     return: 3D binary numpy array with the same shape of the image after,
         resampling. The actual resampling spacing is also returned.

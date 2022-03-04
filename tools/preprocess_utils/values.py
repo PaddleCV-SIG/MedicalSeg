@@ -13,7 +13,12 @@
 # limitations under the License.
 
 # TODO add clip [0.9%, 99.1%]
-import global_var
+import sys
+import os
+
+sys.path.append(
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), "../.."))
+import tools.preprocess_utils.global_var as global_var
 
 gpu_tag = global_var.get_value('USE_GPU')
 if gpu_tag:
