@@ -32,10 +32,10 @@ We add gpu acceleration in data preprocess using [CuPy](https://docs.cupy.dev/en
 
 
 ## 1. Run our Vnet demo on [COVID-19 CT scans](https://www.kaggle.com/andrewmvd/covid19-ct-scans)
-You can run the demo in our [Aistudio project](https://aistudio.baidu.com/aistudio/projectdetail/3519594) as well or follow the following steps in your computer.
+You can run the demo in our [Aistudio project](https://aistudio.baidu.com/aistudio/projectdetail/3519594) as well or run locally with the following steps.
 - Download our repository.
     ```
-    git clone  https://github.com/PaddleCV-SIG/PaddleSeg3D.git
+    git clone https://github.com/PaddleCV-SIG/MedicalSeg/
     cd MedicalSeg/
     ```
 - Install requirements:
@@ -47,7 +47,7 @@ You can run the demo in our [Aistudio project](https://aistudio.baidu.com/aistud
 - Get and preprocess the data:
     - change the GPU setting [here](tools/preprocess_globals.yml) to True if you installed CuPY and want to use GPU to accelerate.
     ```
-    python prepare_lung_coronavirus.py
+    python tools/prepare_lung_coronavirus.py
     ```
 
 - Run the train and validation example. (Refer to the following usage to get the correct result.)
@@ -94,7 +94,7 @@ Change configuration about loss, optimizer, dataset, and so on here. Our configu
 ### 2.2 Prepare the data
 We use the data preparation script to download, preprocess, convert, and split the data automatically. If you want to prepare the data as we did, you can run the data prepare file like the following:
 ```
-python prepare_lung_coronavirus.py # take the CONVID-19 CT scans as example.
+python tools/prepare_lung_coronavirus.py # take the CONVID-19 CT scans as example.
 ```
 
 ### 2.3 Train & Validate
