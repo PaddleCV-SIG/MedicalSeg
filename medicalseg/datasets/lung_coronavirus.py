@@ -67,13 +67,14 @@ class LungCoronavirus(MedicalDataset):
             data_URL=URL)
         self.num_classes = num_classes
 
-    def test(self):
-        dataset = self.__init__(
-            dataset_root="data/lung_coronavirus/lung_coronavirus_phase0",
-            result_dir="data/lung_coronavirus/lung_coronavirus_phase1",
-            transforms=[],
-            mode="train",
-            num_classes=23)
-        for item in dataset:
-            img, label = item
-            print(img.dtype, label.dtype)
+
+if __name__ == "__main__":
+    dataset = LungCoronavirus(
+        dataset_root="data/lung_coronavirus/lung_coronavirus_phase0",
+        result_dir="data/lung_coronavirus/lung_coronavirus_phase1",
+        transforms=[],
+        mode="train",
+        num_classes=23)
+    for item in dataset:
+        img, label = item
+        print(img.dtype, label.dtype)

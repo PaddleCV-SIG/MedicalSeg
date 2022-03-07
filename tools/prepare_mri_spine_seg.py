@@ -46,7 +46,7 @@ sys.path.append(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 
 from prepare import Prep
-from preprocess_utils import resample, Normalize
+from preprocess_utils import resample, Normalize, label_remap
 
 urls = {
     "MRI_train.zip":
@@ -58,7 +58,7 @@ class Prep_lung_coronavirus(Prep):
     def __init__(self):
         self.dataset_root = "data/MRSpineSeg"
         self.phase_path = os.path.join(self.dataset_root,
-                                       "MRI_spine_seg_phase0/")
+                                       "MRI_spine_seg_phase0_class2/")
         super().__init__(
             phase_path=self.phase_path, dataset_root=self.dataset_root)
 
@@ -91,6 +91,28 @@ class Prep_lung_coronavirus(Prep):
             self.label_path,
             preprocess=[
                 functools.partial(resample, new_shape=[128, 128, 16], order=0),
+                functools.partial(
+                    label_remap,
+                    map_dict={
+                        2: 1,
+                        3: 1,
+                        4: 1,
+                        5: 1,
+                        6: 1,
+                        7: 1,
+                        8: 1,
+                        9: 1,
+                        10: 1,
+                        11: 2,
+                        12: 2,
+                        13: 2,
+                        14: 2,
+                        15: 2,
+                        16: 2,
+                        17: 2,
+                        18: 2,
+                        19: 2
+                    })
             ],
             valid_suffix=("nii.gz"),
             filter_key=None,

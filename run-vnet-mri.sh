@@ -1,8 +1,8 @@
 # set your GPU ID here
-export CUDA_VISIBLE_DEVICES=3
+export CUDA_VISIBLE_DEVICES=2
 
 # set the config file name and save directory here
-config_name=vnet_mri_spine_seg_128_128_24_15k
+config_name=vnet_mri_spine_seg_128_128_24_15k_class3
 yml=mri_spine_seg/${config_name}
 save_dir_all=saved_model
 save_dir=saved_model/${config_name}_0307

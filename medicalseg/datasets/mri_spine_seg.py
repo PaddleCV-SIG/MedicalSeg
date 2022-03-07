@@ -67,15 +67,16 @@ class MRISpineSeg(MedicalDataset):
             data_URL=URL)
         self.num_classes = num_classes
 
-    def test(self):
-        dataset = self.__init__(
-            dataset_root="data/MRSpineSeg/MRI_spine_seg_phase0",
-            result_dir="data/MRSpineSeg/MRI_spine_seg_phase1",
-            transforms=[],
-            mode="train",
-            num_classes=20)
-        for item in dataset:
-            img, label = item
-            import pdb
-            pdb.set_trace()
-            print(img.dtype, label.dtype)  # (1, 128, 128, 12) float32, int64
+
+if __name__ == "__main__":
+    dataset = MRISpineSeg(
+        dataset_root="data/MRSpineSeg/MRI_spine_seg_phase0_class2",
+        result_dir="data/MRSpineSeg/MRI_spine_seg_phase1",
+        transforms=[],
+        mode="train",
+        num_classes=20)
+    for item in dataset:
+        img, label = item
+        import pdb
+        pdb.set_trace()
+        print(img.dtype, label.dtype)  # (1, 128, 128, 12) float32, int64
