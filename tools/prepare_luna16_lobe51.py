@@ -48,8 +48,8 @@ import functools
 import numpy as np
 import nibabel as nib
 
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                             ".."))
+sys.path.append(
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 
 from prepare import Prep
 from preprocess_utils import HUNorm, resample, label_remap
@@ -61,13 +61,12 @@ urls = {
 
 
 class Prep_luna(Prep):
-
     def __init__(self):
         self.dataset_root = "data/luna16_lobe51"
         self.phase_path = os.path.join(self.dataset_root,
                                        "luna16_lobe51_test/")
-        super().__init__(phase_path=self.phase_path,
-                         dataset_root=self.dataset_root)
+        super().__init__(
+            phase_path=self.phase_path, dataset_root=self.dataset_root)
 
         self.raw_data_path = os.path.join(self.dataset_root,
                                           "luna16_lobe51_raw/")
@@ -82,46 +81,46 @@ class Prep_luna(Prep):
             "Start convert images to numpy array using {}, please wait patiently"
             .format(self.gpu_tag))
         time1 = time.time()
-        self.load_save(self.image_dir,
-                       save_path=self.image_path,
-                       preprocess=[
-                           functools.partial(HUNorm, HU_min=-1250, HU_max=250),
-                           functools.partial(resample,
-                                             new_shape=[128, 128, 128],
-                                             order=1)
-                       ],
-                       valid_suffix=('mhd'),
-                       filter_key=None)
+        self.load_save(
+            self.image_dir,
+            save_path=self.image_path,
+            preprocess=[
+                functools.partial(HUNorm, HU_min=-1250, HU_max=250),
+                functools.partial(
+                    resample, new_shape=[128, 128, 128], order=1)
+            ],
+            valid_suffix=('mhd'),
+            filter_key=None)
 
-        self.load_save(self.label_dir,
-                       self.label_path,
-                       preprocess=[
-                           functools.partial(resample,
-                                             new_shape=[128, 128, 128],
-                                             order=0),
-                           functools.partial(label_remap,
-                                             map_dict={
-                                                 1: 0,
-                                                 4: 2,
-                                                 5: 2,
-                                                 6: 2,
-                                                 7: 1,
-                                                 8: 1,
-                                                 512: 0,
-                                                 516: 0,
-                                                 517: 0,
-                                                 518: 0,
-                                                 519: 0,
-                                                 520: 0
-                                             })
-                       ],
-                       valid_suffix=('nrrd'),
-                       filter_key=None,
-                       tag="label")
+        self.load_save(
+            self.label_dir,
+            self.label_path,
+            preprocess=[
+                functools.partial(
+                    resample, new_shape=[128, 128, 128], order=0),
+                functools.partial(
+                    label_remap,
+                    map_dict={
+                        1: 0,
+                        4: 2,
+                        5: 2,
+                        6: 2,
+                        7: 1,
+                        8: 1,
+                        512: 0,
+                        516: 0,
+                        517: 0,
+                        518: 0,
+                        519: 0,
+                        520: 0
+                    })
+            ],
+            valid_suffix=('nrrd'),
+            filter_key=None,
+            tag="label")
 
-        print("The preprocess time on {} is {}".format(
-            "GPU" if self.gpu_tag else "CPU",
-            time.time() - time1))
+        print("The preprocess time on {} is {}".format(self.gpu_tag,
+                                                       time.time() - time1))
 
     def generate_txt(self):
         """generate the train_list.txt and val_list.txt"""
@@ -136,14 +135,10 @@ class Prep_luna(Prep):
             name.replace("_LobeSegmentation", "") for name in label_files
         ]
 
-        self.split_files_txt(txtname[0],
-                             image_files,
-                             label_files,
-                             train_split=45)
-        self.split_files_txt(txtname[1],
-                             image_files,
-                             label_files,
-                             train_split=45)
+        self.split_files_txt(
+            txtname[0], image_files, label_files, train_split=0.9)
+        self.split_files_txt(
+            txtname[1], image_files, label_files, train_split=0.9)
 
 
 if __name__ == "__main__":

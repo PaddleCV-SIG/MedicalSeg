@@ -1,0 +1,8 @@
+_base_: 'mri_spine_seg.yml'
+
+model:
+  type: VNet
+  elu: False
+  in_channels: 1
+  num_classes: 20
+  pretrained: null

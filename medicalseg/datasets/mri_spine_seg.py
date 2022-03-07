@@ -23,13 +23,13 @@ from medicalseg.cvlibs import manager
 from medicalseg.transforms import Compose
 from medicalseg.datasets import MedicalDataset
 
-URL = ' '  # todo: add coronavirus url after preprocess
+URL = ' '  # todo: add coronavirus url
 
 
 @manager.DATASETS.add_component
-class LungCoronavirus(MedicalDataset):
+class MRISpineSeg(MedicalDataset):
     """
-    The Lung cornavirus dataset is ...(todo: add link and description)
+    The MRISpineSeg dataset is come from the MRI Spine Seg competition
 
     Args:
         dataset_root (str): The dataset directory. Default: None
@@ -57,7 +57,7 @@ class LungCoronavirus(MedicalDataset):
                  num_classes=None,
                  mode='train',
                  ignore_index=255):
-        super(LungCoronavirus, self).__init__(
+        super(MRISpineSeg, self).__init__(
             dataset_root,
             result_dir,
             transforms,
@@ -69,11 +69,13 @@ class LungCoronavirus(MedicalDataset):
 
     def test(self):
         dataset = self.__init__(
-            dataset_root="data/lung_coronavirus/lung_coronavirus_phase0",
-            result_dir="data/lung_coronavirus/lung_coronavirus_phase1",
+            dataset_root="data/MRSpineSeg/MRI_spine_seg_phase0",
+            result_dir="data/MRSpineSeg/MRI_spine_seg_phase1",
             transforms=[],
             mode="train",
-            num_classes=23)
+            num_classes=20)
         for item in dataset:
             img, label = item
-            print(img.dtype, label.dtype)
+            import pdb
+            pdb.set_trace()
+            print(img.dtype, label.dtype)  # (1, 128, 128, 12) float32, int64
