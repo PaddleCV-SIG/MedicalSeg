@@ -14,30 +14,41 @@
 """
 Details about MSD datasets: http://medicaldecathlon.com/
 
-The file structure is as following:
-lung_coronavirus
-|--20_ncov_scan.zip
-|--infection.zip
-|--lung_infection.zip
-|--lung_mask.zip
-|--lung_coronavirus_raw
-│   ├── 20_ncov_scan
-│   │   ├── coronacases_org_001.nii.gz
-│   │   ├── ...
-│   ├── infection_mask
-│   ├── lung_infection
-│   ├── lung_mask
-├── lung_coronavirus_phase0
-│   ├── images
-│   ├── labels
-│   │   ├── coronacases_001.npy
-│   │   ├── ...
-│   │   └── radiopaedia_7_85703_0.npy
-│   ├── train_list.txt
-│   └── val_list.txt
+File structure for all MSD datasets are similar, below we use Task01 as an example:
+
+Task01_BrainTumour/
+├── phase0
+│   ├── images
+│   |   ├── ... # preprocessed npz files
+│   ├── labels
+│   |   ├── ... # preprocessed npz files
+│   ├── train_list.txt
+│   └── val_list.txt
+├── raw
+│   └── Task01_BrainTumour
+│       └── Task01_BrainTumour
+│           ├── imagesTr
+│           │   ├── BRATS_001.nii.gz
+│           │   ├── BRATS_002.nii.gz
+│           │   ├── ...
+│           ├── imagesTs
+│           │   ├── BRATS_485.nii.gz
+│           │   ├── BRATS_486.nii.gz
+│           │   ├── BRATS_487.nii.gz
+│           │   ├── ...
+│           ├── labelsTr
+│           │   ├── BRATS_001.nii.gz
+│           │   ├── BRATS_002.nii.gz
+│           │   ├── BRATS_003.nii.gz
+│           │   ├── ...
+│           └── dataset.json
+└── Task01_BrainTumour.tar
+
+9 directories, 5110 files
+
 support:
-1. download and uncompress the file.
-2. save the data as the above format.
+1. download and uncompress the dataset.
+2. preprocess and save result in npy format.
 
 """
 import os
