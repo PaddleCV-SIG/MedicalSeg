@@ -35,7 +35,7 @@ We add gpu acceleration in data preprocess using [CuPy](https://docs.cupy.dev/en
 You can run the demo in our [Aistudio project](https://aistudio.baidu.com/aistudio/projectdetail/3519594) as well or run locally with the following steps.
 - Download our repository.
     ```
-    git clone https://github.com/PaddleCV-SIG/MedicalSeg/
+    git clone https://github.com/PaddleCV-SIG/MedicalSeg.git
     cd MedicalSeg/
     ```
 - Install requirements:
