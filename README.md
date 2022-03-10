@@ -1,5 +1,5 @@
 # MedicalSeg
-Welcome to MedicalSeg! MedicalSeg is an easy-to-use 3D medical image segmentation toolkit that support GPU acceleration from data preprocess to deply. We aims to build our toolkit to support various datasets including lung, brain, and spine. (Currently contains lung-related dataset only.)
+Welcome to MedicalSeg! MedicalSeg is an easy-to-use 3D medical image segmentation toolkit that supports GPU acceleration from data preprocess to deply. We aim to build our toolkit to support various datasets including lung, brain, and spine. (Currently contains lung-related dataset only.)
 
 ## 0. Model performance
 
@@ -159,7 +159,7 @@ As we mentioned, every dataset has its own configuration directory. If you want 
 ```
 
 ### 3.2. Add a new data preprocess file
-Your data need to be convert into numpy array and split into trainset and valset as our format. You can refer to the [prepare script](./tools/prepare_lung_coronavirus.py):
+Your data needs to be convert into numpy array and split into trainset and valset as our format. You can refer to the [prepare script](./tools/prepare_lung_coronavirus.py):
 
 ```python
 ├── lung_coronavirus_phase0  # the preprocessed file
@@ -174,7 +174,7 @@ Your data need to be convert into numpy array and split into trainset and valset
 ```
 
 ### 3.3. Add a dataset file
-Our dataset file inherit MedicalDataset base class, where data split is based on the train_list.txt and val_list.txt you generated from previous step. Details can infer the [dataset script](./medicalseg/datasets/lung_coronavirus.py).
+Our dataset file inherits MedicalDataset base class, where data split is based on the train_list.txt and val_list.txt you generated from previous step. For more details, please refer to the [dataset script](./medicalseg/datasets/lung_coronavirus.py).
 
 ### 3.4. Add a run script
 The run script is used to automate a series of process. To add your config file, just replicate the [run-vnet.sh](run-vnet.sh) and change it based on your thought. Here is the content of what they mean:
