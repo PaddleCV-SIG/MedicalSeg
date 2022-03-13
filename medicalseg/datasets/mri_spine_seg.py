@@ -57,26 +57,26 @@ class MRISpineSeg(MedicalDataset):
                  num_classes=None,
                  mode='train',
                  ignore_index=255):
-        super(MRISpineSeg, self).__init__(
-            dataset_root,
-            result_dir,
-            transforms,
-            num_classes,
-            mode,
-            ignore_index,
-            data_URL=URL)
+        super(MRISpineSeg, self).__init__(dataset_root,
+                                          result_dir,
+                                          transforms,
+                                          num_classes,
+                                          mode,
+                                          ignore_index,
+                                          data_URL=URL)
         self.num_classes = num_classes
 
 
 if __name__ == "__main__":
     dataset = MRISpineSeg(
-        dataset_root="data/MRSpineSeg/MRI_spine_seg_phase0_class2",
+        dataset_root="data/MRSpineSeg/MRI_spine_seg_phase0_class3",
         result_dir="data/MRSpineSeg/MRI_spine_seg_phase1",
         transforms=[],
         mode="train",
-        num_classes=20)
+        num_classes=3)
     for item in dataset:
         img, label = item
-        import pdb
-        pdb.set_trace()
-        print(img.dtype, label.dtype)  # (1, 128, 128, 12) float32, int64
+        if np.any(np.isnan(img)):
+            print(img.dtype, label.dtype)  # (1, 128, 128, 12) float32, int64
+            import pdb
+            pdb.set_trace()
