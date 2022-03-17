@@ -30,6 +30,7 @@ import numpy as np
 import nibabel as nib
 import nrrd
 import SimpleITK as sitk
+from tqdm import tqdm
 
 sys.path.append(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
@@ -118,9 +119,8 @@ class Prep:
             "The data directory you assigned is wrong, there is no file in it."
         )
 
-        for f in files:
+        for f in tqdm(files, total=len(files)):
             f_np = Prep.load_medical_data(f)
-
             if preprocess is not None:
                 for op in preprocess:
                     f_np = op(f_np)

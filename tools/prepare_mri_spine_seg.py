@@ -58,7 +58,7 @@ class Prep_lung_coronavirus(Prep):
     def __init__(self):
         self.dataset_root = "data/MRSpineSeg"
         self.phase_path = os.path.join(self.dataset_root,
-                                       "MRI_spine_seg_phase0_class2/")
+                                       "MRI_spine_seg_phase0_class3_big_12/")
         super().__init__(
             phase_path=self.phase_path, dataset_root=self.dataset_root)
 
@@ -81,7 +81,9 @@ class Prep_lung_coronavirus(Prep):
             save_path=self.image_path,
             preprocess=[
                 functools.partial(Normalize, min_val=0, max_val=2650),
-                functools.partial(resample, new_shape=[128, 128, 16], order=1)
+                functools.partial(
+                    resample, new_shape=[512, 512, 12],
+                    order=1)  # original shape is (1008, 1008, 12)
             ],
             valid_suffix=("nii.gz"),
             filter_key=None)
@@ -90,7 +92,7 @@ class Prep_lung_coronavirus(Prep):
             self.label_dir,
             self.label_path,
             preprocess=[
-                functools.partial(resample, new_shape=[128, 128, 16], order=0),
+                functools.partial(resample, new_shape=[512, 512, 12], order=0),
                 functools.partial(
                     label_remap,
                     map_dict={

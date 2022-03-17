@@ -1,27 +1,24 @@
 _base_: '../_base_/global_configs.yml'
 
-batch_size: 16
+batch_size: 3
 iters: 15000
 
 train_dataset:
   type: MRISpineSeg
-  dataset_root: MRSpineSeg/MRI_spine_seg_phase0_class3
+  dataset_root: MRSpineSeg/MRI_spine_seg_phase0_class20_big_12
   result_dir: MRSpineSeg/MRI_spine_seg_phase1
   transforms:
-    - type: RandomResizedCrop3D
-      size: [128, 128, 16]
-      scale: [0.8, 1.2]
     - type: RandomRotation3D
-      degrees: 90
+      degrees: 30
     - type: RandomFlip3D
   mode: train
-  num_classes: 3
+  num_classes: 20
 
 val_dataset:
   type: MRISpineSeg
-  dataset_root: MRSpineSeg/MRI_spine_seg_phase0_class3
+  dataset_root: MRSpineSeg/MRI_spine_seg_phase0_class20_big_12
   result_dir: MRSpineSeg/MRI_spine_seg_phase1
-  num_classes: 3
+  num_classes: 20
   transforms: []
   mode: val
 
@@ -33,7 +30,7 @@ optimizer:
 lr_scheduler:
   type: PolynomialDecay
   decay_steps: 15000
-  learning_rate: 0.001
+  learning_rate: 0.01
   end_lr: 0
   power: 0.9
 
