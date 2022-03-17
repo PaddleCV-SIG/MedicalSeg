@@ -190,4 +190,4 @@ save_dir=saved_model/${config_name}                         # savedir of this ex
 ```
 
 ## 4. Acknowledgements
-Many thanks to [Lin Han](https://github.com/linhandev), [Lang Du](https://github.com/justld) for their contribution in  our repository, and to [itkwidgets](https://github.com/InsightSoftwareConsortium/itkwidgets) for their powerful visualization toolkit that we used to present our visualizations.
+Many thanks to [Lin Han](https://github.com/linhandev), [Lang Du](https://github.com/justld), [onecatcn](https://github.com/onecatcn) for their contribution in  our repository, and to [itkwidgets](https://github.com/InsightSoftwareConsortium/itkwidgets) for their powerful visualization toolkit that we used to present our visualizations.
