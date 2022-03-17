@@ -92,29 +92,7 @@ class Prep_lung_coronavirus(Prep):
             self.label_dir,
             self.label_path,
             preprocess=[
-                functools.partial(resample, new_shape=[512, 512, 12], order=0),
-                functools.partial(
-                    label_remap,
-                    map_dict={
-                        2: 1,
-                        3: 1,
-                        4: 1,
-                        5: 1,
-                        6: 1,
-                        7: 1,
-                        8: 1,
-                        9: 1,
-                        10: 1,
-                        11: 2,
-                        12: 2,
-                        13: 2,
-                        14: 2,
-                        15: 2,
-                        16: 2,
-                        17: 2,
-                        18: 2,
-                        19: 2
-                    })
+                functools.partial(resample, new_shape=[512, 512, 12], order=0)
             ],
             valid_suffix=("nii.gz"),
             filter_key=None,
