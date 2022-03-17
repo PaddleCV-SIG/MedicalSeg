@@ -1,5 +1,5 @@
 # MedicalSeg
-Welcome to MedicalSeg! MedicalSeg is an easy-to-use 3D medical image segmentation toolkit that supports GPU acceleration from data preprocess to deply. We aim to build our toolkit to support various datasets including lung, brain, and spine. (Currently contains lung-related dataset only.)
+Welcome to MedicalSeg! MedicalSeg is an easy-to-use 3D medical image segmentation toolkit that supports GPU acceleration from data preprocess to deply. We aim to build our toolkit to support various datasets including lung, brain, and spine. (Currently contains [COVID-19 CT scans](https://www.kaggle.com/andrewmvd/covid19-ct-scans) dataset and [MRISpineSeg](https://aistudio.baidu.com/aistudio/datasetdetail/81211).)
 
 ## 0. Model performance
 
