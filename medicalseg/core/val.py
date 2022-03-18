@@ -103,9 +103,9 @@ def evaluate(model,
                 save_array(
                     save_path="{}/{}".format(save_dir, iter),
                     save_content={
-                        'pred': pred.clone().detach().numpy(),
-                        'label': label.clone().detach().numpy(),
-                        'img': im.clone().detach().numpy()
+                        'pred': pred.numpy(),
+                        'label': label.numpy(),
+                        'img': im.numpy()
                     },
                     form=('npy', 'nii.gz'))
 
