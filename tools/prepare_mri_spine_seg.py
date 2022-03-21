@@ -80,7 +80,8 @@ class Prep_lung_coronavirus(Prep):
             self.image_dir,
             save_path=self.image_path,
             preprocess=[
-                functools.partial(Normalize, min_val=0, max_val=2650),
+                functools.partial(
+                    Normalize, min_val=0, max_val=2650),
                 functools.partial(
                     resample, new_shape=[512, 512, 12],
                     order=1)  # original shape is (1008, 1008, 12)
@@ -92,7 +93,8 @@ class Prep_lung_coronavirus(Prep):
             self.label_dir,
             self.label_path,
             preprocess=[
-                functools.partial(resample, new_shape=[512, 512, 12], order=0)
+                functools.partial(
+                    resample, new_shape=[512, 512, 12], order=0)
             ],
             valid_suffix=("nii.gz"),
             filter_key=None,

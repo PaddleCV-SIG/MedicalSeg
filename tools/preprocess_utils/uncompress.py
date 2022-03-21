@@ -26,14 +26,14 @@ FLUSH_INTERVAL = 0.1
 
 
 class uncompressor:
-
     def __init__(self, download_params):
         if download_params is not None:
             urls, savepath, print_progress = download_params
             for key, url in urls.items():
-                self._download_file(url,
-                                    savepath=os.path.join(savepath, key),
-                                    print_progress=print_progress)
+                self._download_file(
+                    url,
+                    savepath=os.path.join(savepath, key),
+                    print_progress=print_progress)
 
     def _uncompress_file_zip(self, filepath, extrapath):
         files = zipfile.ZipFile(filepath, 'r')

@@ -52,11 +52,10 @@ class Progbar(object):
         else:
             self.stateful_metrics = set()
 
-        self._dynamic_display = ((hasattr(sys.stderr, 'isatty')
-                                  and sys.stderr.isatty())
-                                 or 'ipykernel' in sys.modules
-                                 or 'posix' in sys.modules
-                                 or 'PYCHARM_HOSTED' in os.environ)
+        self._dynamic_display = (
+            (hasattr(sys.stderr, 'isatty') and
+             sys.stderr.isatty()) or 'ipykernel' in sys.modules or
+            'posix' in sys.modules or 'PYCHARM_HOSTED' in os.environ)
         self._total_width = 0
         self._seen_so_far = 0
         # We use a dict + list to avoid garbage collection
@@ -157,9 +156,8 @@ class Progbar(object):
             else:
                 eta = time_per_unit * (self.target - current)
                 if eta > 3600:
-                    eta_format = '%d:%02d:%02d' % (eta // 3600,
-                                                   (eta % 3600) // 60,
-                                                   eta % 60)
+                    eta_format = '%d:%02d:%02d' % (eta // 3600, (eta % 3600) //
+                                                   60, eta % 60)
                 elif eta > 60:
                     eta_format = '%d:%02d' % (eta // 60, eta % 60)
                 else:

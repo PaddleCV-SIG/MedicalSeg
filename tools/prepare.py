@@ -116,8 +116,7 @@ class Prep:
                     file_path))
 
         assert len(files) != 0, print(
-            "The data directory you assigned is wrong, there is no file in it."
-        )
+            "The data directory you assigned is wrong, there is no file in it.")
 
         for f in tqdm(files, total=len(files)):
             f_np = Prep.load_medical_data(f)
@@ -132,8 +131,10 @@ class Prep:
                 f_np = f_np.astype("int32")
 
             np.save(
-                os.path.join(save_path,
-                             f.split("/")[-1].split(".", maxsplit=1)[0]), f_np)
+                os.path.join(
+                    save_path, f.split("/")[-1].split(
+                        ".", maxsplit=1)[0]),
+                f_np)
 
     def convert_path(self):
         """convert nii.gz file to numpy array in the right directory"""

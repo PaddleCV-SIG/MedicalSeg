@@ -67,17 +67,15 @@ def evaluate(model,
         eval_dataset,
         batch_sampler=batch_sampler,
         num_workers=num_workers,
-        return_list=True,
-    )
+        return_list=True, )
 
     total_iters = len(loader)
     logits_all = None
     label_all = None
 
     if print_detail:
-        logger.info(
-            "Start evaluating (total_samples: {}, total_iters: {})...".format(
-                len(eval_dataset), total_iters))
+        logger.info("Start evaluating (total_samples: {}, total_iters: {})...".
+                    format(len(eval_dataset), total_iters))
     progbar_val = progbar.Progbar(
         target=total_iters, verbose=1 if nranks < 2 else 2)
     reader_cost_averager = TimeAverager()
@@ -168,7 +166,7 @@ def evaluate(model,
             len(eval_dataset), mdice, loss_all[0])
         infor = infor + auc_infor if auc_roc else infor
         logger.info(infor)
-        logger.info("[EVAL] Class dice: \n" +
-                    str(np.round(channel_dice_array, 4)))
+        logger.info("[EVAL] Class dice: \n" + str(
+            np.round(channel_dice_array, 4)))
 
     return result_dict

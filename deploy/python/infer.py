@@ -37,30 +37,32 @@ from tools import Prep
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Test')
-    parser.add_argument("--config",
-                        dest="cfg",
-                        help="The config file.",
-                        default=None,
-                        type=str,
-                        required=True)
+    parser.add_argument(
+        "--config",
+        dest="cfg",
+        help="The config file.",
+        default=None,
+        type=str,
+        required=True)
     parser.add_argument(
         '--image_path',
         dest='image_path',
-        help=
-        'The directory or path or file list of the images to be predicted.',
+        help='The directory or path or file list of the images to be predicted.',
         type=str,
         default=None,
         required=True)
-    parser.add_argument('--batch_size',
-                        dest='batch_size',
-                        help='Mini batch size of one gpu or cpu.',
-                        type=int,
-                        default=1)
-    parser.add_argument('--save_dir',
-                        dest='save_dir',
-                        help='The directory for saving the predict result.',
-                        type=str,
-                        default='./output')
+    parser.add_argument(
+        '--batch_size',
+        dest='batch_size',
+        help='Mini batch size of one gpu or cpu.',
+        type=int,
+        default=1)
+    parser.add_argument(
+        '--save_dir',
+        dest='save_dir',
+        help='The directory for saving the predict result.',
+        type=str,
+        default='./output')
     parser.add_argument(
         '--device',
         choices=['cpu', 'gpu'],
@@ -73,29 +75,31 @@ def parse_args():
         type=eval,
         choices=[True, False],
         help='Whether to use Nvidia TensorRT to accelerate prediction.')
-    parser.add_argument("--precision",
-                        default="fp32",
-                        type=str,
-                        choices=["fp32", "fp16", "int8"],
-                        help='The tensorrt precision.')
+    parser.add_argument(
+        "--precision",
+        default="fp32",
+        type=str,
+        choices=["fp32", "fp16", "int8"],
+        help='The tensorrt precision.')
     parser.add_argument(
         '--enable_auto_tune',
         default=False,
         type=eval,
         choices=[True, False],
-        help=
-        'Whether to enable tuned dynamic shape. We uses some images to collect '
+        help='Whether to enable tuned dynamic shape. We uses some images to collect '
         'the dynamic shape for trt sub graph, which avoids setting dynamic shape manually.'
     )
-    parser.add_argument('--auto_tuned_shape_file',
-                        type=str,
-                        default="auto_tune_tmp.pbtxt",
-                        help='The temp file to save tuned dynamic shape.')
+    parser.add_argument(
+        '--auto_tuned_shape_file',
+        type=str,
+        default="auto_tune_tmp.pbtxt",
+        help='The temp file to save tuned dynamic shape.')
 
-    parser.add_argument('--cpu_threads',
-                        default=10,
-                        type=int,
-                        help='Number of threads to predict when using cpu.')
+    parser.add_argument(
+        '--cpu_threads',
+        default=10,
+        type=int,
+        help='Number of threads to predict when using cpu.')
     parser.add_argument(
         '--enable_mkldnn',
         default=False,
@@ -107,25 +111,26 @@ def parse_args():
         "--benchmark",
         type=eval,
         default=False,
-        help=
-        "Whether to log some information about environment, model, configuration and performance."
+        help="Whether to log some information about environment, model, configuration and performance."
     )
     parser.add_argument(
         "--model_name",
         default="",
         type=str,
-        help=
-        'When `--benchmark` is True, the specified model name is displayed.')
+        help='When `--benchmark` is True, the specified model name is displayed.'
+    )
 
-    parser.add_argument('--with_argmax',
-                        dest='with_argmax',
-                        help='Perform argmax operation on the predict result.',
-                        action='store_true')
-    parser.add_argument('--print_detail',
-                        default=True,
-                        type=eval,
-                        choices=[True, False],
-                        help='Print GLOG information of Paddle Inference.')
+    parser.add_argument(
+        '--with_argmax',
+        dest='with_argmax',
+        help='Perform argmax operation on the predict result.',
+        action='store_true')
+    parser.add_argument(
+        '--print_detail',
+        default=True,
+        type=eval,
+        choices=[True, False],
+        help='Print GLOG information of Paddle Inference.')
 
     return parser.parse_args()
 
@@ -137,13 +142,12 @@ def use_auto_tune(args):
 
 
 class DeployConfig:
-
     def __init__(self, path):
         with codecs.open(path, 'r', 'utf-8') as file:
             self.dic = yaml.load(file, Loader=yaml.FullLoader)
 
-        self._transforms = self.load_transforms(
-            self.dic['Deploy']['transforms'])
+        self._transforms = self.load_transforms(self.dic['Deploy'][
+            'transforms'])
         self._dir = os.path.dirname(path)
 
     @property
@@ -220,7 +224,6 @@ def auto_tune(args, imgs, img_nums):
 
 
 class Predictor:
-
     def __init__(self, args):
         """
         Prepare for prediction.
@@ -242,22 +245,21 @@ class Predictor:
         if hasattr(args, 'benchmark') and args.benchmark:
             import auto_log
             pid = os.getpid()
-            self.autolog = auto_log.AutoLogger(model_name=args.model_name,
-                                               model_precision=args.precision,
-                                               batch_size=args.batch_size,
-                                               data_shape="dynamic",
-                                               save_path=None,
-                                               inference_config=self.pred_cfg,
-                                               pids=pid,
-                                               process_name=None,
-                                               gpu_ids=0,
-                                               time_keys=[
-                                                   'preprocess_time',
-                                                   'inference_time',
-                                                   'postprocess_time'
-                                               ],
-                                               warmup=0,
-                                               logger=logger)
+            self.autolog = auto_log.AutoLogger(
+                model_name=args.model_name,
+                model_precision=args.precision,
+                batch_size=args.batch_size,
+                data_shape="dynamic",
+                save_path=None,
+                inference_config=self.pred_cfg,
+                pids=pid,
+                process_name=None,
+                gpu_ids=0,
+                time_keys=[
+                    'preprocess_time', 'inference_time', 'postprocess_time'
+                ],
+                warmup=0,
+                logger=logger)
 
     def _init_base_config(self):
         "初始化基础配置"
@@ -295,12 +297,13 @@ class Predictor:
 
         if self.args.use_trt:
             logger.info("Use TRT")
-            self.pred_cfg.enable_tensorrt_engine(workspace_size=1 << 30,
-                                                 max_batch_size=1,
-                                                 min_subgraph_size=300,
-                                                 precision_mode=precision_mode,
-                                                 use_static=False,
-                                                 use_calib_mode=False)
+            self.pred_cfg.enable_tensorrt_engine(
+                workspace_size=1 << 30,
+                max_batch_size=1,
+                min_subgraph_size=300,
+                precision_mode=precision_mode,
+                use_static=False,
+                use_calib_mode=False)
 
             if use_auto_tune(self.args) and \
                 os.path.exists(self.args.auto_tuned_shape_file):

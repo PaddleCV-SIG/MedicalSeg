@@ -111,8 +111,8 @@ class BCELoss(nn.Layer):
                         "if type of `pos_weight` is str, it should equal to 'dynamic', but it is {}"
                         .format(self.pos_weight))
             elif isinstance(self.pos_weight, float):
-                self.pos_weight = paddle.to_tensor(self.pos_weight,
-                                                   dtype='float32')
+                self.pos_weight = paddle.to_tensor(
+                    self.pos_weight, dtype='float32')
             else:
                 raise TypeError(
                     'The type of `pos_weight` is wrong, it should be float or str, but it is {}'
