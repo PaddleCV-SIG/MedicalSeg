@@ -13,3 +13,4 @@ else:
 from .values import *
 from .uncompress import uncompressor
 from .geometry import *
+from .sanity_checks import verify_dataset_integrity
