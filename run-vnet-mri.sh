@@ -15,12 +15,12 @@ python3 train.py --config configs/${yml}.yml \
 --num_workers 6 --do_eval --use_vdl \
 --keep_checkpoint_max 5  --seed 0  >> $save_dir/train.log
 
-# # Validate the model: see the val.py for detailed explanation on script args
-# python3 val.py --config configs/${yml}.yml \
-# --save_dir  $save_dir/best_model --model_path $save_dir/best_model/model.pdparams
+# Validate the model: see the val.py for detailed explanation on script args
+python3 val.py --config configs/${yml}.yml \
+--save_dir  $save_dir/best_model --model_path $save_dir/best_model/model.pdparams
 
-# # export the model
-# python export.py --config configs/${yml}.yml --model_path $save_dir/best_model/model.pdparams
+# export the model
+python export.py --config configs/${yml}.yml --model_path $save_dir/best_model/model.pdparams
 
-# # # infer the model
-# python deploy/python/infer.py  --config output/deploy.yaml --image_path data/MRSpineSeg/MRI_spine_seg_phase0_class3/images/Case14.npy  --benchmark True
+# infer the model
+python deploy/python/infer.py  --config output/deploy.yaml --image_path data/MRSpineSeg/MRI_spine_seg_phase0_class3/images/Case14.npy  --benchmark True
