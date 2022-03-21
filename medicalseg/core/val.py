@@ -50,6 +50,9 @@ def evaluate(model,
         float: The mIoU of validation datasets.
         float: The accuracy of validation datasets.
     """
+    new_loss = dict()
+    new_loss['types'] = [losses['types'][0]]
+    new_loss['coef'] = [losses['coef'][0]]
     model.eval()
     nranks = paddle.distributed.ParallelEnv().nranks
     local_rank = paddle.distributed.ParallelEnv().local_rank
@@ -116,8 +119,8 @@ def evaluate(model,
             #     pred = paddle.to_tensor(pred)
             #     label = paddle.to_tensor(label)
 
-            # logits [N, num_classes, D, H, W]
-            loss, per_channel_dice = loss_computation(logits, label, losses)
+            # logits [N, num_classes, D, H, W] Compute loss to get dice
+            loss, per_channel_dice = loss_computation(logits, label, new_loss)
             loss = sum(loss)
 
             if auc_roc:
