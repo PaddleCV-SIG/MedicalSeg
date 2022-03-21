@@ -14,9 +14,10 @@ We successfully validate our framework with [Vnet](https://arxiv.org/abs/1606.04
 
 
 The segmentation result of our vnet model is presented as follows thanks to the powerful 3D visualization toolkit [itkwidgets](https://github.com/InsightSoftwareConsortium/itkwidgets). You can try to play around using our [visualize.ipynb](visualize.ipynb)
-<div align="center">
-<img src="figures/lung_prediction.gif" width=500 height=300/>
-</div>
+
+<p align="center">
+<img src="https://github.com/shiyutang/files/blob/main/lung_prediction.gif?raw=true" width="90%" height="90%">
+</p>
 
 ### 2) Speed
 We add gpu acceleration in data preprocess using [CuPy](https://docs.cupy.dev/en/stable/index.html). Compared with preprocess data on cpu, acceleration enable us to use about 40% less time in data prepeocessing. The following shows the time we spend in process COVID-19 CT scans.
