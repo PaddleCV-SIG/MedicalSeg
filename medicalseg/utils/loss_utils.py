@@ -32,8 +32,8 @@ def loss_computation(logits_list, labels, losses, edges=None):
         loss_i = losses['types'][i]
         coef_i = losses['coef'][i]
 
-        if loss_i.__class__.__name__ in ('BCELoss',
-                                         'FocalLoss') and loss_i.edge_label:
+        if loss_i.__class__.__name__ in ('BCELoss', 'FocalLoss'
+                                         ) and loss_i.edge_label:
             # If use edges as labels According to loss type.
             loss_list.append(coef_i * loss_i(logits, edges))
         elif loss_i.__class__.__name__ == 'MixedLoss':

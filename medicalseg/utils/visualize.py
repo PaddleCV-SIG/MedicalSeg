@@ -34,10 +34,9 @@ def add_image_vdl(writer, im, pred, label, epoch, channel, with_overlay=True):
                          im_clone[:, :, index:index + 1], iter)
         writer.add_image('Evaluate/pred_{}'.format(i),
                          pred_clone[:, :, index:index + 1], iter)
-        writer.add_image(
-            'Evaluate/imagewithpred_{}'.format(i),
-            0.2 * pred_clone[:, :, index:index + 1] +
-            0.8 * im_clone[:, :, index:index + 1], iter)
+        writer.add_image('Evaluate/imagewithpred_{}'.format(i),
+                         0.2 * pred_clone[:, :, index:index + 1] + 0.8 *
+                         im_clone[:, :, index:index + 1], iter)
         writer.add_image('Evaluate/label_{}'.format(i),
                          label_clone[:, :, index:index + 1], iter)
 

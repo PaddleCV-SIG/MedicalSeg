@@ -133,8 +133,8 @@ def download_file_and_uncompress(url,
     savepath = os.path.join(savepath, savename)
     savename = ".".join(savename.split(".")[:-1])
     savename = os.path.join(extrapath, savename)
-    extraname = savename if extraname is None else os.path.join(
-        extrapath, extraname)
+    extraname = savename if extraname is None else os.path.join(extrapath,
+                                                                extraname)
 
     if cover:
         if os.path.exists(savepath):

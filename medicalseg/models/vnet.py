@@ -272,9 +272,7 @@ class VNet(nn.Layer):
         out = self.up_tr64(out, out32)  # [4, 64, 256, 256, 9]
         out = self.up_tr32(out, out16)  # [4, 32, 512, 512, 12]
         out = self.out_tr(out)
-        return [
-            out,
-        ]
+        return [out, ]
 
     def test(self):
         import numpy as np

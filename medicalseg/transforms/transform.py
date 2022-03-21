@@ -147,8 +147,7 @@ class RandomRotation3D:
         """
         angle = random.uniform(degrees[0], degrees[1])
         r_plane = self.rotate_planes[random.randint(
-            0,
-            len(self.rotate_planes) - 1)]
+            0, len(self.rotate_planes) - 1)]
 
         return angle, r_plane
 

@@ -56,8 +56,8 @@ def _get_nvcc_info(cuda_home):
     if cuda_home is not None and os.path.isdir(cuda_home):
         try:
             nvcc = os.path.join(cuda_home, 'bin/nvcc')
-            nvcc = subprocess.check_output("{} -V".format(nvcc),
-                                           shell=True).decode()
+            nvcc = subprocess.check_output(
+                "{} -V".format(nvcc), shell=True).decode()
             nvcc = nvcc.strip().split('\n')[-1]
         except subprocess.SubprocessError:
             nvcc = "Not Available"

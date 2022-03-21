@@ -49,16 +49,12 @@ def resize_3d(img, size, order=1):
 
     if img.ndim == 3:
         resize_factor = np.array([od, oh, ow]) / img.shape
-        output = scipy.ndimage.zoom(img,
-                                    resize_factor,
-                                    mode='nearest',
-                                    order=order)
+        output = scipy.ndimage.zoom(
+            img, resize_factor, mode='nearest', order=order)
     elif img.ndim == 4:
         resize_factor = np.array([od, oh, ow, img.shape[3]]) / img.shape
-        output = scipy.ndimage.zoom(img,
-                                    resize_factor,
-                                    mode='nearest',
-                                    order=order)
+        output = scipy.ndimage.zoom(
+            img, resize_factor, mode='nearest', order=order)
     return output
 
 
@@ -99,12 +95,8 @@ def rotate_3d(img, r_plane, angle, order=1, cval=0):
     r_plane (2-list): rotate planes by axis, i.e, [0, 1] or [1, 2] or [0, 2]
     angle (int): rotate degrees
     """
-    img = scipy.ndimage.rotate(img,
-                               angle=angle,
-                               axes=r_plane,
-                               order=order,
-                               cval=cval,
-                               reshape=False)
+    img = scipy.ndimage.rotate(
+        img, angle=angle, axes=r_plane, order=order, cval=cval, reshape=False)
     return img
 
 
@@ -133,7 +125,7 @@ def extract_connect_compoent(binary_mask, minimum_volume=0):
     assert len(np.unique(binary_mask)) < 3, \
         "Only binary mask is accepted, got mask with {}.".format(np.unique(binary_mask).tolist())
     instance_mask = sitk.GetArrayFromImage(
-        sitk.RelabelComponent(sitk.ConnectedComponent(
-            sitk.GetImageFromArray(binary_mask)),
-                              minimumObjectSize=minimum_volume))
+        sitk.RelabelComponent(
+            sitk.ConnectedComponent(sitk.GetImageFromArray(binary_mask)),
+            minimumObjectSize=minimum_volume))
     return instance_mask

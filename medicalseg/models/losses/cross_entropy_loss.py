@@ -77,10 +77,11 @@ class CrossEntropyLoss(nn.Layer):
         if channel_axis == 1:
             logit = paddle.transpose(logit, [0, 2, 3, 4, 1])  # NCDHW -> NDHWC
 
-        loss = F.cross_entropy(logit + self.EPS,
-                               label,
-                               reduction='mean',
-                               ignore_index=self.ignore_index,
-                               weight=self.weight)
+        loss = F.cross_entropy(
+            logit + self.EPS,
+            label,
+            reduction='mean',
+            ignore_index=self.ignore_index,
+            weight=self.weight)
 
         return loss

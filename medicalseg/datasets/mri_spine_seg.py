@@ -57,13 +57,14 @@ class MRISpineSeg(MedicalDataset):
                  num_classes=None,
                  mode='train',
                  ignore_index=255):
-        super(MRISpineSeg, self).__init__(dataset_root,
-                                          result_dir,
-                                          transforms,
-                                          num_classes,
-                                          mode,
-                                          ignore_index,
-                                          data_URL=URL)
+        super(MRISpineSeg, self).__init__(
+            dataset_root,
+            result_dir,
+            transforms,
+            num_classes,
+            mode,
+            ignore_index,
+            data_URL=URL)
         self.num_classes = num_classes
 
 

@@ -89,8 +89,7 @@ class Prep_lung_coronavirus(Prep):
             self.image_dir,
             save_path=self.image_path,
             preprocess=[
-                HUNorm,
-                functools.partial(
+                HUNorm, functools.partial(
                     resample, new_shape=[128, 128, 128], order=1)
             ],
             valid_suffix=("nii.gz"),
