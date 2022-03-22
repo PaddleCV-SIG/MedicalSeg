@@ -137,7 +137,7 @@ def verify_dataset_integrity(folder, default_num_threads=8):
     expected_test_identifiers = [i.split("/")[-1][:-7] for i in test_cases]
     expected_labels = list(int(i) for i in dataset['labels'].keys())
 
-    # check training dataset orientation
+    # check training dataset orientation 
     all_same, unique_orientations = verify_all_same_orientation(os.path.join(folder, "imagesTr"))
     assert all_same, "Not all images in the dataset have the same axis ordering. Please correct that by reorienting the data."
 
