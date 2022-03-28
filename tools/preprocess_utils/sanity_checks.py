@@ -62,7 +62,8 @@ def verify_contains_only_expected_labels(itk_img: str,
     return r, invalid_uniques
 
 
-def verify_same_geometry_and_shape(image_paths, label_path):
+def verify_same_geometry_and_shape_and_nonan(image_paths, label_path):
+    # verify that all modalities and the label have the same shape and geometry.
     label_itk = sitk.ReadImage(label_path)
     nans_in_seg = np.any(np.isnan(sitk.GetArrayFromImage(label_itk)))
     assert not nans_in_seg, "There are NAN values in label {}.".format(
@@ -82,14 +83,16 @@ def verify_training_dataset(folder,
                             num_modalities,
                             identifiers,
                             expected_labels,
+                            train_images_dir="imagesTr",
+                            train_labels_dir="labelsTr",
                             default_num_threads=8):
-    imagesTr_folder = os.path.join(folder, "imagesTr")
+    imagesTr_folder = os.path.join(folder, train_images_dir)
     nii_files_in_imagesTr = [
         nii_path for nii_path in os.listdir(imagesTr_folder)
         if os.path.isfile(os.path.join(imagesTr_folder, nii_path))
         and nii_path.endswith(".nii.gz")
     ]
-    labelsTr_folder = os.path.join(folder, "labelsTr")
+    labelsTr_folder = os.path.join(folder, train_labels_dir)
     nii_files_in_labelsTr = [
         nii_path for nii_path in os.listdir(labelsTr_folder)
         if os.path.isfile(os.path.join(labelsTr_folder, nii_path))
@@ -99,10 +102,11 @@ def verify_training_dataset(folder,
     label_files = []
     for c in identifiers:
         # check if all files are present
-        expected_label_file = os.path.join(folder, "labelsTr", c + ".nii.gz")
+        expected_label_file = os.path.join(folder, train_labels_dir,
+                                           c + ".nii.gz")
         label_files.append(expected_label_file)
         expected_image_files = [
-            os.path.join(folder, "imagesTr", c + "_%04.0d.nii.gz" % i)
+            os.path.join(folder, train_images_dir, c + "_%04.0d.nii.gz" % i)
             for i in range(num_modalities)
         ]
         assert os.path.isfile(
@@ -114,8 +118,8 @@ def verify_training_dataset(folder,
         ), "Some image files are missing for case {}. Expected files: {}.".format(
             c, expected_image_files)
         # check that all modalities and the label have the same shape and geometry
-        verify_same_geometry_and_shape(expected_image_files,
-                                       expected_label_file)
+        verify_same_geometry_and_shape_and_nonan(expected_image_files,
+                                                 expected_label_file)
 
         for i in expected_image_files:
             nii_files_in_imagesTr.remove(os.path.basename(i))
@@ -123,10 +127,13 @@ def verify_training_dataset(folder,
 
     assert len(
         nii_files_in_imagesTr
-    ) == 0, "There are training cases in imagesTr that are not listed in dataset.json."
+    ) == 0, "There are training cases in {} that are not listed in dataset json file.".format(
+        train_images_dir)
     assert len(
         nii_files_in_labelsTr
-    ) == 0, "There are training cases in labelsTr that are not listed in dataset.json."
+    ) == 0, "There are training cases in {} that are not listed in dataset json file.".format(
+        train_labels_dir)
+
     # check if labels are in consecutive order
     assert expected_labels[
         0] == 0, 'The first label must be 0 and maps to the background'
@@ -140,14 +147,18 @@ def verify_training_dataset(folder,
                         zip(label_files, [expected_labels] * len(label_files)))
     p.close()
     p.join()
+
     for i, r in enumerate(results):
         assert r[
             0], "Unexpected labels found in file {}. Found these unexpected values {}.".format(
                 label_files[i], r[1])
 
 
-def verify_test_dataset(folder, num_modalities, identifiers):
-    imagesTs_folder = os.path.join(folder, "imagesTs")
+def verify_test_dataset(folder,
+                        num_modalities,
+                        identifiers,
+                        test_images_dir="imagesTs"):
+    imagesTs_folder = os.path.join(folder, test_images_dir)
     nii_files_in_imagesTs = [
         nii_path for nii_path in os.listdir(imagesTs_folder)
         if os.path.isfile(os.path.join(imagesTs_folder, nii_path))
@@ -156,7 +167,7 @@ def verify_test_dataset(folder, num_modalities, identifiers):
     for c in identifiers:
         # check if all files are present
         expected_image_files = [
-            os.path.join(folder, "imagesTs", c + "_%04.0d.nii.gz" % i)
+            os.path.join(folder, test_images_dir, c + "_%04.0d.nii.gz" % i)
             for i in range(num_modalities)
         ]
         assert all(
@@ -176,50 +187,63 @@ def verify_test_dataset(folder, num_modalities, identifiers):
             nii_files_in_imagesTs.remove(os.path.basename(i))
     assert len(
         nii_files_in_imagesTs
-    ) == 0, "There are training cases in imagesTs that are not listed in dataset.json: {}".format(
-        nii_files_in_imagesTs)
+    ) == 0, "There are training cases in {} that are not listed in dataset json file. Their names are listed in {}.".format(
+        test_images_dir, nii_files_in_imagesTs)
 
 
-def verify_dataset_integrity(folder, default_num_threads=8):
+def verify_dataset_integrity(folder,
+                             data_json="dataset.json",
+                             train_images_dir="imagesTr",
+                             train_labels_dir="labelsTr",
+                             test_images_dir="imagesTs",
+                             default_num_threads=8):
     assert os.path.isfile(
-        os.path.join(folder, "dataset.json")
-    ), "There needs to be a dataset.json file in folder {}, but not found.".format(
-        folder)
+        os.path.join(folder, data_json)
+    ), "There needs to be a {} file in folder {}, but not found.".format(
+        data_json, folder)
     assert os.path.isdir(
-        os.path.join(folder, "imagesTr")
-    ), "There needs to be a imagesTr subfolder in folder {}, but not found.".format(
-        folder)
+        os.path.join(folder, train_images_dir)
+    ), "There needs to be a {} subfolder in folder {}, but not found.".format(
+        train_images_dir, folder)
     assert os.path.isdir(
-        os.path.join(folder, "labelsTr")
-    ), "There needs to be a labelsTr subfolder in folder {}, but not found.".format(
-        folder)
+        os.path.join(folder, train_labels_dir)
+    ), "There needs to be a {} subfolder in folder {}, but not found.".format(
+        train_labels_dir, folder)
 
-    with open(os.path.join(folder, "dataset.json"), 'r') as f:
+    with open(os.path.join(folder, data_json), 'r') as f:
         dataset = json.load(f)
     training_cases = dataset['training']
     num_modalities = len(dataset['modality'].keys())
     test_cases = dataset['test']
     expected_train_identifiers = [
-        i['image'].split("/")[-1][:-7] for i in training_cases
+        i['image'].split("/")[-1].split('.')[0] for i in training_cases
     ]
-    expected_test_identifiers = [i.split("/")[-1][:-7] for i in test_cases]
+    expected_test_identifiers = [
+        i.split("/")[-1].split('.')[0] for i in test_cases
+    ]
     expected_labels = list(int(i) for i in dataset['labels'].keys())
 
     # check training dataset orientation
     all_same, unique_orientations = verify_all_same_orientation(
-        os.path.join(folder, "imagesTr"))
+        os.path.join(folder, train_images_dir))
     assert all_same, "Not all images in the dataset have the same axis ordering. Please correct that by reorienting the data."
 
     # check duplicate label
     assert len(expected_train_identifiers) == len(
         np.unique(expected_train_identifiers)
-    ), "Found duplicate training labels in dataset.json, please check your dataset."
+    ), "Found duplicate training labels in {}, please check your dataset.".format(
+        data_json)
     verify_training_dataset(folder,
                             num_modalities,
                             expected_train_identifiers,
                             expected_labels,
-                            default_num_threads=8)
+                            train_images_dir=train_images_dir,
+                            train_labels_dir=train_labels_dir,
+                            default_num_threads=default_num_threads)
 
     # check test set, but only if there actually is a test set
     if len(expected_test_identifiers) > 0:
-        verify_test_dataset(folder, num_modalities, expected_test_identifiers)
+        verify_test_dataset(folder,
+                            num_modalities,
+                            expected_test_identifiers,
+                            test_images_dir=test_images_dir)
