@@ -22,6 +22,7 @@ support:
 
 """
 import os
+import os.path as osp
 import sys
 import nrrd
 import time
@@ -105,24 +106,38 @@ class Prep:
     @staticmethod
     def load_medical_data(f):
         """
-        load data of different format into numpy array
+        load data of different format into numpy array, return data is in xyz
 
         f: the complete path to the file that you want to load
 
         """
-        filename = f.split("/")[-1]
-        if "nii.gz" or "nii" in filename:
-            f_np = nib.load(f).get_fdata(dtype=np.float32)
-        elif "nrrd" in filename:
-            f_np, _ = nrrd.read(f)
-        elif "mhd" in filename or "raw" in filename:
+        filename = osp.basename(f)
+        images = []
+
+        if "nrrd" in filename:
+            f_np, metadata = nrrd.read(f)
+            f_nps = [f_np]
+        elif filename.endswith((".nii", ".nii.gz", ".dcm")):
             itkimage = sitk.ReadImage(f)
-            f_np = sitk.GetArrayFromImage(itkimage)
-            f_np = np.transpose(f_np, [2,1,0])
+            metadata = {}
+            if itkimage.GetDimension() == 4:
+                slicer = sitk.ExtractImageFilter()
+                s = list(itkimage.GetSize())
+                s[-1]=0
+                slicer.SetSize(s)
+                for slice_idx in range(itkimage.GetSize()[-1]):
+                    slicer.SetIndex([0,0,0, slice_idx])
+                    sitk_volume = slicer.Execute(itkimage)
+                    images.append(sitk_volume)
+            else:
+                images = [itkimage]
+
+            images = [sitk.DICOMOrient(img, 'LPS') for img in images]
+            f_nps = [sitk.GetArrayFromImage(img) for img in images]
         else:
             raise NotImplementedError
 
-        return f_np
+        return f_nps
 
     def load_save(self):
         """
@@ -139,7 +154,7 @@ class Prep:
             savepath = (self.image_path, self.label_path)[i]
             for f in tqdm(files, total=len(files), desc="preprocessing the {}".format(["images", "labels"][i])):
                 # load data will transpose the image from "zyx" to "xyz"
-                f_np = Prep.load_medical_data(f)
+                f_np = Prep.load_medical_data(f)[0]
 
                 for op in pre:
                     if op.__name__ == "resample":
