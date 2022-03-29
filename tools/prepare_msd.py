@@ -131,11 +131,7 @@ class Prep_msd(Prep):
         ]
 
         image_files_npy = os.listdir(self.image_path)
-        label_files_npy = [
-            name.replace("_org_covid-19-pneumonia-",
-                         "_").replace("-dcm", "").replace("_org_", "_")
-            for name in image_files_npy
-        ]
+        label_files_npy = os.listdir(self.label_path)
 
         self.split_files_txt(
             txtname[0], image_files_npy, label_files_npy, train_split=train_split)
