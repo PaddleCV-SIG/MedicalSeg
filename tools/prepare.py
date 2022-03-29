@@ -22,6 +22,7 @@ support:
 
 """
 import os
+import os.path as osp
 import sys
 import nrrd
 import time
@@ -78,7 +79,10 @@ class Prep:
         os.makedirs(self.label_path, exist_ok=True)
         self.gpu_tag = "GPU" if global_var.get_value('USE_GPU') else "CPU"
 
-        self.uncompress_file(num_files=uncompress_params["num_files"], form=uncompress_params["format"])
+        if osp.exists(self.raw_data_path):
+            print(f"raw_dataset_dir {self.raw_data_path} exists, skipping uncompress. To uncompress again, remove this directory")
+        else:
+            self.uncompress_file(num_files=uncompress_params["num_files"], form=uncompress_params["format"])
 
         # Load the needed file with filter
         self.image_files = get_image_list(self.image_dir, valid_suffix[0], filter_key[0])
@@ -113,6 +117,7 @@ class Prep:
         filename = f.split("/")[-1]
         if "nii.gz" or "nii" in filename:
             f_np = nib.load(f).get_fdata(dtype=np.float32)
+            f_np = np.transpose(f_np, [2,1,0])
         elif "nrrd" in filename:
             f_np, _ = nrrd.read(f)
         elif "mhd" in filename or "raw" in filename:
@@ -286,10 +291,10 @@ class Prep:
         for i, image_name in enumerate(tqdm(self.image_files, total=len(self.image_files), desc="Load file information into dataset.json")):
             infor_dict = {'image': image_name, "label": self.label_files[i]} # nii.gz filename
             try:
-                sitk.ReadImage(image_name)
+                img_itk = sitk.ReadImage(image_name)
             except:
                 add_qform_sform(image_name)
-            img_itk = sitk.ReadImage(image_name)
+                img_itk = sitk.ReadImage(image_name)
             infor_dict["dim"] = img_itk.GetDimension()
             img_npy = sitk.GetArrayFromImage(img_itk)
             infor_dict["shape"] = [img_npy.shape, ]
