@@ -28,6 +28,7 @@ import time
 import glob
 import argparse
 import zipfile
+import collections
 import numpy as np
 import nibabel as nib
 import SimpleITK as sitk
@@ -42,10 +43,17 @@ from tools.preprocess_utils import uncompressor, global_var, add_qform_sform
 
 
 class Prep:
-    def __init__(self, dataset_root="data/TemDataSet", raw_dataset_dir="TemDataSet_seg_raw/",
-                 images_dir="train_imgs", labels_dir="train_labels", phase_dir="phase0", 
-                 urls=None, valid_suffix=("nii.gz", "nii.gz"), filter_key=(None, None),
-                 uncompress_params={"format": "zip", "num_files": 1}):
+    def __init__(self,
+                 dataset_root="data/TemDataSet",
+                 raw_dataset_dir="TemDataSet_seg_raw/",
+                 images_dir="train_imgs",
+                 labels_dir="train_labels",
+                 phase_dir="phase0",
+                 urls=None,
+                 valid_suffix=("nii.gz", "nii.gz"),
+                 filter_key=(None, None),
+                 uncompress_params={"format": "zip",
+                                    "num_files": 1}):
         """
         Create proprosessor for medical dataset.
         Folder structure:
@@ -63,26 +71,47 @@ class Prep:
             └── ... archives ...
         Args:
             urls (dict): Urls to download dataset archive. Key will be used as archive name.
+            valid_suffix(tuple):  Only files with the assigned suffix will be considered. The first is the suffix for image, and the other is for label.
+            filter_key(tuple): Only files containing the filter_key the will be considered.
         """
+        # combine all paths
         self.dataset_root = dataset_root
         self.phase_path = os.path.join(self.dataset_root, phase_dir)
         self.raw_data_path = os.path.join(self.dataset_root, raw_dataset_dir)
-        self.dataset_json_path = os.path.join(self.raw_data_path, "dataset.json") # save the dataset.json to raw path
-        self.image_dir = os.path.join(self.raw_data_path, images_dir)
-        self.label_dir = os.path.join(self.raw_data_path, labels_dir)
-        self.urls = urls
-
+        self.dataset_json_path = os.path.join(
+            self.raw_data_path,
+            "dataset.json")  # save the dataset.json to raw path
         self.image_path = os.path.join(self.phase_path, "images")
         self.label_path = os.path.join(self.phase_path, "labels")
+
         os.makedirs(self.image_path, exist_ok=True)
         os.makedirs(self.label_path, exist_ok=True)
         self.gpu_tag = "GPU" if global_var.get_value('USE_GPU') else "CPU"
-        
-        # self.uncompress_file(num_files=uncompress_params["num_files"], form=uncompress_params["format"])
-        
+        self.urls = urls
+
+        self.uncompress_file(
+            num_files=uncompress_params["num_files"],
+            form=uncompress_params["format"])
+
         # Load the needed file with filter
-        self.image_files = get_image_list(self.image_dir, valid_suffix[0], filter_key[0])
-        self.label_files = get_image_list(self.label_dir, valid_suffix[1], filter_key[1])
+        if isinstance(images_dir, collections.abc.Iterable):
+            self.image_files = []
+            self.label_files = []
+            for i in range(len(images_dir)):
+                self.image_files += get_image_list(
+                    os.path.join(self.raw_data_path, images_dir[i]),
+                    valid_suffix[0], filter_key[0])
+                self.label_files += get_image_list(
+                    os.path.join(self.raw_data_path, labels_dir[i]),
+                    valid_suffix[1], filter_key[1])
+        else:
+            self.image_files = get_image_list(
+                os.path.join(self.raw_data_path, images_dir), valid_suffix[0],
+                filter_key[0])
+            self.label_files = get_image_list(
+                os.path.join(self.raw_data_path, labels_dir), valid_suffix[1],
+                filter_key[1])
+
         self.image_files.sort()
         self.label_files.sort()
 
@@ -111,14 +140,14 @@ class Prep:
 
         """
         filename = f.split("/")[-1]
-        if "nii.gz" or "nii" in filename:
+        if "nii.gz" in filename or "nii" in filename:
             f_np = nib.load(f).get_fdata(dtype=np.float32)
         elif "nrrd" in filename:
             f_np, _ = nrrd.read(f)
         elif "mhd" in filename or "raw" in filename:
             itkimage = sitk.ReadImage(f)
             f_np = sitk.GetArrayFromImage(itkimage)
-            f_np = np.transpose(f_np, [2,1,0])
+            f_np = np.transpose(f_np, [2, 1, 0])
         else:
             raise NotImplementedError
 
@@ -128,38 +157,50 @@ class Prep:
         """
         preprocess files, transfer to the correct type, and save it to the directory.
         """
-        print("Start convert images to numpy array using {}, please wait patiently"
+        print(
+            "Start convert images to numpy array using {}, please wait patiently"
             .format(self.gpu_tag))
-        
+
         time1 = time.time()
         with open(self.dataset_json_path, 'r', encoding='utf-8') as f:
-            dataset_json_dict=json.load(f) 
+            dataset_json_dict = json.load(f)
 
         for i, files in enumerate((self.image_files, self.label_files)):
             pre = self.preprocess[["images", "labels"][i]]
             savepath = (self.image_path, self.label_path)[i]
-            for f in tqdm(files, total=len(files), desc="preprocessing the {}".format(["images", "labels"][i])):
+            for f in tqdm(
+                    files,
+                    total=len(files),
+                    desc="preprocessing the {}".format(["images", "labels"][
+                        i])):
                 # load data will transpose the image from "zyx" to "xyz"
                 f_np = Prep.load_medical_data(f)
 
                 for op in pre:
-                    if op.__name__ == "resample": 
-                        spacing = dataset_json_dict["training"][f.split("/")[-1].split(".")[0]]["spacing"] if i==0 else None
+                    if op.__name__ == "resample":
+                        spacing = dataset_json_dict["training"][f.split("/")[
+                            -1].split(".")[0]]["spacing"] if i == 0 else None
                         f_np, new_spacing = op(f_np, spacing=spacing)
                     else:
                         f_np = op(f_np)
 
                 if i == 0:
-                    dataset_json_dict["training"][f.split("/")[-1].split(".")[0]]["spacing_resample"] = new_spacing
-                
-                f_np = f_np.astype("float32") if i==0 else f_np.astype("int32")
-                np.save(os.path.join(savepath, f.split("/")[-1].split(".", maxsplit=1)[0]), f_np)
-        
+                    dataset_json_dict["training"][f.split("/")[-1].split(".")[
+                        0]]["spacing_resample"] = new_spacing
+
+                f_np = f_np.astype("float32") if i == 0 else f_np.astype(
+                    "int32")
+                np.save(
+                    os.path.join(
+                        savepath, f.split("/")[-1].split(
+                            ".", maxsplit=1)[0]),
+                    f_np)
+
         with open(self.dataset_json_path, 'w', encoding='utf-8') as f:
             json.dump(dataset_json_dict, f, ensure_ascii=False, indent=4)
 
         print("The preprocess time on {} is {}".format(self.gpu_tag,
-                                                    time.time() - time1))
+                                                       time.time() - time1))
 
     def convert_path(self):
         """convert nii.gz file to numpy array in the right directory"""
@@ -181,7 +222,7 @@ class Prep:
         # plt.subplot(1,2,1),plt.xticks([]),plt.yticks([]),plt.imshow(imga)
         # plt.subplot(1,2,2),plt.xticks([]),plt.yticks([]),plt.imshow(imgb)
         # plt.show()
-    
+
     @staticmethod
     def write_txt(txt, image_names, label_names=None):
         """
@@ -255,9 +296,14 @@ class Prep:
 
         self.write_txt(txt, image_names, label_names)
 
-    def generate_dataset_json(self, modalities,
-                            labels, dataset_name, license_desc = "hands off!", dataset_description = "",
-                            dataset_reference="", save_path=None):
+    def generate_dataset_json(self,
+                              modalities,
+                              labels,
+                              dataset_name,
+                              license_desc="hands off!",
+                              dataset_description="",
+                              dataset_reference="",
+                              save_path=None):
         """
         :param save_path: This needs to be the full path to the dataset.json you intend to write, default is the raw_data_path
         :param images_dir: path to the images folder of that dataset
@@ -273,23 +319,35 @@ class Prep:
         :return:
         """
         if save_path is not None:
-            self.dataset_json_path = os.path.join(save_path, "dataset.json") # save the dataset.json to raw path
+            self.dataset_json_path = os.path.join(
+                save_path, "dataset.json")  # save the dataset.json to raw path
 
         json_dict = {}
         json_dict['name'] = dataset_name
         json_dict['description'] = dataset_description
         json_dict['reference'] = dataset_reference
         json_dict['licence'] = license_desc
-        json_dict['modality'] = {str(i): modalities[i] for i in range(len(modalities))}
+        json_dict['modality'] = {
+            str(i): modalities[i]
+            for i in range(len(modalities))
+        }
         json_dict['labels'] = {str(i): labels[i] for i in labels.keys()}
 
         json_dict['training'] = {}
-        for i, image_name in enumerate(tqdm(self.image_files, total=len(self.image_files), desc="Load file information into dataset.json")):
-            infor_dict = {'image': image_name, "label": self.label_files[i]} # nii.gz filename
+        for i, image_name in enumerate(
+                tqdm(
+                    self.image_files,
+                    total=len(self.image_files),
+                    desc="Load file information into dataset.json")):
+            infor_dict = {
+                'image': image_name,
+                "label": self.label_files[i]
+            }  # nii.gz filename
             try:
-                sitk.ReadImage(image_name)
+                self.load_medical_data(image_name)
             except:
                 add_qform_sform(image_name)
+
             img_itk = sitk.ReadImage(image_name)
             infor_dict["dim"] = img_itk.GetDimension()
             img_npy = sitk.GetArrayFromImage(img_itk)
@@ -298,16 +356,17 @@ class Prep:
             infor_dict["spacing"] = img_itk.GetSpacing()
             infor_dict["origin"] = img_itk.GetOrigin()
             infor_dict["direction"] = img_itk.GetDirection()
-            json_dict['training'][image_name.split("/")[-1].split(".")[0]] = infor_dict
-            
-        json_dict['test'] = []                 
+            json_dict['training'][image_name.split("/")[-1].split(".")[
+                0]] = infor_dict
 
+        json_dict['test'] = []
 
         if not self.dataset_json_path.endswith("dataset.json"):
-            print("WARNING: output file name is not dataset.json! This may be intentional or not. You decide. "
+            print(
+                "WARNING: output file name is not dataset.json! This may be intentional or not. You decide. "
                 "Proceeding anyways...")
-        else: 
+        else:
             print("save dataset.json to {}".format(self.dataset_json_path))
-        
+
         with open(self.dataset_json_path, 'w', encoding='utf-8') as f:
             json.dump(json_dict, f, ensure_ascii=False, indent=4)

@@ -44,11 +44,14 @@ def label_remap(label, map_dict=None):
     return label
 
 
-def Normalize(image, min_val, max_val):
+def Normalize(image, min_val=None, max_val=None):
     "Normalize the image with given min_val and max val "
     if not isinstance(image, np.ndarray):
         image = np.array(image)
-    image = (image - min_val) / (max_val - min_val)
+    if min_val is None and max_val is None:
+        image = (image - image.min()) / (image.max() - image.min())
+    else:
+        image = (image - min_val) / (max_val - min_val)
     np.clip(image, 0, 1, out=image)
 
     return image
