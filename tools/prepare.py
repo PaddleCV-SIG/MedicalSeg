@@ -22,6 +22,7 @@ support:
 
 """
 import os
+import os.path as osp
 import sys
 import nrrd
 import time
@@ -101,9 +102,9 @@ class Prep:
         self.gpu_tag = "GPU" if global_var.get_value('USE_GPU') else "CPU"
         self.urls = urls
 
-        # self.uncompress_file(
-        #     num_files=uncompress_params["num_files"],
-        #     form=uncompress_params["format"])
+        self.uncompress_file(
+            num_files=uncompress_params["num_files"],
+            form=uncompress_params["format"])
 
         # Load the needed file with filter
         if isinstance(images_dir, tuple):
@@ -146,24 +147,39 @@ class Prep:
     @staticmethod
     def load_medical_data(f):
         """
-        load data of different format into numpy array
+        load data of different format into numpy array, return data is in xyz
 
         f: the complete path to the file that you want to load
 
         """
-        filename = f.split("/")[-1]
-        if "nii.gz" in filename or "nii" in filename:
-            f_np = nib.load(f).get_fdata(dtype=np.float32)
-        elif "nrrd" in filename:
-            f_np, _ = nrrd.read(f)
-        elif "mhd" in filename or "raw" in filename:
+        filename = osp.basename(f)
+        images = []
+
+        if "nrrd" in filename:
+            f_np, metadata = nrrd.read(f)
+            f_nps = [f_np]
+        elif filename.endswith((".nii", ".nii.gz", ".dcm", ".mhd", ".raw")):
             itkimage = sitk.ReadImage(f)
-            f_np = sitk.GetArrayFromImage(itkimage)
-            f_np = np.transpose(f_np, [2, 1, 0])
+            metadata = {}
+            if itkimage.GetDimension() == 4:
+                slicer = sitk.ExtractImageFilter()
+                s = list(itkimage.GetSize())
+                s[-1] = 0
+                slicer.SetSize(s)
+                for slice_idx in range(itkimage.GetSize()[-1]):
+                    slicer.SetIndex([0, 0, 0, slice_idx])
+                    sitk_volume = slicer.Execute(itkimage)
+                    images.append(sitk_volume)
+            else:
+                images = [itkimage]
+
+            images = [sitk.DICOMOrient(img, 'LPS') for img in images]
+            f_nps = [sitk.GetArrayFromImage(img) for img in images]
+
         else:
             raise NotImplementedError
 
-        return f_np
+        return f_nps
 
     def load_save(self):
         """
@@ -173,7 +189,7 @@ class Prep:
             "Start convert images to numpy array using {}, please wait patiently"
             .format(self.gpu_tag))
 
-        time1 = time.time()
+        tic = time.time()
         with open(self.dataset_json_path, 'r', encoding='utf-8') as f:
             dataset_json_dict = json.load(f)
 
@@ -199,7 +215,7 @@ class Prep:
                         ["images", "labels", "images_test"][i])):
 
                 # load data will transpose the image from "zyx" to "xyz"
-                f_np = Prep.load_medical_data(f)
+                f_np = Prep.load_medical_data(f)[0]
 
                 for op in pre:
                     if op.__name__ == "resample":
@@ -226,7 +242,7 @@ class Prep:
             json.dump(dataset_json_dict, f, ensure_ascii=False, indent=4)
 
         print("The preprocess time on {} is {}".format(self.gpu_tag,
-                                                       time.time() - time1))
+                                                       time.time() - tic))
 
     def convert_path(self):
         """convert nii.gz file to numpy array in the right directory"""
@@ -355,7 +371,7 @@ class Prep:
         :param labels: dict with int->str (key->value) mapping the label IDs to label names. Note that 0 is always
         supposed to be background! Example: {0: 'background', 1: 'edema', 2: 'enhancing tumor'}
         :param dataset_name: The name of the dataset. Can be anything you want
-        :param license_desc: 
+        :param license_desc:
         :param dataset_description:
         :param dataset_reference: website of the dataset, if available
         :return: saved dataset.json 
