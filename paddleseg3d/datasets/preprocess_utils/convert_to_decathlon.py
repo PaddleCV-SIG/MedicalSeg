@@ -72,21 +72,15 @@ def crawl_and_remove_hidden_from_decathlon(folder,
 
 def split_4d_to_3d_and_save(img_itk: sitk.Image, output_folder,
                             file_base_name):
-    img_npy = sitk.GetArrayFromImage(img_itk)
-    spacing = img_itk.GetSpacing()
-    origin = img_itk.GetOrigin()
-    direction = np.array(img_itk.GetDirection()).reshape(4, 4)
-    spacing = tuple(list(spacing[:-1]))
-    origin = tuple(list(origin[:-1]))
-    direction = tuple(direction[:-1, :-1].reshape(-1))
-    for i, t in enumerate(range(img_npy.shape[0])):
-        img = img_npy[t]
-        img_itk_new = sitk.GetImageFromArray(img)
-        img_itk_new.SetSpacing(spacing)
-        img_itk_new.SetOrigin(origin)
-        img_itk_new.SetDirection(direction)
+    slicer = sitk.ExtractImageFilter()
+    s = list(img_itk.GetSize())
+    s[-1] = 0
+    slicer.SetSize(s)
+    for i, slice_idx in enumerate(range(img_itk.GetSize()[-1])):
+        slicer.SetIndex([0, 0, 0, slice_idx])
+        sitk_volume = slicer.Execute(img_itk)
         sitk.WriteImage(
-            img_itk_new,
+            sitk_volume,
             os.path.join(output_folder,
                          file_base_name[:-7] + "_%04.0d.nii.gz" % i))
 
