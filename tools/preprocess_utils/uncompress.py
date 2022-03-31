@@ -75,7 +75,7 @@ class uncompressor:
 
         if filepath.endswith("zip"):
             handler = self._uncompress_file_zip
-        elif filepath.endswith("tgz", "tar", "tar.gz"):
+        elif filepath.endswith(("tgz", "tar", "tar.gz")):
             handler = functools.partial(self._uncompress_file_tar, mode="r:*")
         else:
             handler = functools.partial(self._uncompress_file_tar, mode="r")

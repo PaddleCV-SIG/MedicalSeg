@@ -67,9 +67,9 @@ dataset_addr = {
         "images_dir":
         ("prostate/TrainingData_Part1", "prostate/TrainingData_Part2",
          "prostate/TrainingData_Part3"),
-        "labels_dir":
-        ("prostate/TrainingData_Part1", "prostate/TrainingData_Part2",
-         "prostate/TrainingData_Part3"),
+        "labels_dir": ("prostate/TrainingData_Part1",
+                       "prostate/TrainingData_Part2",
+                       "prostate/TrainingData_Part3"),
         "phase_dir": "Promise12_phase0/",
         "urls": urls["Promise12"],
         "valid_suffix": ("mhd", "mhd"),
@@ -105,20 +105,20 @@ dataset_addr = {
             "num_files": 1
         }
     },
-    "MSD_prostate": {
-        "dataset_root": "data/MSD_prostate",
-        "raw_dataset_dir": "MSD_prostate_raw",
-        "images_dir": "Task04_Hippocampus/imagesTr",
-        "labels_dir": "Task04_Hippocampus/labelsTr",
-        "phase_dir": "MSD_prostate_phase0/",
-        "urls": urls["MSD_prostate"],
-        "valid_suffix": ("nii.gz", "nii.gz"),
-        "filter_key": (None, None),
-        "uncompress_params": {
-            "format": "tar",
-            "num_files": 1
-        }
-    }
+    # "MSD_prostate": {
+    #     "dataset_root": "data/MSD_prostate",
+    #     "raw_dataset_dir": "MSD_prostate_raw",
+    #     "images_dir": "Task05_Prostate/Task05_Prostate/imagesTr",
+    #     "labels_dir": "Task05_Prostate/Task05_Prostate/labelsTr",
+    #     "phase_dir": "MSD_prostate_phase0/",
+    #     "urls": urls["MSD_prostate"],
+    #     "valid_suffix": ("nii.gz", "nii.gz"),
+    #     "filter_key": (None, None),
+    #     "uncompress_params": {
+    #         "format": "tar",
+    #         "num_files": 1
+    #     }
+    # }
 }
 
 dataset_profile = {
@@ -146,19 +146,19 @@ dataset_profile = {
         "license_desc": "",
         "dataset_reference": "https://liuquande.github.io/SAML/"
     },
-    "MSD_prostate": {
-        "modalities": ('MRI-T2', 'ADC'),
-        "labels": {
-            0: "Background",
-            1: "PZ",
-            2: "TZ"
-        },
-        "dataset_name": "MSD_prostate",
-        "dataset_description":
-        "Prostate transitional zone and peripheral zone segmentation",
-        "license_desc": "CC-BY-SA 4.0",
-        "dataset_reference": "https://promise12.grand-challenge.org/Details/"
-    }
+    # "MSD_prostate": {. # this is not supported yet 
+    #     "modalities": ('MRI-T2', 'ADC'),
+    #     "labels": {
+    #         0: "Background",
+    #         1: "PZ",
+    #         2: "TZ"
+    #     },
+    #     "dataset_name": "MSD_prostate",
+    #     "dataset_description":
+    #     "Prostate transitional zone and peripheral zone segmentation",
+    #     "license_desc": "CC-BY-SA 4.0",
+    #     "dataset_reference": "https://promise12.grand-challenge.org/Details/"
+    # }
 }
 
 
@@ -178,7 +178,7 @@ class Prep_prostate(Prep):
                          phase_dir, urls, valid_suffix, filter_key,
                          uncompress_params)
 
-        self.preprocess={"images":[           #todo: make this into config adjusted,
+        self.preprocess={"images":[           # todo: make params set automatically
                         Normalize,
                         wrapped_partial(
                             resample, new_shape=[512, 512, 24],
@@ -214,8 +214,9 @@ class Prep_prostate(Prep):
 
 
 if __name__ == "__main__":
-    ## MSD_prostate have files with same name in different dir, which caused file overlap problem.
-    prep = Prep_prostate(**dataset_addr["MSD_prostate"])
-    prep.generate_dataset_json(**dataset_profile["MSD_prostate"])
+    # Todo: Prostate_mri have files with same name in different dir, which caused file overlap problem.
+    # Todo: MSD_prostate is not supported yet, because it has four channel and resample will have a bug.
+    prep = Prep_prostate(**dataset_addr["Promise12"])
+    prep.generate_dataset_json(**dataset_profile["Promise12"])
     prep.load_save()
     prep.generate_txt()

@@ -94,7 +94,7 @@ class Prep:
             form=uncompress_params["format"])
 
         # Load the needed file with filter
-        if isinstance(images_dir, collections.abc.Iterable):
+        if isinstance(images_dir, tuple):
             self.image_files = []
             self.label_files = []
             for i in range(len(images_dir)):
@@ -174,7 +174,7 @@ class Prep:
                     desc="preprocessing the {}".format(["images", "labels"][
                         i])):
                 # load data will transpose the image from "zyx" to "xyz"
-                f_np = Prep.load_medical_data(f)
+                f_np = Prep.load_medical_data(f)  # (960, 960, 15)
 
                 for op in pre:
                     if op.__name__ == "resample":
@@ -344,11 +344,10 @@ class Prep:
                 "label": self.label_files[i]
             }  # nii.gz filename
             try:
-                self.load_medical_data(image_name)
+                img_itk = sitk.ReadImage(image_name)
             except:
                 add_qform_sform(image_name)
-
-            img_itk = sitk.ReadImage(image_name)
+                img_itk = sitk.ReadImage(image_name)
             infor_dict["dim"] = img_itk.GetDimension()
             img_npy = sitk.GetArrayFromImage(img_itk)
             infor_dict["shape"] = [img_npy.shape, ]
