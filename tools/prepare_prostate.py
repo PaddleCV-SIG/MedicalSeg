@@ -70,6 +70,7 @@ dataset_addr = {
         "labels_dir": ("prostate/TrainingData_Part1",
                        "prostate/TrainingData_Part2",
                        "prostate/TrainingData_Part3"),
+        "images_dir_test": "prostate/TestData",
         "phase_dir": "Promise12_phase0/",
         "urls": urls["Promise12"],
         "valid_suffix": ("mhd", "mhd"),
@@ -173,10 +174,12 @@ class Prep_prostate(Prep):
                  valid_suffix=("nii.gz", "nii.gz"),
                  filter_key=(None, None),
                  uncompress_params={"format": "zip",
-                                    "num_files": 1}):
+                                    "num_files": 1},
+                 images_dir_test=""):
+
         super().__init__(dataset_root, raw_dataset_dir, images_dir, labels_dir,
                          phase_dir, urls, valid_suffix, filter_key,
-                         uncompress_params)
+                         uncompress_params, images_dir_test)
 
         self.preprocess={"images":[           # todo: make params set automatically
                         Normalize,
@@ -185,9 +188,10 @@ class Prep_prostate(Prep):
                             order=1)],
                         "labels":[
                         wrapped_partial(
-                            resample, new_shape=[512, 512, 24], order=0)]}
+                            resample, new_shape=[512, 512, 24], order=0)],
+                        "images_test":[Normalize,]}
 
-    def generate_txt(self, train_split=1.0):
+    def generate_txt(self, split=1.0):
         """generate the train_list.txt and val_list.txt"""
 
         txtname = [
@@ -195,28 +199,28 @@ class Prep_prostate(Prep):
             os.path.join(self.phase_path, 'val_list.txt')
         ]
 
+        if self.image_files_test:
+            txtname.append(os.path.join(self.phase_path, 'test_list.txt'))
+            test_file_npy = os.listdir(self.image_path_test)
+
         image_files_npy = os.listdir(self.image_path)
         label_files_npy = [
             name.replace(".npy", "_segmentation.npy")
-            for name in image_files_npy
+            for name in image_files_npy  # to have the save order
         ]
 
         self.split_files_txt(
-            txtname[0],
-            image_files_npy,
-            label_files_npy,
-            train_split=train_split)
+            txtname[0], image_files_npy, label_files_npy, split=split)
         self.split_files_txt(
-            txtname[1],
-            image_files_npy,
-            label_files_npy,
-            train_split=train_split)
+            txtname[1], image_files_npy, label_files_npy, split=split)
+
+        self.split_files_txt(txtname[2], test_file_npy)
 
 
 if __name__ == "__main__":
     # Todo: Prostate_mri have files with same name in different dir, which caused file overlap problem.
     # Todo: MSD_prostate is not supported yet, because it has four channel and resample will have a bug.
     prep = Prep_prostate(**dataset_addr["Promise12"])
-    prep.generate_dataset_json(**dataset_profile["Promise12"])
-    prep.load_save()
+    # prep.generate_dataset_json(**dataset_profile["Promise12"])
+    # prep.load_save()
     prep.generate_txt()
