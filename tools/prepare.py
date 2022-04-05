@@ -175,7 +175,7 @@ class Prep:
                         dataset_json_dict["training"][osp.basename(f).split(".")[0]]["spacing_resample"] = new_spacing
 
                     f_np = f_np.astype("float32") if i==0 else f_np.astype("int32")
-                    volume_idx = "" if len(f_nps) == 0 else f"-{volume_idx}"
+                    volume_idx = "" if len(f_nps) == 1 else f"-{volume_idx}"
                     np.save(os.path.join(savepath, osp.basename(f).split(".")[0] + volume_idx), f_np)
  
 
