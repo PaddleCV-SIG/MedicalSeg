@@ -56,7 +56,7 @@ def resample(image,
         new_shape = np.round(image.shape * spacing / new_spacing)
     else:
         new_shape = np.array(new_shape)
-        if len(spacing) == 4:
+        if spacing is not None and len(spacing) == 4:
             spacing = spacing[1:]
         new_spacing = tuple((image.shape/new_shape) * spacing) if spacing is not None else None
 
