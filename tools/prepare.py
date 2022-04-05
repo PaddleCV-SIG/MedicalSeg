@@ -79,7 +79,10 @@ class Prep:
         os.makedirs(self.label_path, exist_ok=True)
         self.gpu_tag = "GPU" if global_var.get_value('USE_GPU') else "CPU"
 
-        self.uncompress_file(num_files=uncompress_params["num_files"], form=uncompress_params["format"])
+        if osp.exists(self.raw_data_path):
+            print(f"raw_dataset_dir {self.raw_data_path} exists, skipping uncompress. To uncompress again, remove this directory")
+        else:
+            self.uncompress_file(num_files=uncompress_params["num_files"], form=uncompress_params["format"])
 
         # Load the needed file with filter
         self.image_files = get_image_list(self.image_dir, valid_suffix[0], filter_key[0])
@@ -114,9 +117,12 @@ class Prep:
         filename = osp.basename(f)
         images = []
 
-        if "nrrd" in filename:
-            f_np, metadata = nrrd.read(f)
-            f_nps = [f_np]
+        if filename.endswith(".nrrd"):
+            f_nps, metadata = nrrd.read(f)
+            if f_nps.ndim == 4:
+                f_nps = [f_nps[idx] for idx in range(f_nps.shape[0])]
+            else:
+                f_nps = [f_nps]
         elif filename.endswith((".nii", ".nii.gz", ".dcm")):
             itkimage = sitk.ReadImage(f)
             metadata = {}
@@ -134,6 +140,7 @@ class Prep:
 
             images = [sitk.DICOMOrient(img, 'LPS') for img in images]
             f_nps = [sitk.GetArrayFromImage(img) for img in images]
+            f_nps = [np.swapaxes(f_np, 0, 2) for f_np in f_nps] # swap to xyz
         else:
             raise NotImplementedError
 
@@ -154,20 +161,23 @@ class Prep:
             savepath = (self.image_path, self.label_path)[i]
             for f in tqdm(files, total=len(files), desc="preprocessing the {}".format(["images", "labels"][i])):
                 # load data will transpose the image from "zyx" to "xyz"
-                f_np = Prep.load_medical_data(f)[0]
+                f_nps = Prep.load_medical_data(f)
 
-                for op in pre:
-                    if op.__name__ == "resample":
-                        spacing = dataset_json_dict["training"][f.split("/")[-1].split(".")[0]]["spacing"] if i==0 else None
-                        f_np, new_spacing = op(f_np, spacing=spacing)
-                    else:
-                        f_np = op(f_np)
+                for volume_idx, f_np in enumerate(f_nps):
+                    for op in pre:
+                        if op.__name__ == "resample":
+                            spacing = dataset_json_dict["training"][osp.basename(f).split(".")[0]]["spacing"] if i==0 else None
+                            f_np, new_spacing = op(f_np, spacing=spacing)
+                        else:
+                            f_np = op(f_np)
 
-                if i == 0:
-                    dataset_json_dict["training"][f.split("/")[-1].split(".")[0]]["spacing_resample"] = new_spacing
+                    if i == 0:
+                        dataset_json_dict["training"][osp.basename(f).split(".")[0]]["spacing_resample"] = new_spacing
 
-                f_np = f_np.astype("float32") if i==0 else f_np.astype("int32")
-                np.save(os.path.join(savepath, f.split("/")[-1].split(".", maxsplit=1)[0]), f_np)
+                    f_np = f_np.astype("float32") if i==0 else f_np.astype("int32")
+                    volume_idx = "" if len(f_nps) == 1 else f"-{volume_idx}"
+                    np.save(os.path.join(savepath, osp.basename(f).split(".")[0] + volume_idx), f_np)
+ 
 
         with open(self.dataset_json_path, 'w', encoding='utf-8') as f:
             json.dump(dataset_json_dict, f, ensure_ascii=False, indent=4)
@@ -301,10 +311,10 @@ class Prep:
         for i, image_name in enumerate(tqdm(self.image_files, total=len(self.image_files), desc="Load file information into dataset.json")):
             infor_dict = {'image': image_name, "label": self.label_files[i]} # nii.gz filename
             try:
-                sitk.ReadImage(image_name)
+                img_itk = sitk.ReadImage(image_name)
             except:
                 add_qform_sform(image_name)
-            img_itk = sitk.ReadImage(image_name)
+                img_itk = sitk.ReadImage(image_name)
             infor_dict["dim"] = img_itk.GetDimension()
             img_npy = sitk.GetArrayFromImage(img_itk)
             infor_dict["shape"] = [img_npy.shape, ]
