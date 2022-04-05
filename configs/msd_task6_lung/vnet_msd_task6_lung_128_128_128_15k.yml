@@ -1,0 +1,8 @@
+_base_: 'msd_task6_lung.yml'
+
+model:
+  type: VNet
+  elu: False
+  in_channels: 1
+  num_classes: 1
+  pretrained: null
