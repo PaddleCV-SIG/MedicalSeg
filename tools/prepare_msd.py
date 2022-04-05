@@ -46,7 +46,7 @@ Task04_Hippocampus
 
 support:
 1. download and uncompress the file.
-2. preprocess scans and labels and save as npy.
+2. preprocess scans and labels then save as npy.
 3. update dataset.json
 4. split the training data and save the split result in train_list.txt and val_list.txt
 """
@@ -151,7 +151,10 @@ if __name__ == "__main__":
     prep = Prep_msd(task_id)
 
     json_path = osp.join(osp.dirname(prep.image_dir), "dataset.json")
-    prep.generate_dataset_json(**parse_msd_basic_info(json_path))
+    if osp.exists(prep.dataset_json_path):
+        print(f"Dataset json exists, skipping. Delete file {prep.dataset_json_path} to regenerate.")
+    else:
+        prep.generate_dataset_json(**parse_msd_basic_info(json_path))
 
     prep.load_save()
     prep.generate_txt()

@@ -157,21 +157,23 @@ class Prep:
             savepath = (self.image_path, self.label_path)[i]
             for f in tqdm(files, total=len(files), desc="preprocessing the {}".format(["images", "labels"][i])):
                 # load data will transpose the image from "zyx" to "xyz"
-                f_np = Prep.load_medical_data(f)[0]
+                f_nps = Prep.load_medical_data(f)
 
-                for op in pre:
-                    if op.__name__ == "resample":
-                        spacing = dataset_json_dict["training"][f.split("/")[-1].split(".")[0]]["spacing"] if i==0 else None
-                        f_np, new_spacing = op(f_np, spacing=spacing)
-                    else:
-                        f_np = op(f_np)
+                for volume_idx, f_np in enumerate(f_nps):
+                    for op in pre:
+                        if op.__name__ == "resample":
+                            spacing = dataset_json_dict["training"][f.split("/")[-1].split(".")[0]]["spacing"] if i==0 else None
+                            f_np, new_spacing = op(f_np, spacing=spacing)
+                        else:
+                            f_np = op(f_np)
 
-                if i == 0:
-                    dataset_json_dict["training"][f.split("/")[-1].split(".")[0]]["spacing_resample"] = new_spacing
+                    if i == 0:
+                        dataset_json_dict["training"][f.split("/")[-1].split(".")[0]]["spacing_resample"] = new_spacing
 
-                f_np = f_np.astype("float32") if i==0 else f_np.astype("int32")
-                np.save(os.path.join(savepath, f.split("/")[-1].split(".", maxsplit=1)[0]), f_np)
-
+                    f_np = f_np.astype("float32") if i==0 else f_np.astype("int32")
+                    volume_idx = "" if len(f_nps) ==0 else f"-{volume_idx}"
+                    np.save(os.path.join(savepath, osp.basename(f).split(".")[0] + volume_idx), f_np)
+ 
         with open(self.dataset_json_path, 'w', encoding='utf-8') as f:
             json.dump(dataset_json_dict, f, ensure_ascii=False, indent=4)
 
