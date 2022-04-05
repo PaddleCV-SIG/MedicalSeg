@@ -117,9 +117,12 @@ class Prep:
         filename = osp.basename(f)
         images = []
 
-        if "nrrd" in filename:
-            f_np, metadata = nrrd.read(f)
-            f_nps = [f_np]
+        if filename.endswith(".nrrd"):
+            f_nps, metadata = nrrd.read(f)
+            if f_nps.ndim == 4:
+                f_nps = [f_nps[idx] for idx in range(f_nps.shape[0])]
+            else:
+                f_nps = [f_nps]
         elif filename.endswith((".nii", ".nii.gz", ".dcm")):
             itkimage = sitk.ReadImage(f)
             metadata = {}
@@ -137,6 +140,7 @@ class Prep:
 
             images = [sitk.DICOMOrient(img, 'LPS') for img in images]
             f_nps = [sitk.GetArrayFromImage(img) for img in images]
+            f_nps = [np.swapaxes(f_np, 0, 2) for f_np in f_nps] # swap to xyz
         else:
             raise NotImplementedError
 
