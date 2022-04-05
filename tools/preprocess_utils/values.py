@@ -23,9 +23,10 @@ import tools.preprocess_utils.global_var as global_var
 gpu_tag = global_var.get_value('USE_GPU')
 if gpu_tag:
     import cupy as np
+    if int(np.__version__.split(".")[0]) < 10:
+        import numpy as np
 else:
     import numpy as np
-
 
 def label_remap(label, map_dict=None):
     """
