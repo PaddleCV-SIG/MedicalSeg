@@ -1,50 +1,54 @@
 class WrapOp:
     '''
-    支持类似函数式或subclass两种使用方法，同时处理图像和分割标签
+    包装预处理函数，支持同时处理图像和标签(apply=together)
 
     init固定两个参数 op 和 apply
-    - op针对一个3d volume写，如果用subclass方式传None
-    - apply 默认值both。apply=
-        - both：image，label都做op
+    - op：预处理函数。apply=image，label，both的时候op针对一个3d volume写；apply=together的时候image和volume会一起传给op
+    - apply：默认值both。apply=
+        - both：image，label分别做op，图像和标签处理过程中不共享数据
         - image：只image做
         - label：只label做
+        - together：op同时处理image和label
 
     其他的所有参数都是op的参数，必须写参数名，参数值的类型分两类：tuple和其他。
-    - 如果想image和label用不同的参数，参数用长度 == 2 的tuple。比如resize，image是3阶，label是0阶：WrapOp(op, "both", order=(3, 0))
-    - 如果image和label参数一样，用其他的类型。比如都用0阶，大小都是128^3：WrapOp(op, "both", order=0, size=[128, 128, 128])
-
-    这样有一个限制，op的参数不能限定必须用tuple，那样在WrapOp层这个参数就会被拆开。不过感觉问题不大，能用tuple的地方应该都差不多能用list传参
+    - tuple：image和label用不同的参数，参数用长度为2的tuple。比如resize操作，image是3阶，label是0阶：WrapOp(resize, "both", order=(3, 0))
+    - 其它：如果image和label参数一样，用其他的类型。比如resize都用0阶，大小都是128^3：WrapOp(resize, "both", order=0, size=[128, 128, 128])
     '''
 
-    def __init__(self, op, apply="both", **kwargs):
-        print("====")
-        if op is not None:
-            self.op = op
+    def __init__(self, op, apply="both", **params_dict):
+        self.op = op
         self.apply = apply
 
-        self.image_kwargs = {}
-        self.label_kwargs = {}
-        for idx, target_kwargs in enumerate([self.image_kwargs, self.label_kwargs]):
-            for k, v in kwargs.items():
+        self.image_params = {}
+        self.label_params = {}
+        for idx, target_params in enumerate([self.image_params, self.label_params]):
+            for k, v in params_dict.items():
+                if k == 'apply':
+                    continue
                 if isinstance(v, tuple):
-                    target_kwargs[k] = v[idx]
+                    assert len(v) == 2, f"Parameters of type tuple must have length 2, got parameter {k} with value {v}"
+                    target_params[k] = v[idx]
                 else:
-                    target_kwargs[k] = v
+                    target_params[k] = v
 
         print("self.apply", self.apply)
-        print("kwargs: ", kwargs)
-        print(self.image_kwargs, self.label_kwargs)
+        print("params_dict: ", params_dict)
+        print(self.image_params, self.label_params)
 
 
     '''
-    在load_save里调 prep_op.run(image, label)。如果图像和标签的处理需要通信重载这个方法，否则直接用这个run就行
+    在load_save里调 prep_op.run(image, label)
     '''
     def run(self, image, label):
+        if self.apply == "together":
+            return self.op(image, label, self.image_params, self.label_params)
+        
         if self.apply in ("both", "image"):
-            image = self.op(image, **self.image_kwargs)
+            image = self.op(image, **self.image_params)
 
         if self.apply in ("both", "label"):
-            label = self.op(label, **self.label_kwargs)
+            label = self.op(label, **self.label_params)
+
         return image, label
 
 if __name__ == "__main__":
@@ -52,26 +56,22 @@ if __name__ == "__main__":
     def add(image, val):
         return image + val
 
-    class Sub(WrapOp):
-        def __init__(self, apply="both", **kwargs):
-            super().__init__(None, apply=apply, **kwargs)
-
-        def op(self, image, val):
-            return image - val
-
-    class CrossOp(WrapOp):
-        def __init__(self):
-            super().__init__(None, apply="both")
-
-        def run(self, image, label):
-            return image * label, image / label
+    def sub(image, val):
+        return image - val
+    
+    def add_mul(image, label, image_param, label_param):
+        image += label
+        label = image
+        image *= image_param["val"]
+        label *= label_param["val"]
+        return image, label
 
     ops = [
         WrapOp(add, "both", val=1),
-        Sub(val=(2, 3)),
-        Sub("label", val=4),
+        WrapOp(add, "both", val=(2, 3)),
+        WrapOp(sub, "label", val=2),
         WrapOp(add, apply="image", val=4),
-        CrossOp()
+        WrapOp(add_mul, apply="together", val=(2,3))
     ]
     print("finish create, start run")
 
