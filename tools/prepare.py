@@ -166,13 +166,13 @@ class Prep:
                 for volume_idx, f_np in enumerate(f_nps):
                     for op in pre:
                         if op.__name__ == "resample":
-                            spacing = dataset_json_dict["training"][f.split("/")[-1].split(".")[0]]["spacing"] if i==0 else None
+                            spacing = dataset_json_dict["training"][osp.basename(f).split(".")[0]]["spacing"] if i==0 else None
                             f_np, new_spacing = op(f_np, spacing=spacing)
                         else:
                             f_np = op(f_np)
 
                     if i == 0:
-                        dataset_json_dict["training"][f.split("/")[-1].split(".")[0]]["spacing_resample"] = new_spacing
+                        dataset_json_dict["training"][osp.basename(f).split(".")[0]]["spacing_resample"] = new_spacing
 
                     f_np = f_np.astype("float32") if i==0 else f_np.astype("int32")
                     volume_idx = "" if len(f_nps) == 0 else f"-{volume_idx}"
