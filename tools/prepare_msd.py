@@ -119,9 +119,7 @@ class Prep_msd(Prep):
                 urls=tasks[task_id], valid_suffix=("nii.gz", "nii.gz"), filter_key=(None, None),
                  uncompress_params={"format": "tar", "num_files": 1})
 
-        # self.preprocess={"images":[HUNorm, wrapped_partial(resample, new_shape=[128, 128, 128], order=1)],
-        #                 "labels":[wrapped_partial(resample, new_shape=[128, 128, 128], order=0),]}
-        self.preprocess = [WrapOp(HUNorm, "image"), WrapOp(resample, "both", new_shape=[128, 128, 128], order=(1,0))]
+        self.preprocess = [WrapOp(HUNorm, "image"), WrapOp(resample, "both", new_shape=[128, 128, 128], order=(1, 0))]
 
     def generate_txt(self, train_split=0.75):
         """generate the train_list.txt and val_list.txt"""
