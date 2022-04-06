@@ -45,7 +45,7 @@ sys.path.append(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 
 from prepare import Prep
-from preprocess_utils import resample, Normalize, label_remap
+from preprocess_utils import resample, normalize, label_remap
 from medicalseg.utils import wrapped_partial
 
 urls = {
@@ -71,7 +71,7 @@ class Prep_mri_spine(Prep):
         self.preprocess = {
             "images": [
                 wrapped_partial(
-                    Normalize, min_val=0, max_val=2650), wrapped_partial(
+                    normalize, min_val=0, max_val=2650), wrapped_partial(
                         resample, new_shape=[512, 512, 12], order=1)
             ],  # original shape is (1008, 1008, 12)
             "labels":

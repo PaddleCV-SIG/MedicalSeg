@@ -45,7 +45,7 @@ sys.path.append(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 
 from prepare import Prep
-from preprocess_utils import resample, Normalize, label_remap
+from preprocess_utils import resample, normalize, label_remap
 from medicalseg.utils import wrapped_partial
 
 urls = {
@@ -182,14 +182,14 @@ class Prep_prostate(Prep):
                          uncompress_params, images_dir_test)
 
         self.preprocess={"images":[           # todo: make params set automatically
-                        Normalize,
+                        normalize,
                         wrapped_partial(
                             resample, new_shape=[512, 512, 24],
                             order=1)],
                         "labels":[
                         wrapped_partial(
                             resample, new_shape=[512, 512, 24], order=0)],
-                        "images_test":[Normalize,]}
+                        "images_test":[normalize,]}
 
     def generate_txt(self, split=1.0):
         """generate the train_list.txt and val_list.txt"""
