@@ -156,34 +156,32 @@ class Prep:
         tic = time.time()
         with open(self.dataset_json_path, 'r', encoding='utf-8') as f:
             dataset_json_dict=json.load(f)
-        for i, files in enumerate((self.image_files, self.label_files)):
-            pre = self.preprocess[["images", "labels"][i]]
-            savepath = (self.image_path, self.label_path)[i]
-            for f in tqdm(files, total=len(files), desc="preprocessing the {}".format(["images", "labels"][i])):
-                # load data will transpose the image from "zyx" to "xyz"
-                f_nps = Prep.load_medical_data(f)
 
-                for volume_idx, f_np in enumerate(f_nps):
-                    for op in pre:
-                        if op.__name__ == "resample":
-                            spacing = dataset_json_dict["training"][osp.basename(f).split(".")[0]]["spacing"] if i==0 else None
-                            f_np, new_spacing = op(f_np, spacing=spacing)
-                        else:
-                            f_np = op(f_np)
+        for image_path, label_path in zip(tqdm(self.image_files), self.label_files):
+            images = Prep.load_medical_data(image_path) # a list of 3d volumes in zyx
+            label_raw = Prep.load_medical_data(label_path)[0] # label will always be 3d
 
-                    if i == 0:
-                        dataset_json_dict["training"][osp.basename(f).split(".")[0]]["spacing_resample"] = new_spacing
-
-                    f_np = f_np.astype("float32") if i==0 else f_np.astype("int32")
-                    volume_idx = "" if len(f_nps) == 1 else f"-{volume_idx}"
-                    np.save(os.path.join(savepath, osp.basename(f).split(".")[0] + volume_idx), f_np)
- 
+            for volume_idx, image in enumerate(images):
+                label = label_raw
+                for op in self.preprocess:
+                    if op.__name__ == "resample":
+                        spacing = dataset_json_dict["training"][osp.basename(image_path).split(".")[0]]["spacing"]
+                        [image, new_spacing], [label, _] = op.run(image, label, spacing=spacing)
+                        dataset_json_dict["training"][osp.basename(image_path).split(".")[0]]["spacing_resample"] = new_spacing
+                    else:
+                        image, label = op.run(image, label)
+                
+                image = image.astype("float32")
+                label = label.astype("int32")
+                volume_idx = "" if len(images) == 1 else f"-{volume_idx}"
+                
+                np.save(osp.join(self.image_path, osp.basename(image_path).split(".")[0] + volume_idx), image)
+                np.save(osp.join(self.label_path, osp.basename(label_path).split(".")[0] + volume_idx), label)
 
         with open(self.dataset_json_path, 'w', encoding='utf-8') as f:
             json.dump(dataset_json_dict, f, ensure_ascii=False, indent=4)
 
-        print("The preprocess time on {} is {}".format(self.gpu_tag,
-                                                    time.time() - tic))
+        print("The preprocess time on {} is {}".format(self.gpu_tag, time.time() - tic))
 
     def convert_path(self):
         """convert nii.gz file to numpy array in the right directory"""

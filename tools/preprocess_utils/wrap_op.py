@@ -16,6 +16,8 @@ class WrapOp:
     '''
 
     def __init__(self, op, apply="both", **params_dict):
+        self.__name__ = op.__name__
+        print(self.__name__)
         self.op = op
         self.apply = apply
 
@@ -39,6 +41,7 @@ class WrapOp:
     '''
     def run(self, image, label, **params_dict):
         self.update_params(params_dict)
+
         if self.apply == "together":
             return self.op(image, label, self.image_params, self.label_params)
         
@@ -50,35 +53,35 @@ class WrapOp:
 
         return image, label
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
 
-#     def add(image, val):
-#         return image + val
+    def add(image, val):
+        return image + val
 
-#     def sub(image, val):
-#         return image - val
+    def sub(image, val):
+        return image - val
     
-#     def add_mul(image, label, image_param, label_param):
-#         image += label
-#         label = image
-#         image *= image_param["mul"]
-#         label *= label_param["mul"]
-#         return image, label
+    def add_mul(image, label, image_param, label_param):
+        image += label
+        label = image
+        image *= image_param["mul"]
+        label *= label_param["mul"]
+        return image, label
 
-#     ops = [
-#         WrapOp(add, "both", val=1),
-#         WrapOp(add, "both", val=(2, 3)),
-#         WrapOp(sub, "label", val=2),
-#         WrapOp(add, apply="image", val=4),
-#         WrapOp(add_mul, apply="together")
-#     ]
-#     print("finish create, start run")
+    ops = [
+        WrapOp(add, "both", val=1),
+        WrapOp(add, "both", val=(2, 3)),
+        WrapOp(sub, "label", val=2),
+        WrapOp(add, apply="image", val=4),
+        WrapOp(add_mul, apply="together")
+    ]
+    print("finish create, start run")
 
-#     image = 0
-#     label = 0
-#     for op in ops:
-#         if op.op == add_mul:
-#             image, label = op.run(image, label, mul=(2, 3))    
-#         else:
-#             image, label = op.run(image, label)
-#         print(image, label)
+    image = 0
+    label = 0
+    for op in ops:
+        if op.op == add_mul:
+            image, label = op.run(image, label, mul=(2, 3))    
+        else:
+            image, label = op.run(image, label)
+        print(image, label)
