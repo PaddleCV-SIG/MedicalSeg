@@ -151,10 +151,7 @@ if __name__ == "__main__":
     prep = Prep_msd(task_id)
 
     json_path = osp.join(osp.dirname(prep.image_dir), "dataset.json")
-    if osp.exists(prep.dataset_json_path):
-        print(f"Dataset json exists, skipping. Delete file {prep.dataset_json_path} to regenerate.")
-    else:
-        prep.generate_dataset_json(**parse_msd_basic_info(json_path))
+    prep.generate_dataset_json(**parse_msd_basic_info(json_path))
 
     prep.load_save()
     prep.generate_txt()

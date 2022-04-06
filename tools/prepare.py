@@ -114,18 +114,11 @@ class Prep:
         f: the complete path to the file that you want to load
 
         """
-        filename = osp.basename(f)
+        filename = osp.basename(f).lower()
         images = []
 
-        if filename.endswith(".nrrd"):
-            f_nps, metadata = nrrd.read(f)
-            if f_nps.ndim == 4:
-                f_nps = [f_nps[idx] for idx in range(f_nps.shape[0])]
-            else:
-                f_nps = [f_nps]
-        elif filename.endswith((".nii", ".nii.gz", ".dcm")):
+        if filename.endswith((".nii", ".nii.gz", ".dcm")):
             itkimage = sitk.ReadImage(f)
-            metadata = {}
             if itkimage.GetDimension() == 4:
                 slicer = sitk.ExtractImageFilter()
                 s = list(itkimage.GetSize())
@@ -137,10 +130,19 @@ class Prep:
                     images.append(sitk_volume)
             else:
                 images = [itkimage]
-
             images = [sitk.DICOMOrient(img, 'LPS') for img in images]
             f_nps = [sitk.GetArrayFromImage(img) for img in images]
-            f_nps = [np.swapaxes(f_np, 0, 2) for f_np in f_nps] # swap to xyz
+            f_nps = [np.transpose(f_np, [1, 2, 0]) for f_np in f_nps] # swap to xyz
+        elif filename.endswith((".mha", ".mhd", "nrrd")):
+            itkimage = sitk.DICOMOrient(sitk.ReadImage(f), 'LPS')
+            f_np = sitk.GetArrayFromImage(itkimage)
+            if f_np.ndim == 4:
+                f_nps = [f_np[:, :, :, idx] for idx in range(f_np.shape[3])]
+            else:
+                f_nps = [f_np]
+            f_nps = [np.transpose(f_np, [1, 2, 0]) for f_np in f_nps]
+        elif filename.endswith(".raw"):
+            raise RuntimeError(f"Received {f}. Please only provide path to .mhd file, not to .raw file")
         else:
             raise NotImplementedError
 
@@ -298,6 +300,10 @@ class Prep:
         """
         if save_path is not None:
             self.dataset_json_path = os.path.join(save_path, "dataset.json") # save the dataset.json to raw path
+        
+        if osp.exists(self.dataset_json_path):
+            print(f"Dataset json exists, skipping. Delete file {self.dataset_json_path} to regenerate.")
+            return
 
         json_dict = {}
         json_dict['name'] = dataset_name
