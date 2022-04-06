@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import os.path as osp
 
 import time
 import json
@@ -72,7 +73,6 @@ def evaluate(model,
     
     with open(eval_dataset.dataset_json_path, 'r', encoding='utf-8') as f:
         dataset_json_dict=json.load(f) 
-    image_json = dataset_json_dict["training"][idx[0].split("/")[-1].split(".")[0]]
                 
     total_iters = len(loader)
     logits_all = None
@@ -106,6 +106,8 @@ def evaluate(model,
                 pass
 
             if iter < 5:
+                image_json = dataset_json_dict["training"][osp.basename(idx[0]).split(".")[0]]
+                print(image_json)
                 save_array(
                     save_path=os.path.join(save_dir, str(iter)),
                     save_content={
