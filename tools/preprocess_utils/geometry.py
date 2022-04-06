@@ -35,7 +35,6 @@ def resample(image,
              order=1):
     """
     Resample image from the original spacing to new_spacing, e.g. 1x1x1
-
     image(numpy array): 3D numpy array of raw HU values from CT series in [z, y, x] order.
     spacing(list|tuple): float * 3, raw CT spacing in [z, y, x] order.
     new_spacing: float * 3, new spacing used for resample, typically 1x1x1,
@@ -43,7 +42,6 @@ def resample(image,
         1x1x1 mm.
     new_shape(list|tuple): the new shape of resampled numpy array.
     order(int): order for resample function scipy.ndimage.zoom
-
     return: 3D binary numpy array with the same shape of the image after,
         resampling. The actual resampling spacing is also returned.
     """
@@ -52,11 +50,17 @@ def resample(image,
         image = np.array(image)
 
     if new_shape is None:
-        spacing = np.array([spacing[0], spacing[1], spacing[2]])
+        spacing = np.array(spacing)
         new_shape = np.round(image.shape * spacing / new_spacing)
     else:
         new_shape = np.array(new_shape)
-        new_spacing = tuple((image.shape/new_shape) * spacing) if spacing is not None else None
+        if spacing is not None:
+            if len(spacing) == 4:
+                spacing = spacing[1:]
+            new_spacing = (np.array(image.shape)/new_shape) * np.array(spacing)
+            new_spacing = [float(s) for s in new_spacing]
+        else:
+            new_spacing = None
 
     resize_factor = new_shape / np.array(image.shape)
 
