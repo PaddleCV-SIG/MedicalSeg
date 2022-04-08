@@ -55,9 +55,6 @@ urls = {
     "Prostate_mri": {
         "Prostate_mri": ""
     },  # https://drive.google.com/file/d/1TtrjnlnJ1yqr5m4LUGMelKTQXtvZaru-/view?usp=sharing
-    "MSD_prostate": {
-        "MSD_prostate": ""
-    },  # https://bj.bcebos.com/v1/ai-studio-online/netdisk/aca74eceef674a74bff647998413ebf25a33ad44e04643d7b796e05eecbc9891?responseContentDisposition=attachment%3B%20filename%3DTask05_Prostate.tar&authorization=bce-auth-v1%2F0ef6765c1e494918bc0d4c3ca3e5c6d1%2F2022-01-21T18%3A28%3A58Z%2F-1%2F%2F610d78c178a2f5eeb5d8f6c7ec48ef52f7d6899b5ed8484f213ff1e03d266bd8
 }
 
 dataset_addr = {
@@ -105,21 +102,7 @@ dataset_addr = {
             "format": "zip",
             "num_files": 1
         }
-    },
-    # "MSD_prostate": {
-    #     "dataset_root": "data/MSD_prostate",
-    #     "raw_dataset_dir": "MSD_prostate_raw",
-    #     "images_dir": "Task05_Prostate/Task05_Prostate/imagesTr",
-    #     "labels_dir": "Task05_Prostate/Task05_Prostate/labelsTr",
-    #     "phase_dir": "MSD_prostate_phase0/",
-    #     "urls": urls["MSD_prostate"],
-    #     "valid_suffix": ("nii.gz", "nii.gz"),
-    #     "filter_key": (None, None),
-    #     "uncompress_params": {
-    #         "format": "tar",
-    #         "num_files": 1
-    #     }
-    # }
+    }
 }
 
 dataset_profile = {
@@ -146,20 +129,7 @@ dataset_profile = {
         "This is a well-organized multi-site dataset for prostate MRI segmentation, which contains prostate T2-weighted MRI data (with segmentation mask) collected from six different data sources out of three public datasets. ",
         "license_desc": "",
         "dataset_reference": "https://liuquande.github.io/SAML/"
-    },
-    # "MSD_prostate": {. # this is not supported yet 
-    #     "modalities": ('MRI-T2', 'ADC'),
-    #     "labels": {
-    #         0: "Background",
-    #         1: "PZ",
-    #         2: "TZ"
-    #     },
-    #     "dataset_name": "MSD_prostate",
-    #     "dataset_description":
-    #     "Prostate transitional zone and peripheral zone segmentation",
-    #     "license_desc": "CC-BY-SA 4.0",
-    #     "dataset_reference": "https://promise12.grand-challenge.org/Details/"
-    # }
+    }
 }
 
 
@@ -221,6 +191,6 @@ if __name__ == "__main__":
     # Todo: Prostate_mri have files with same name in different dir, which caused file overlap problem.
     # Todo: MSD_prostate is not supported yet, because it has four channel and resample will have a bug.
     prep = Prep_prostate(**dataset_addr["Promise12"])
-    # prep.generate_dataset_json(**dataset_profile["Promise12"])
-    # prep.load_save()
+    prep.generate_dataset_json(**dataset_profile["Promise12"])
+    prep.load_save()
     prep.generate_txt()

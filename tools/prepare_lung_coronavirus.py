@@ -67,7 +67,7 @@ urls = {
 class Prep_lung_coronavirus(Prep):
     def __init__(self):
         super().__init__(
-            dataset_root="data/lung_coronavirus_test",
+            dataset_root="data/lung_coronavirus",
             raw_dataset_dir="lung_coronavirus_raw/",
             images_dir="20_ncov_scan",
             labels_dir="lung_mask",
@@ -104,16 +104,10 @@ class Prep_lung_coronavirus(Prep):
             for name in image_files_npy
         ]
 
-        self.split_files_txt(
-            txtname[0],
-            image_files_npy,
-            label_files_npy,
-            train_split=train_split)
-        self.split_files_txt(
-            txtname[1],
-            image_files_npy,
-            label_files_npy,
-            train_split=train_split)
+        self.split_files_txt(txtname[0], image_files_npy, label_files_npy,
+                             train_split)
+        self.split_files_txt(txtname[1], image_files_npy, label_files_npy,
+                             train_split)
 
 
 if __name__ == "__main__":
