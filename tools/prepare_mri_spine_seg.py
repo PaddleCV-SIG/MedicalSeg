@@ -92,16 +92,10 @@ class Prep_mri_spine(Prep):
             name.replace("Case", "mask_case") for name in image_files_npy
         ]
 
-        self.split_files_txt(
-            txtname[0],
-            image_files_npy,
-            label_files_npy,
-            train_split=train_split)
-        self.split_files_txt(
-            txtname[1],
-            image_files_npy,
-            label_files_npy,
-            train_split=train_split)
+        self.split_files_txt(txtname[0], image_files_npy, label_files_npy,
+                             train_split)
+        self.split_files_txt(txtname[1], image_files_npy, label_files_npy,
+                             train_split)
 
 
 if __name__ == "__main__":

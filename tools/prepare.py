@@ -86,6 +86,21 @@ class Prep:
             "dataset.json")  # save the dataset.json to raw path
         self.image_path = os.path.join(self.phase_path, "images")
         self.label_path = os.path.join(self.phase_path, "labels")
+        os.makedirs(self.dataset_root, exist_ok=True)
+        os.makedirs(self.phase_path, exist_ok=True)
+        os.makedirs(self.image_path, exist_ok=True)
+        os.makedirs(self.label_path, exist_ok=True)
+        self.gpu_tag = "GPU" if global_var.get_value('USE_GPU') else "CPU"
+        self.urls = urls
+
+        if osp.exists(self.raw_data_path):
+            print(
+                f"raw_dataset_dir {self.raw_data_path} exists, skipping uncompress. To uncompress again, remove this directory"
+            )
+        else:
+            self.uncompress_file(
+                num_files=uncompress_params["num_files"],
+                form=uncompress_params["format"])
 
         self.image_files_test = None
         if len(images_dir_test
@@ -96,16 +111,6 @@ class Prep:
             self.image_files_test.sort()
             self.image_path_test = os.path.join(self.phase_path, 'images_test')
             os.makedirs(self.image_path_test, exist_ok=True)
-
-        os.makedirs(self.image_path, exist_ok=True)
-        os.makedirs(self.label_path, exist_ok=True)
-        self.gpu_tag = "GPU" if global_var.get_value('USE_GPU') else "CPU"
-        self.urls = urls
-
-        if osp.exists(self.raw_data_path):
-            print(f"raw_dataset_dir {self.raw_data_path} exists, skipping uncompress. To uncompress again, remove this directory")
-        else:
-            self.uncompress_file(num_files=uncompress_params["num_files"], form=uncompress_params["format"])
 
         # Load the needed file with filter
         if isinstance(images_dir, tuple):
@@ -156,7 +161,7 @@ class Prep:
         filename = osp.basename(f).lower()
         images = []
 
-
+        # validate nii.gz on lung and mri with correct spacing_resample
         if filename.endswith((".nii", ".nii.gz", ".dcm")):
             itkimage = sitk.ReadImage(f)
             if itkimage.GetDimension() == 4:
@@ -173,8 +178,11 @@ class Prep:
             images = [sitk.DICOMOrient(img, 'LPS') for img in images]
             f_nps = [sitk.GetArrayFromImage(img) for img in images]
 
-            f_nps = [np.transpose(f_np, [1, 2, 0]) for f_np in f_nps] # swap to xyz
-        elif filename.endswith((".mha", ".mhd", "nrrd")):
+            # previous line already swap to xyz
+            # f_nps = [np.transpose(f_np, [1, 2, 0]) for f_np in f_nps] # swap to xyz 
+        elif filename.endswith(
+            (".mha", ".mhd", "nrrd"
+             )):  # validate mhd on lung and mri with correct spacing_resample
             itkimage = sitk.DICOMOrient(sitk.ReadImage(f), 'LPS')
             f_np = sitk.GetArrayFromImage(itkimage)
             if f_np.ndim == 4:
@@ -183,7 +191,9 @@ class Prep:
                 f_nps = [f_np]
             f_nps = [np.transpose(f_np, [1, 2, 0]) for f_np in f_nps]
         elif filename.endswith(".raw"):
-            raise RuntimeError(f"Received {f}. Please only provide path to .mhd file, not to .raw file")
+            raise RuntimeError(
+                f"Received {f}. Please only provide path to .mhd file, not to .raw file"
+            )
 
         else:
             raise NotImplementedError
@@ -229,18 +239,26 @@ class Prep:
                 for volume_idx, f_np in enumerate(f_nps):
                     for op in pre:
                         if op.__name__ == "resample":
-                            spacing = dataset_json_dict["training"][osp.basename(f).split(".")[0]]["spacing"] if i==0 else None
-                            f_np, new_spacing = op(f_np, spacing=spacing)
+                            spacing = dataset_json_dict["training"][
+                                osp.basename(f).split(".")[0]][
+                                    "spacing"] if i == 0 else None
+                            f_np, new_spacing = op(
+                                f_np,
+                                spacing=spacing)  # (960, 15, 960) if transpose
                         else:
                             f_np = op(f_np)
 
-                    if i == 0:
-                        dataset_json_dict["training"][osp.basename(f).split(".")[0]]["spacing_resample"] = new_spacing
-
-                    f_np = f_np.astype("float32") if i==0 else f_np.astype("int32")
+                    f_np = f_np.astype("float32") if i == 0 else f_np.astype(
+                        "int32")
                     volume_idx = "" if len(f_nps) == 1 else f"-{volume_idx}"
-                    np.save(os.path.join(savepath, osp.basename(f).split(".")[0] + volume_idx), f_np)
+                    np.save(
+                        os.path.join(
+                            savepath,
+                            osp.basename(f).split(".")[0] + volume_idx), f_np)
 
+                if i == 0:
+                    dataset_json_dict["training"][osp.basename(f).split(".")[
+                        0]]["spacing_resample"] = new_spacing
 
         with open(self.dataset_json_path, 'w', encoding='utf-8') as f:
             json.dump(dataset_json_dict, f, ensure_ascii=False, indent=4)
@@ -304,7 +322,7 @@ class Prep:
         txt(string): the path to the txt file, for example: "data/train.txt"
         image_files(list|tuple): the list of image names.
         label_files(list|tuple): the list of label names, order is corresponding with the image_files.
-        split(float|int): Percentage of the dataset
+        split(float|int): Percentage of the dataset used in training
 
         """
         if split is None:
@@ -351,7 +369,7 @@ class Prep:
         infor_dict["dim"] = img_itk.GetDimension()
         img_npy = sitk.GetArrayFromImage(img_itk)
         infor_dict["shape"] = [img_npy.shape, ]
-        infor_dict["vals"] = [str(img_npy.min()), str(img_npy.max())]
+        infor_dict["minmax_vals"] = [str(img_npy.min()), str(img_npy.max())]
         infor_dict["spacing"] = img_itk.GetSpacing()
         infor_dict["origin"] = img_itk.GetOrigin()
         infor_dict["direction"] = img_itk.GetDirection()
@@ -386,14 +404,15 @@ class Prep:
                 save_path, "dataset.json")  # save the dataset.json to raw path
 
         if osp.exists(self.dataset_json_path):
-            print(f"Dataset json exists, skipping. Delete file {self.dataset_json_path} to regenerate.")
+            print(
+                f"Dataset json exists, skipping. Delete file {self.dataset_json_path} to regenerate."
+            )
             return
-          
+
         if not self.dataset_json_path.endswith("dataset.json"):
             print(
                 "WARNING: output file name is not dataset.json! This may be intentional or not. You decide. "
                 "Proceeding anyways...")
-
 
         json_dict = {}
         json_dict['name'] = dataset_name
@@ -433,7 +452,6 @@ class Prep:
                 infor_dict = self.set_image_infor(image_name, infor_dict)
                 json_dict['test'][image_name.split("/")[-1].split(".")[
                     0]] = infor_dict
-
 
         with open(self.dataset_json_path, 'w', encoding='utf-8') as f:
             json.dump(json_dict, f, ensure_ascii=False, indent=4)
