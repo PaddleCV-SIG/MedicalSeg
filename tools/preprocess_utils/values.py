@@ -23,9 +23,13 @@ import tools.preprocess_utils.global_var as global_var
 gpu_tag = global_var.get_value('USE_GPU')
 if gpu_tag:
     import cupy as np
+    if int(np.__version__.split(".")[0]) < 10:
+        if global_var.get_value("ALERTED_HUNORM_NUMPY") is not True:
+            print(f"[Warning] Running HUNorm preprocess with cupy requires cupy version >= 10.0.0 . Installed version is {np.__version__}. Using numpy for HUNorm. Other preprocess operations are still run on GPU.")
+            global_var.set_value("ALERTED_HUNORM_NUMPY", True)
+        import numpy as np
 else:
     import numpy as np
-
 
 def label_remap(label, map_dict=None):
     """
