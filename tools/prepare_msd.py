@@ -42,7 +42,7 @@ Task04_Hippocampus
 │               ├── hippocampus_001.nii.gz
 │               ├── ...
 │               └── hippocampus_394.nii.gz
-└── Task04_Hippocampus.tar # zip file
+└── Task04_Hippocampus.tar # archive file
 
 support:
 1. download and uncompress the file.
@@ -54,8 +54,6 @@ support:
 import os
 import os.path as osp
 import sys
-import zipfile
-import functools
 import numpy as np
 
 sys.path.append(osp.join(osp.dirname(osp.realpath(__file__)), ".."))
