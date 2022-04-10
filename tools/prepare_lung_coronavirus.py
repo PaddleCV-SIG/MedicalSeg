@@ -49,8 +49,7 @@ sys.path.append(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 
 from prepare import Prep
-from preprocess_utils import HUnorm, resample
-from medicalseg.utils import wrapped_partial
+from preprocess_utils import HUnorm, resample, WrapOp
 
 urls = {
     "lung_infection.zip":
@@ -79,14 +78,7 @@ class Prep_lung_coronavirus(Prep):
                                "num_files": 4})
 
         self.preprocess = {
-            "images": [
-                HUnorm, wrapped_partial(
-                    resample, new_shape=[128, 128, 128], order=1)
-            ],
-            "labels": [
-                wrapped_partial(
-                    resample, new_shape=[128, 128, 128], order=0),
-            ]
+            "training": [WrapOp(HUnorm, "image"), WrapOp(resample, new_shape=[128, 128, 128], order=(1, 0) )]
         }
 
     def generate_txt(self, train_split=0.75):

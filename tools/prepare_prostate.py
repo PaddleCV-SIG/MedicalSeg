@@ -39,14 +39,12 @@ import os
 import sys
 import zipfile
 import functools
-import numpy as np
 
 sys.path.append(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 
 from prepare import Prep
-from preprocess_utils import resample, normalize, label_remap
-from medicalseg.utils import wrapped_partial
+from preprocess_utils import WrapOp, resample, normalize, label_remap
 
 urls = {
     "Promise12": {
@@ -151,15 +149,10 @@ class Prep_prostate(Prep):
                          phase_dir, urls, valid_suffix, filter_key,
                          uncompress_params, images_dir_test)
 
-        self.preprocess={"images":[           # todo: make params set automatically
-                        normalize,
-                        wrapped_partial(
-                            resample, new_shape=[512, 512, 24],
-                            order=1)],
-                        "labels":[
-                        wrapped_partial(
-                            resample, new_shape=[512, 512, 24], order=0)],
-                        "images_test":[normalize,]}
+        self.preprocess = {
+            "training": [WrapOp(normalize, "image"), WrapOp(resample, "both", new_shape=[512, 512, 24], order=(1, 0))],
+            "test": [WrapOp(normalize, "image")]
+        }
 
     def generate_txt(self, split=1.0):
         """generate the train_list.txt and val_list.txt"""
@@ -191,7 +184,12 @@ class Prep_prostate(Prep):
 if __name__ == "__main__":
     # Todo: Prostate_mri have files with same name in different dir, which caused file overlap problem.
     # Todo: MSD_prostate is not supported yet, because it has four channel and resample will have a bug.
+    
     dataset_name = "Prostate_mri"
+
+    if len(sys.argv) == 2:
+        dataset_name = sys.argv[1]
+    
     prep = Prep_prostate(**dataset_addr[dataset_name])
     prep.generate_dataset_json(**dataset_profile[dataset_name])
     prep.load_save()

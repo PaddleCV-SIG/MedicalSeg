@@ -50,7 +50,7 @@ class Prep:
                  filter_key=(None, None),
                  uncompress_params={"format": "zip",
                                     "num_files": 1},
-                 images_dir_test=""):
+                 images_dir_test=None):
         """
         Create proprosessor for medical dataset.
         Folder structure:
@@ -97,15 +97,15 @@ class Prep:
                 num_files=uncompress_params["num_files"],
                 form=uncompress_params["format"])
 
-        self.image_files_test = None
-        if len(images_dir_test
-               ) != 0:  # test image filter is the same as training image
+        if images_dir_test is not None:  # test image filter is the same as training image
             self.image_files_test = get_image_list(
                 os.path.join(self.raw_data_path, images_dir_test),
                 valid_suffix[0], filter_key[0])
             self.image_files_test.sort()
             self.image_path_test = os.path.join(self.phase_path, 'images_test')
             os.makedirs(self.image_path_test, exist_ok=True)
+        else:
+            self.image_path_test = None
 
         # Load the needed file with filter
         if isinstance(images_dir, tuple):
@@ -206,6 +206,44 @@ class Prep:
 
         return f_nps
 
+    def _load_save(self, image_paths, label_paths, image_save_path, label_save_path, prep_ops, prep_type):
+        if label_paths is None:
+            label_paths = [None] * len(image_paths)
+        
+        if prep_type == "training":
+            with open(self.dataset_json_path, 'r', encoding='utf-8') as f:
+                dataset_json_dict = json.load(f)
+        
+        for image_path, label_path in tqdm(list(zip(image_paths, label_paths)), 
+                                           desc=f"Preprocessing {prep_type} dataset"):
+            images = Prep.load_medical_data(image_path) # a list of 3d volumes in xyz
+            label_raw = Prep.load_medical_data(label_path)[0] if label_path else None # label will always be 3d
+            
+            for volume_idx, image in enumerate(images):
+                label = label_raw
+                for op in prep_ops:
+                    if op.__name__ == "resample":
+                        if prep_type == "training":
+                            spacing = dataset_json_dict["training"][osp.basename(image_path).split(".")[0]]["spacing"]
+                            [image, new_spacing], [label, _] = op.run(image, label, spacing=spacing)
+                            dataset_json_dict["training"][osp.basename(image_path).split(".")[0]]["spacing_resample"] = new_spacing
+                        else:
+                            [image, _], _ = op.run(image, label)
+                    else:
+                        image, label = op.run(image, label)
+                
+                volume_idx = "" if len(images) == 1 else f"-{volume_idx}"
+
+                image = image.astype("float32")
+                np.save(osp.join(image_save_path, osp.basename(image_path).split(".")[0] + volume_idx), image)
+                if label is not None:
+                    label = label.astype("uint8")
+                    np.save(osp.join(label_save_path, osp.basename(label_path).split(".")[0] + volume_idx), label)
+        if prep_type == "training":
+            with open(self.dataset_json_path, 'w', encoding='utf-8') as f:
+                json.dump(dataset_json_dict, f, ensure_ascii=False, indent=4)
+
+
     def load_save(self):
         """
         preprocess files, transfer to the correct type, and save it to the directory.
@@ -213,61 +251,24 @@ class Prep:
         print(
             "Start convert images to numpy array using {}, please wait patiently"
             .format(self.gpu_tag))
-
+        
         tic = time.time()
-        with open(self.dataset_json_path, 'r', encoding='utf-8') as f:
-            dataset_json_dict = json.load(f)
-
-        if self.image_files_test:
-            process_files = (self.image_files, self.label_files,
-                             self.image_files_test)
-            process_tuple = ("images", "labels", "images_test")
-            save_tuple = (self.image_path, self.label_path,
-                          self.image_path_test)
-        else:
-            process_files = (self.image_files, self.label_files)
-            process_tuple = ("images", "labels")
-            save_tuple = (self.image_path, self.label_path)
-
-        for i, files in enumerate(process_files):
-            pre = self.preprocess[process_tuple[i]]
-            savepath = save_tuple[i]
-
-            for f in tqdm(
-                    files,
-                    total=len(files),
-                    desc="preprocessing the {}".format(
-                        ["images", "labels", "images_test"][i])):
-
-                # load data will transpose the image from "zyx" to "xyz"
-                f_nps = Prep.load_medical_data(f)
-
-                for volume_idx, f_np in enumerate(f_nps):
-                    for op in pre:
-                        if op.__name__ == "resample":
-                            spacing = dataset_json_dict["training"][
-                                osp.basename(f).split(".")[0]][
-                                    "spacing"] if i == 0 else None
-                            f_np, new_spacing = op(
-                                f_np,
-                                spacing=spacing)  # (960, 15, 960) if transpose
-                        else:
-                            f_np = op(f_np)
-
-                    f_np = f_np.astype("float32") if i == 0 else f_np.astype(
-                        "int32")
-                    volume_idx = "" if len(f_nps) == 1 else f"-{volume_idx}"
-                    np.save(
-                        os.path.join(
-                            savepath,
-                            osp.basename(f).split(".")[0] + volume_idx), f_np)
-
-                if i == 0:
-                    dataset_json_dict["training"][osp.basename(f).split(".")[
-                        0]]["spacing_resample"] = new_spacing
-
-        with open(self.dataset_json_path, 'w', encoding='utf-8') as f:
-            json.dump(dataset_json_dict, f, ensure_ascii=False, indent=4)
+        
+        self._load_save(
+            self.image_files, 
+            self.label_files, 
+            self.image_path, 
+            self.label_path, 
+            self.preprocess["training"], 
+            "training")
+        if self.image_files_test is not None:
+            self._load_save(
+                self.image_files_test, 
+                None,
+                self.image_path_test, 
+                None,
+                self.preprocess.get("test", []), 
+                "test")
 
         print("The preprocess time on {} is {}".format(self.gpu_tag,
                                                        time.time() - tic))

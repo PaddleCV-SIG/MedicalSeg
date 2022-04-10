@@ -59,7 +59,7 @@ import numpy as np
 sys.path.append(osp.join(osp.dirname(osp.realpath(__file__)), ".."))
 
 from prepare import Prep
-from preprocess_utils import HUNorm, resample, parse_msd_basic_info
+from preprocess_utils import HUnorm, resample, parse_msd_basic_info, WrapOp
 from medicalseg.utils import wrapped_partial
 
 tasks = {
@@ -121,16 +121,10 @@ class Prep_msd(Prep):
             filter_key=(None, None),
             uncompress_params={"format": "tar",
                                "num_files": 1})
+        self.msd_json_path = f"data/{task_name}/{task_name}_raw/{task_name}/{task_name}/dataset.json"
 
         self.preprocess = {
-            "images": [
-                HUNorm, wrapped_partial(
-                    resample, new_shape=[128, 128, 128], order=1)
-            ],
-            "labels": [
-                wrapped_partial(
-                    resample, new_shape=[128, 128, 128], order=0),
-            ]
+            "training": [WrapOp(HUnorm, "image"), WrapOp(resample, "both", new_shape=[128, 128, 128], order=(1, 0))]
         }
 
     def generate_txt(self, train_split=0.75):
@@ -164,9 +158,6 @@ if __name__ == "__main__":
         )
 
     prep = Prep_msd(task_id)
-
-    json_path = osp.join(osp.dirname(prep.image_dir), "dataset.json")
-    prep.generate_dataset_json(**parse_msd_basic_info(json_path))
-
+    prep.generate_dataset_json(**parse_msd_basic_info(prep.msd_json_path))
     prep.load_save()
     prep.generate_txt()
