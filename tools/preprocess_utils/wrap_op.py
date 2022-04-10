@@ -69,7 +69,7 @@ class WrapOp:
     '''
     在load_save里调 op.run(image, label)
     '''
-    def run(self, image, label, **params_dict):
+    def run(self, image, label=None, **params_dict):
         self.update_params(params_dict)
 
         if self.apply == "together":
@@ -79,7 +79,10 @@ class WrapOp:
             image = self.op(image, **self.image_params)
 
         if self.apply in ("both", "label"):
-            label = self.op(label, **self.label_params)
-
+            if label is not None:
+                label = self.op(label, **self.label_params)
+            else:
+                label = None
+        
         return image, label
 
