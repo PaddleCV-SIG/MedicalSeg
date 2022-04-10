@@ -50,11 +50,11 @@ from medicalseg.utils import wrapped_partial
 
 urls = {
     "Promise12": {
-        "Promise12": ""
+        "manual": {"url":"https://promise12.grand-challenge.org/Details/", "files":["TestData.zip", "TrainingData_Part1.zip", "TrainingData_Part2.zip", "TrainingData_Part3.zip"]}
     },
     "Prostate_mri": {
-        "Prostate_mri": ""
-    },  # https://drive.google.com/file/d/1TtrjnlnJ1yqr5m4LUGMelKTQXtvZaru-/view?usp=sharing
+        "manual": {"url":"https://drive.google.com/file/d/1TtrjnlnJ1yqr5m4LUGMelKTQXtvZaru-/view", "files":["Processed_data_nii.zip"]}
+    },
 }
 
 dataset_addr = {
@@ -62,12 +62,12 @@ dataset_addr = {
         "dataset_root": "data/Promise12",
         "raw_dataset_dir": "Promise12_raw",
         "images_dir":
-        ("prostate/TrainingData_Part1", "prostate/TrainingData_Part2",
-         "prostate/TrainingData_Part3"),
-        "labels_dir": ("prostate/TrainingData_Part1",
-                       "prostate/TrainingData_Part2",
-                       "prostate/TrainingData_Part3"),
-        "images_dir_test": "prostate/TestData",
+        ("TrainingData_Part1", "TrainingData_Part2",
+         "TrainingData_Part3"),
+        "labels_dir": ("TrainingData_Part1",
+                       "TrainingData_Part2",
+                       "TrainingData_Part3"),
+        "images_dir_test": "TestData",
         "phase_dir": "Promise12_phase0/",
         "urls": urls["Promise12"],
         "valid_suffix": ("mhd", "mhd"),
@@ -78,7 +78,7 @@ dataset_addr = {
         }),
         "uncompress_params": {
             "format": "zip",
-            "num_files": 1
+            "num_files": 4
         }
     },
     "Prostate_mri": {
@@ -183,14 +183,16 @@ class Prep_prostate(Prep):
             txtname[0], image_files_npy, label_files_npy, split=split)
         self.split_files_txt(
             txtname[1], image_files_npy, label_files_npy, split=split)
-
-        self.split_files_txt(txtname[2], test_file_npy)
+        
+        if self.image_files_test:
+            self.split_files_txt(txtname[2], test_file_npy)
 
 
 if __name__ == "__main__":
     # Todo: Prostate_mri have files with same name in different dir, which caused file overlap problem.
     # Todo: MSD_prostate is not supported yet, because it has four channel and resample will have a bug.
-    prep = Prep_prostate(**dataset_addr["Promise12"])
-    prep.generate_dataset_json(**dataset_profile["Promise12"])
+    dataset_name = "Prostate_mri"
+    prep = Prep_prostate(**dataset_addr[dataset_name])
+    prep.generate_dataset_json(**dataset_profile[dataset_name])
     prep.load_save()
     prep.generate_txt()

@@ -24,20 +24,15 @@ support:
 import os
 import os.path as osp
 import sys
-import nrrd
 import time
 import glob
-import argparse
-import zipfile
-import collections
 import numpy as np
-import nibabel as nib
 import SimpleITK as sitk
 from tqdm import tqdm
 import json
 
 sys.path.append(
-    os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
+    osp.join(osp.dirname(osp.realpath(__file__)), ".."))
 
 from medicalseg.utils import get_image_list
 from tools.preprocess_utils import uncompressor, global_var, add_qform_sform
@@ -135,18 +130,29 @@ class Prep:
         self.label_files.sort()
 
     def uncompress_file(self, num_files, form):
+        '''Check urls for files needing manual download'''
+        download_message = ""
+        if "manual" in self.urls.keys():
+            missing_files = filter(
+                lambda file: not osp.exists(osp.join(self.dataset_root, file)), 
+                self.urls["manual"]["files"])
+            missing_files = list(missing_files)
+            if len(missing_files) != 0:
+                download_message = f"Can't download {','.join(missing_files)} automatically. Please download them manually from {self.urls['manual']['url']} and place them in {osp.abspath(self.dataset_root)}."
+            del self.urls["manual"]
+        
         uncompress_tool = uncompressor(
             download_params=(self.urls, self.dataset_root, True))
-        """unzip all the file in the root directory"""
+        """unzip all the archives in the root directory"""
         files = glob.glob(os.path.join(self.dataset_root, "*.{}".format(form)))
 
-        assert len(files) == num_files, print(
-            "The file directory should include {} compressed files, but there is only {}"
-            .format(num_files, len(files)))
-
+        message = download_message if download_message != "" else "The file directory should include {} compressed files, but there is only {}".format(num_files, len(files))
+            
+        assert len(files) == num_files, message
+        
         for f in files:
             extract_path = os.path.join(self.raw_data_path,
-                                        f.split("/")[-1].split('.')[0])
+                                        osp.basename(f).split('.')[0])
             uncompress_tool._uncompress_file(
                 f, extract_path, delete_file=False, print_progress=True)
 
