@@ -3,26 +3,15 @@ English | [简体中文](README_CN.md)
 # MedicalSeg
 MedicalSeg is an easy-to-use 3D medical image segmentation toolkit that supports GPU acceleration from data preparation to deployment, one-click data preprocessing on five datasets. We also provided high precision model on [COVID-19 CT scans](https://www.kaggle.com/andrewmvd/covid19-ct-scans) dataset and [MRISpineSeg](https://aistudio.baidu.com/aistudio/datasetdetail/81211) dataset, and a [3D visualization demo]((visualize.ipynb) ) based on [itkwidgets](https://github.com/InsightSoftwareConsortium/itkwidgets). The following image visualize the segmentation results on these two datasets:
 
-<center>
-    <img style="border-radius: 0.3125em;
-    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);"
-    src="https://github.com/shiyutang/files/raw/main/ezgif.com-gif-maker%20(1).gif" width="40.5%" height="50%">  
-    <img style="border-radius: 0.3125em;
-    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);"
-    src="https://github.com/shiyutang/files/raw/main/ezgif.com-gif-maker.gif" width="53.8%" height="90%">
-    <br>
-    <div style="color:orange;
-    display: inline-block;
-    color: #999;
-    padding: 2px;">Segmentation result of our VNet model on COVID-19 CT scans (mDice on evalset is 97.04%) &   MRISpineSeg (16 class mDice on evalset is 89.14%)</div>
-</center>
+<p align="center">
+<img src="https://github.com/shiyutang/files/raw/main/ezgif.com-gif-maker%20(1).gif" width="30.6%" height="20%"><img src="https://github.com/shiyutang/files/raw/main/ezgif.com-gif-maker.gif" width="40.6%" height="20%">
+<p align="center">
+    VNet segmentation result on COVID-19 CT scans (mDice on evalset is 97.04%) & MRISpineSeg (16 class mDice on evalset is 89.14%)
+</p>
+</p>
 
 
 **MedicalSeg is currently under development! If you find any problem using it or want to share any future develop suggestions, please open a github issue or join us by scanning the following wechat QR code.**
-
-<p align="center">
-<img src="https://user-images.githubusercontent.com/48433081/162115375-2dba8796-5184-4793-8efa-b142734fe734.png" width="28%" height="20%">
-</p>
 
 ## Contents
 1. [Performance](##Performance)
