@@ -1,7 +1,7 @@
 [English](README.md) | 简体中文
 
 # MedicalSeg 介绍
-MedicalSeg 是一个简单易使用的 3D 医学图像分割工具包，支持从数据准备到部署的全流程 GPU 加速、五个数据集上的一键数据预处理，并提供了在 [COVID-19 CT scans](https://www.kaggle.com/andrewmvd/covid19-ct-scans) 数据集和 [MRISpineSeg](https://aistudio.baidu.com/aistudio/datasetdetail/81211) 数据集上的高精度模型，以及基于 [itkwidgets](https://github.com/InsightSoftwareConsortium/itkwidgets) 的 3D 可视化[Demo]((visualize.ipynb))。如图所示是基于 Vnet 训练之后的可视化结果：
+MedicalSeg 是一个简单易使用的全流程 3D 医学图像分割工具包，它支持从数据预处理、训练评估、再到模型部署的全套分割流程。特别的，我们还提供了数据预处理加速，在肺部数据 [COVID-19 CT scans](https://www.kaggle.com/andrewmvd/covid19-ct-scans) 和椎骨数据 [MRISpineSeg](https://aistudio.baidu.com/aistudio/datasetdetail/81211) 上的高精度模型， 对于[MSD](http://medicaldecathlon.com/)、[Promise12](https://promise12.grand-challenge.org/)、[Prostate_mri](https://liuquande.github.io/SAML/)等数据集的支持，以及基于[itkwidgets](https://github.com/InsightSoftwareConsortium/itkwidgets) 的 3D 可视化[Demo](visualize.ipynb)。如图所示是基于 MedicalSeg 在 Vnet 上训练之后的可视化结果：
 
 <p align="center">
 <img src="https://github.com/shiyutang/files/raw/main/ezgif.com-gif-maker%20(1).gif" width="30.6%" height="20%"><img src="https://github.com/shiyutang/files/raw/main/ezgif.com-gif-maker.gif" width="40.6%" height="20%">
@@ -9,8 +9,6 @@ MedicalSeg 是一个简单易使用的 3D 医学图像分割工具包，支持�
     Vnet 在 COVID-19 CT scans (评估集上的 mDice 指标为 97.04%) 和 MRISpineSeg 数据集(评估集上的 16 类 mDice 指标为 89.14%) 上的分割结果
 </p>
 </p>
-
-
 
 **MedicalSeg 目前正在开发中！如果您在使用中发现任何问题，或想分享任何开发建议，请提交 github issue 或扫描以下微信二维码加入我们。**
 
@@ -73,7 +71,7 @@ MedicalSeg 是一个简单易使用的 3D 医学图像分割工具包，支持�
     ```
 - (可选) 如果需要GPU加速，则可以参考[教程](https://docs.cupy.dev/en/latest/install.html) 安装 CuPY。
 
-- 一键数据预处理：
+- 一键数据预处理。如果不是准备肺部数据，可以在这个[目录](./tools)下，替换你需要的其他数据：
     - 如果你安装了CuPY并且想要 GPU 加速，修改[这里](tools/preprocess_globals.yml)的 use_gpu 配置为 True。
     ```
     python tools/prepare_lung_coronavirus.py
@@ -106,7 +104,7 @@ MedicalSeg 是一个简单易使用的 3D 医学图像分割工具包，支持�
 ```
 
 ## TODO
-未来，我们想在这几个方面来发展 MedicalSeg。
+未来，我们想在这几个方面来发展 MedicalSeg，欢迎加入我们的开发者小组。
 - [ ] 增加带有预训练加速，自动化参数配置的高精度 PP-nnunet 模型。
 - [ ] 增加在 LITs 挑战中的 Top 1 肝脏分割算法。
 - [ ] 增加 3D 椎骨可视化测量系统。
