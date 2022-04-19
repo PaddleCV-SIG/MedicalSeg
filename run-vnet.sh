@@ -1,5 +1,5 @@
 # set your GPU ID here
-export CUDA_VISIBLE_DEVICES=3
+export CUDA_VISIBLE_DEVICES=4
 
 # set the config file name and save directory here
 config_name=vnet_lung_coronavirus_128_128_128_15k
