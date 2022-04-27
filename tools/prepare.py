@@ -36,7 +36,8 @@ import SimpleITK as sitk
 from tqdm import tqdm
 import json
 
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
+sys.path.append(
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 
 from medicalseg.utils import get_image_list
 from tools.preprocess_utils import uncompressor, global_var, add_qform_sform
@@ -139,7 +140,10 @@ class Prep:
         """unzip all the file in the root directory"""
         files = glob.glob(os.path.join(self.dataset_root, "*.{}".format(form)))
 
-        assert len(files) == num_files, "The file directory should include {} compressed files, but there is only {}".format(num_files, len(files))
+        assert len(
+            files
+        ) == num_files, "The file directory should include {} compressed files, but there is only {}".format(
+            num_files, len(files))
 
         for f in files:
             extract_path = os.path.join(self.raw_data_path,
@@ -160,39 +164,34 @@ class Prep:
 
         # validate nii.gz on lung and mri with correct spacing_resample
         if filename.endswith((".nii", ".nii.gz", ".dcm")):
-            if "radiopaedia" in filename or "corona" in filename:
-                 f_nps = [nib.load(f).get_fdata(dtype=np.float32)]
-            else:
-                itkimage = sitk.ReadImage(f)
-                if itkimage.GetDimension() == 4:
-                    slicer = sitk.ExtractImageFilter()
-                    s = list(itkimage.GetSize())
-                    s[-1] = 0
-                    slicer.SetSize(s)
-                    for slice_idx in range(itkimage.GetSize()[-1]):
-                        slicer.SetIndex([0, 0, 0, slice_idx])
-                        sitk_volume = slicer.Execute(itkimage)
-                        images.append(sitk_volume)
-                else:
-                    images = [itkimage]
+            itkimage = sitk.ReadImage(f)
+            if itkimage.GetDimension() == 4:
+                slicer = sitk.ExtractImageFilter()
+                s = list(itkimage.GetSize())
+                s[-1] = 0
+                slicer.SetSize(s)
+                for slice_idx in range(itkimage.GetSize()[-1]):
+                    slicer.SetIndex([0, 0, 0, slice_idx])
+                    sitk_volume = slicer.Execute(itkimage)
+                    images.append(sitk_volume)
                 images = [sitk.DICOMOrient(img, 'LPS') for img in images]
                 f_nps = [sitk.GetArrayFromImage(img) for img in images]
+            else:
+                f_nps = [nib.load(f).get_fdata(dtype=np.float32)]
 
-        elif filename.endswith(
-            (".mha", ".mhd", "nrrd"
-             )):  # validate mhd on lung and mri with correct spacing_resample
+        elif filename.endswith((".mha", ".mhd", "nrrd")):
             itkimage = sitk.DICOMOrient(sitk.ReadImage(f), 'LPS')
             f_np = sitk.GetArrayFromImage(itkimage)
             if f_np.ndim == 4:
                 f_nps = [f_np[:, :, :, idx] for idx in range(f_np.shape[3])]
             else:
                 f_nps = [f_np]
-            f_nps = [np.transpose(f_np, [1, 2, 0]) for f_np in f_nps]
+            f_nps = [np.transpose(f_np, [1, 2, 0])
+                     for f_np in f_nps]  #todo：transpose之后，影响原来的spacing
         elif filename.endswith(".raw"):
             raise RuntimeError(
                 f"Received {f}. Please only provide path to .mhd file, not to .raw file"
             )
-
         else:
             raise NotImplementedError
 
@@ -207,8 +206,6 @@ class Prep:
             .format(self.gpu_tag))
 
         tic = time.time()
-        with open(self.dataset_json_path, 'r', encoding='utf-8') as f:
-            dataset_json_dict = json.load(f)
 
         if self.image_files_test:
             process_files = (self.image_files, self.label_files,
@@ -232,16 +229,14 @@ class Prep:
                         ["images", "labels", "images_test"][i])):
 
                 # load data will transpose the image from "zyx" to "xyz"
-                spacing = dataset_json_dict["training"][
-                            osp.basename(f).split(".")[0]]["spacing"] if i == 0 else None
+                spacing = self.dataset_json_dict["training"][osp.basename(
+                    f).split(".")[0]]["spacing"] if i == 0 else None
                 f_nps = Prep.load_medical_data(f)
 
                 for volume_idx, f_np in enumerate(f_nps):
                     for op in pre:
                         if op.__name__ == "resample":
-                            f_np, new_spacing = op(
-                                f_np,
-                                spacing=spacing)  # (960, 15, 960) if transpose
+                            f_np, new_spacing = op(f_np, spacing=spacing)
                         else:
                             f_np = op(f_np)
 
@@ -254,11 +249,11 @@ class Prep:
                             osp.basename(f).split(".")[0] + volume_idx), f_np)
 
                 if i == 0:
-                    dataset_json_dict["training"][osp.basename(f).split(".")[
-                        0]]["spacing_resample"] = new_spacing
+                    self.dataset_json_dict["training"][osp.basename(f).split(
+                        ".")[0]]["spacing_resample"] = new_spacing
 
         with open(self.dataset_json_path, 'w', encoding='utf-8') as f:
-            json.dump(dataset_json_dict, f, ensure_ascii=False, indent=4)
+            json.dump(self.dataset_json_dict, f, ensure_ascii=False, indent=4)
 
         print("The preprocess time on {} is {}".format(self.gpu_tag,
                                                        time.time() - tic))
@@ -453,3 +448,5 @@ class Prep:
         with open(self.dataset_json_path, 'w', encoding='utf-8') as f:
             json.dump(json_dict, f, ensure_ascii=False, indent=4)
             print("save dataset.json to {}".format(self.dataset_json_path))
+
+        self.dataset_json_dict = json_dict
