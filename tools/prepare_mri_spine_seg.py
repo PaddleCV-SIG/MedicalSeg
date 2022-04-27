@@ -57,7 +57,7 @@ urls = {
 class Prep_mri_spine(Prep):
     def __init__(self):
         super().__init__(
-            dataset_root="data/MRSpineSeg_0427",
+            dataset_root="data/MRSpineSeg",
             raw_dataset_dir="MRI_spine_seg_raw/",
             images_dir="MRI_train/train/MR",
             labels_dir="MRI_train/train/Mask",

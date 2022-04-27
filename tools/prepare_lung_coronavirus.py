@@ -67,7 +67,7 @@ urls = {
 class Prep_lung_coronavirus(Prep):
     def __init__(self):
         super().__init__(
-            dataset_root="data/lung_coronavirus_0427",
+            dataset_root="data/lung_coronavirus",
             raw_dataset_dir="lung_coronavirus_raw/",
             images_dir="20_ncov_scan",
             labels_dir="lung_mask",
