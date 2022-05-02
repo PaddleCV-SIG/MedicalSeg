@@ -3,7 +3,6 @@ numpy
 paddlepaddle-gpu>=2.2.0
 SimpleITK>=2.1.1
 PyYAML
-pynrrd
 tqdm
 visualdl
 sklearn

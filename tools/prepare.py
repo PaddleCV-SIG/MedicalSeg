@@ -24,19 +24,16 @@ support:
 import os
 import os.path as osp
 import sys
-import nrrd
 import time
 import glob
-import argparse
-import zipfile
-import collections
+import json
+
 import numpy as np
 import nibabel as nib
 import SimpleITK as sitk
 from tqdm import tqdm
-import json
 
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
+sys.path.append(osp.join(osp.dirname(osp.realpath(__file__)), ".."))
 
 from medicalseg.utils import get_image_list
 from tools.preprocess_utils import uncompressor, global_var, add_qform_sform
