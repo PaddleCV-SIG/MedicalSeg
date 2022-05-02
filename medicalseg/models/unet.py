@@ -148,11 +148,11 @@ class DecoderBlock(nn.Layer):
     def forward(self, x, skip):
         out = self.upsample(x)
 
+        out = paddle.concat([out, skip], axis=1)
+
         out = self.conv1(out)
         out = self.norm1(out)
         out = self.lrelu(out)
-
-        out = paddle.concat([out, skip], axis=1)
 
         out = self.conv2(out)
         out = self.norm2(out)
