@@ -106,14 +106,14 @@ class DecoderBlock(nn.Layer):
 
         self.upsample = nn.Upsample(scale_factor=2, mode="trilinear", data_format="NCDHW")
         self.conv1 = nn.Conv3D(
-            in_channels=kernel_number * 2,
-            out_channels=kernel_number,
+            in_channels=kernel_number * 3,
+            out_channels=kernel_number * 2,
             kernel_size=kernel_size,
             stride=stride,
             padding="SAME",
             bias_attr=False,
         )
-        self.norm1 = nn.InstanceNorm3D(kernel_number)
+        self.norm1 = nn.InstanceNorm3D(kernel_number * 2)
 
         self.conv2 = nn.Conv3D(
             in_channels=kernel_number * 2,
