@@ -1,7 +1,7 @@
 _base_: '../_base_/global_configs.yml'
 
-batch_size: 6
-iters: 15000
+batch_size: 32
+iters: 1000
 
 train_dataset:
   type: LungCoronavirus
@@ -9,11 +9,11 @@ train_dataset:
   result_dir: lung_coronavirus/lung_coronavirus_phase1
   transforms:
     - type: RandomResizedCrop3D
-      size: 128
+      size: 64
       scale: [0.8, 1.2]
-    - type: RandomRotation3D
-      degrees: 90
-    - type: RandomFlip3D
+    # - type: RandomRotation3D
+    #   degrees: 90
+    # - type: RandomFlip3D
   mode: train
   num_classes: 3
 
@@ -22,7 +22,9 @@ val_dataset:
   dataset_root: lung_coronavirus/lung_coronavirus_phase0
   result_dir: lung_coronavirus/lung_coronavirus_phase1
   num_classes: 3
-  transforms: []
+  transforms:
+    - type: Resize3D
+      size: 64
   mode: val
   dataset_json_path: "data/lung_coronavirus/lung_coronavirus_raw/dataset.json"
 
@@ -33,9 +35,9 @@ optimizer:
 
 lr_scheduler:
   type: PolynomialDecay
-  decay_steps: 15000
+  decay_steps: 1500
   learning_rate: 0.001
-  end_lr: 0
+  end_lr: 0.0001
   power: 0.9
 
 loss:

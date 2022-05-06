@@ -1,0 +1,7 @@
+_base_: 'lung_coronavirus.yml'
+
+model:
+  type: UNet
+  elu: False
+  in_channels: 1
+  num_classes: 3
