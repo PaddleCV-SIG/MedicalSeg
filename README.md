@@ -1,7 +1,7 @@
 English | [简体中文](README_CN.md)
 
 # MedicalSeg
-MedicalSeg is an easy-to-use 3D medical image segmentation toolkit that supports the whole segmentation process including data preprocessing, model training, and model deployment. Specially, We provide data preprocessing acceleration, high precision model on [COVID-19 CT scans](https://www.kaggle.com/andrewmvd/covid19-ct-scans) lung dataset and [MRISpineSeg](https://aistudio.baidu.com/aistudio/datasetdetail/81211) spine dataset, support for multiple datasets including [MSD](http://medicaldecathlon.com/), [Promise12](https://promise12.grand-challenge.org/), [Prostate_mri](https://liuquande.github.io/SAML/) and etc, and a [3D visualization demo](visualize.ipynb) based on [itkwidgets](https://github.com/InsightSoftwareConsortium/itkwidgets). The following image visualize the segmentation results on these two datasets:
+MedicalSeg is an easy-to-use 3D medical image segmentation toolkit that supports the whole segmentation pipeline including data preprocessing, model training, and model deployment. Specially, We provide data preprocessing acceleration, high precision model on [COVID-19 CT scans](https://www.kaggle.com/andrewmvd/covid19-ct-scans) lung dataset and [MRISpineSeg](https://aistudio.baidu.com/aistudio/datasetdetail/81211) spine dataset, support for multiple datasets including [MSD](http://medicaldecathlon.com/), [Promise12](https://promise12.grand-challenge.org/), [Prostate_mri](https://liuquande.github.io/SAML/) and etc, and a [3D visualization demo](visualize.ipynb) based on [itkwidgets](https://github.com/InsightSoftwareConsortium/itkwidgets). The following images visualize the segmentation results on two datasets:
 
 
 <p align="center">
@@ -12,7 +12,7 @@ MedicalSeg is an easy-to-use 3D medical image segmentation toolkit that supports
 </p>
 
 
-**MedicalSeg is currently under development! If you find any problem using it or want to share any future develop suggestions, please open a github issue or join us by scanning the following wechat QR code.**
+**MedicalSeg is currently under active development! If you find any problem using it or have any future development suggestions, please open a github issue or join us by scanning the following wechat QR code.**
 
 <p align="center">
 <img src="https://user-images.githubusercontent.com/48433081/162115375-2dba8796-5184-4793-8efa-b142734fe734.png" width="20%" height="20%">
@@ -48,7 +48,7 @@ We successfully validate our framework with [Vnet](https://arxiv.org/abs/1606.04
 
 
 ### 2. Speed
-We add GPU acceleration in data preprocess using [CuPy](https://docs.cupy.dev/en/stable/index.html). Compared with preprocess data on CPU, acceleration enable us to use about 40% less time in data prepeocessing. The following shows the time we spend in process COVID-19 CT scans.
+We implemented GPU acceleration in data preprocess using [CuPy](https://docs.cupy.dev/en/stable/index.html). Compared with preprocess data on CPU, acceleration enable us to use about 40% less time in data prepeocessing. The following shows the time we spend in process COVID-19 CT scans.
 
 <center>
 
@@ -61,10 +61,10 @@ We add GPU acceleration in data preprocess using [CuPy](https://docs.cupy.dev/en
 
 
 ## QuickStart
-This part introduce a easy to use the demo on COVID-19 CT scans dataset. This demo is available on our [Aistudio project](https://aistudio.baidu.com/aistudio/projectdetail/3519594) as well. Detailed steps on training and add your own dataset can refer to this [tutorial](documentation/tutorial.md).
+This part introduce a easy to use the demo on COVID-19 CT scans dataset. This demo is also available as an [Aistudio project](https://aistudio.baidu.com/aistudio/projectdetail/3519594). For details on training and adding your own dataset, please refer to this [tutorial](documentation/tutorial.md).
 - Download our repository.
     ```
-    git clone https://github.com/PaddlePaddle/PaddleSeg.git
+    git clone https://github.com/PaddleCV-SIG/MedicalSeg.git
 
     cd contrib/MedicalSeg/
     ```
