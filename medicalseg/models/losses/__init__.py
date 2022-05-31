@@ -16,3 +16,4 @@ from .dice_loss import DiceLoss
 from .binary_cross_entropy_loss import BCELoss
 from .cross_entropy_loss import CrossEntropyLoss
 from .mixes_losses import MixedLoss
+from .deep_supervison import MultipleOutputLoss2
