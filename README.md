@@ -1,8 +1,7 @@
 English | [简体中文](README_CN.md)
 
 # MedicalSeg
-MedicalSeg is an easy-to-use 3D medical image segmentation toolkit that supports the whole segmentation process including data preprocessing, model training, and model deployment. Specially, We provide data preprocessing acceleration, high precision model on [COVID-19 CT scans](https://www.kaggle.com/andrewmvd/covid19-ct-scans) lung dataset and [MRISpineSeg](https://aistudio.baidu.com/aistudio/datasetdetail/81211) spine dataset, support for multiple datasets including [MSD](http://medicaldecathlon.com/), [Promise12](https://promise12.grand-challenge.org/), [Prostate_mri](https://liuquande.github.io/SAML/) and etc, and a [3D visualization demo](visualize.ipynb) based on [itkwidgets](https://github.com/InsightSoftwareConsortium/itkwidgets). The following image visualize the segmentation results on these two datasets:
-
+MedicalSeg is an easy-to-use 3D medical image segmentation toolkit that supports GPU acceleration from data preparation to deployment, one-click data preprocessing on five datasets. We also provided high precision model on [COVID-19 CT scans](https://www.kaggle.com/andrewmvd/covid19-ct-scans) dataset and [MRISpineSeg](https://aistudio.baidu.com/aistudio/datasetdetail/81211) dataset, and a [3D visualization demo]((visualize.ipynb) ) based on [itkwidgets](https://github.com/InsightSoftwareConsortium/itkwidgets). The following image visualize the segmentation results on these two datasets:
 
 <p align="center">
 <img src="https://github.com/shiyutang/files/raw/main/ezgif.com-gif-maker%20(1).gif" width="30.6%" height="20%"><img src="https://github.com/shiyutang/files/raw/main/ezgif.com-gif-maker.gif" width="40.6%" height="20%">
@@ -12,19 +11,13 @@ MedicalSeg is an easy-to-use 3D medical image segmentation toolkit that supports
 </p>
 
 
-**MedicalSeg is currently under development! If you find any problem using it or want to share any future develop suggestions, please open a github issue or join us by scanning the following wechat QR code.**
 
-<p align="center">
-<img src="https://user-images.githubusercontent.com/48433081/162115375-2dba8796-5184-4793-8efa-b142734fe734.png" width="20%" height="20%">
-</p>
 
 
 ## Contents
 1. [Performance](##Performance)
 2. [Quick Start](##QuickStart)
 3. [Structure](#Structure)
-4. [TODO](#TODO)
-5. [Acknowledgement](#Acknowledgement)
 
 ## Performance
 
@@ -74,7 +67,7 @@ This part introduce a easy to use the demo on COVID-19 CT scans dataset. This de
     ```
 - (Optional) Install CuPY if you want to accelerate the preprocess process. [CuPY installation guide](https://docs.cupy.dev/en/latest/install.html)
 
-- Get and preprocess the data. Remember to replace prepare_lung_coronavirus.py with different python script that you need [here](./tools):
+- Get and preprocess the data:
     - change the GPU setting [here](tools/preprocess_globals.yml) to True if you installed CuPY and want to use GPU to accelerate.
     ```
     python tools/prepare_lung_coronavirus.py
@@ -106,13 +99,5 @@ This part shows you the whole picture of our repository, which is easy to expand
 └── visualize.ipynb # You can try to visualize the result use this file.
 ```
 
-## TODO
-We have several thoughts in mind about what should our repo focus on. Your contribution will be very much welcomed.
-- [ ] Add PP-nnunet with acceleration in preprocess, automatic configuration for all dataset and better performance compared to nnunet.
-- [ ] Add top 1 liver segmentation algorithm on LITS challenge.
-- [ ] Add 3D Vertebral Measurement System.
-- [ ] Add pretrain model on various dataset.
 
-## Acknowledgement
-- Many thanks to [Lin Han](https://github.com/linhandev), [Lang Du](https://github.com/justld), [onecatcn](https://github.com/onecatcn) for their contribution in  our repository
-- Many thanks to [itkwidgets](https://github.com/InsightSoftwareConsortium/itkwidgets) for their powerful visualization toolkit that we used to present our visualizations.
+

@@ -15,3 +15,4 @@
 from .losses import *
 from .vnet import VNet
 from .vnet_deepsup import VNetDeepSup
+from .unet_3d import Unet3d
