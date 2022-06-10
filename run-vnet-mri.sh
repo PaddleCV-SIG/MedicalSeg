@@ -1,11 +1,11 @@
 # set your GPU ID here
-export CUDA_VISIBLE_DEVICES=3
+export CUDA_VISIBLE_DEVICES=7
 
 # set the config file name and save directory here
-config_name=vnet_lung_coronavirus_128_128_128_15k
-yml=lung_coronavirus/${config_name}
+config_name=vnet_mri_spine_seg_128_128_12_15k
+yml=mri_spine_seg/${config_name}
 save_dir_all=saved_model
-save_dir=saved_model/${config_name}
+save_dir=saved_model/${config_name}_0324_5e-1_big_rmresizecrop_class20
 mkdir -p $save_dir
 
 # Train the model: see the train.py for detailed explanation on script args
@@ -17,11 +17,10 @@ python3 train.py --config configs/${yml}.yml \
 
 # Validate the model: see the val.py for detailed explanation on script args
 python3 val.py --config configs/${yml}.yml \
---save_dir  $save_dir/best_model --model_path $save_dir/best_model/model.pdparams \
+--save_dir  $save_dir/best_model --model_path $save_dir/best_model/model.pdparams
 
 # export the model
-python export.py --config configs/${yml}.yml \
---model_path $save_dir/best_model/model.pdparams
+python export.py --config configs/${yml}.yml --model_path $save_dir/best_model/model.pdparams
 
 # infer the model
-python deploy/python/infer.py  --config output/deploy.yaml --image_path data/lung_coronavirus/lung_coronavirus_phase0/images/coronacases_org_007.npy  --benchmark True
+python deploy/python/infer.py  --config output/deploy.yaml --image_path data/MRSpineSeg/MRI_spine_seg_phase0_class3/images/Case14.npy  --benchmark True
