@@ -12,6 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import manager
-from .config import Config
-from . import param_init
+import os
+
+import paddle
+import paddle.nn as nn
+
+
+class Identity(nn.Layer):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        return x
