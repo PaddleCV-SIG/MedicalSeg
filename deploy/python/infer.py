@@ -12,55 +12,58 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import argparse
-import codecs
 import os
 import sys
+import codecs
+import warnings
+import argparse
 
 LOCAL_PATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(LOCAL_PATH, '..', '..'))
 
 import yaml
-import numpy as np
 import functools
+import numpy as np
 
 from paddle.inference import create_predictor, PrecisionType
 from paddle.inference import Config as PredictConfig
 
-import paddleseg3d.transforms as T
-from paddleseg3d.cvlibs import manager
-from paddleseg3d.utils import get_sys_env, logger, get_image_list
-from paddleseg3d.utils.visualize import get_pseudo_color_map
-from paddleseg3d.datasets import HUNorm, resample
-from tools.prepare import Prep
+import medicalseg.transforms as T
+from medicalseg.cvlibs import manager
+from medicalseg.utils import get_sys_env, logger, get_image_list
+from medicalseg.utils.visualize import get_pseudo_color_map
+from tools import HUnorm, resample
+from tools import Prep
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Test')
-    parser.add_argument("--config",
-                        dest="cfg",
-                        help="The config file.",
-                        default=None,
-                        type=str,
-                        required=True)
+    parser.add_argument(
+        "--config",
+        dest="cfg",
+        help="The config file.",
+        default=None,
+        type=str,
+        required=True)
     parser.add_argument(
         '--image_path',
         dest='image_path',
-        help=
-        'The directory or path or file list of the images to be predicted.',
+        help='The directory or path or file list of the images to be predicted.',
         type=str,
         default=None,
         required=True)
-    parser.add_argument('--batch_size',
-                        dest='batch_size',
-                        help='Mini batch size of one gpu or cpu.',
-                        type=int,
-                        default=1)
-    parser.add_argument('--save_dir',
-                        dest='save_dir',
-                        help='The directory for saving the predict result.',
-                        type=str,
-                        default='./output')
+    parser.add_argument(
+        '--batch_size',
+        dest='batch_size',
+        help='Mini batch size of one gpu or cpu.',
+        type=int,
+        default=1)
+    parser.add_argument(
+        '--save_dir',
+        dest='save_dir',
+        help='The directory for saving the predict result.',
+        type=str,
+        default='./output')
     parser.add_argument(
         '--device',
         choices=['cpu', 'gpu'],
@@ -73,29 +76,31 @@ def parse_args():
         type=eval,
         choices=[True, False],
         help='Whether to use Nvidia TensorRT to accelerate prediction.')
-    parser.add_argument("--precision",
-                        default="fp32",
-                        type=str,
-                        choices=["fp32", "fp16", "int8"],
-                        help='The tensorrt precision.')
+    parser.add_argument(
+        "--precision",
+        default="fp32",
+        type=str,
+        choices=["fp32", "fp16", "int8"],
+        help='The tensorrt precision.')
     parser.add_argument(
         '--enable_auto_tune',
         default=False,
         type=eval,
         choices=[True, False],
-        help=
-        'Whether to enable tuned dynamic shape. We uses some images to collect '
+        help='Whether to enable tuned dynamic shape. We uses some images to collect '
         'the dynamic shape for trt sub graph, which avoids setting dynamic shape manually.'
     )
-    parser.add_argument('--auto_tuned_shape_file',
-                        type=str,
-                        default="auto_tune_tmp.pbtxt",
-                        help='The temp file to save tuned dynamic shape.')
+    parser.add_argument(
+        '--auto_tuned_shape_file',
+        type=str,
+        default="auto_tune_tmp.pbtxt",
+        help='The temp file to save tuned dynamic shape.')
 
-    parser.add_argument('--cpu_threads',
-                        default=10,
-                        type=int,
-                        help='Number of threads to predict when using cpu.')
+    parser.add_argument(
+        '--cpu_threads',
+        default=10,
+        type=int,
+        help='Number of threads to predict when using cpu.')
     parser.add_argument(
         '--enable_mkldnn',
         default=False,
@@ -107,25 +112,26 @@ def parse_args():
         "--benchmark",
         type=eval,
         default=False,
-        help=
-        "Whether to log some information about environment, model, configuration and performance."
+        help="Whether to log some information about environment, model, configuration and performance."
     )
     parser.add_argument(
         "--model_name",
         default="",
         type=str,
-        help=
-        'When `--benchmark` is True, the specified model name is displayed.')
+        help='When `--benchmark` is True, the specified model name is displayed.'
+    )
 
-    parser.add_argument('--with_argmax',
-                        dest='with_argmax',
-                        help='Perform argmax operation on the predict result.',
-                        action='store_true')
-    parser.add_argument('--print_detail',
-                        default=True,
-                        type=eval,
-                        choices=[True, False],
-                        help='Print GLOG information of Paddle Inference.')
+    parser.add_argument(
+        '--with_argmax',
+        dest='with_argmax',
+        help='Perform argmax operation on the predict result.',
+        action='store_true')
+    parser.add_argument(
+        '--print_detail',
+        default=True,
+        type=eval,
+        choices=[True, False],
+        help='Print GLOG information of Paddle Inference.')
 
     return parser.parse_args()
 
@@ -137,13 +143,12 @@ def use_auto_tune(args):
 
 
 class DeployConfig:
-
     def __init__(self, path):
         with codecs.open(path, 'r', 'utf-8') as file:
             self.dic = yaml.load(file, Loader=yaml.FullLoader)
 
-        self._transforms = self.load_transforms(
-            self.dic['Deploy']['transforms'])
+        self._transforms = self.load_transforms(self.dic['Deploy'][
+            'transforms'])
         self._dir = os.path.dirname(path)
 
     @property
@@ -220,7 +225,6 @@ def auto_tune(args, imgs, img_nums):
 
 
 class Predictor:
-
     def __init__(self, args):
         """
         Prepare for prediction.
@@ -242,22 +246,21 @@ class Predictor:
         if hasattr(args, 'benchmark') and args.benchmark:
             import auto_log
             pid = os.getpid()
-            self.autolog = auto_log.AutoLogger(model_name=args.model_name,
-                                               model_precision=args.precision,
-                                               batch_size=args.batch_size,
-                                               data_shape="dynamic",
-                                               save_path=None,
-                                               inference_config=self.pred_cfg,
-                                               pids=pid,
-                                               process_name=None,
-                                               gpu_ids=0,
-                                               time_keys=[
-                                                   'preprocess_time',
-                                                   'inference_time',
-                                                   'postprocess_time'
-                                               ],
-                                               warmup=0,
-                                               logger=logger)
+            self.autolog = auto_log.AutoLogger(
+                model_name=args.model_name,
+                model_precision=args.precision,
+                batch_size=args.batch_size,
+                data_shape="dynamic",
+                save_path=None,
+                inference_config=self.pred_cfg,
+                pids=pid,
+                process_name=None,
+                gpu_ids=0,
+                time_keys=[
+                    'preprocess_time', 'inference_time', 'postprocess_time'
+                ],
+                warmup=0,
+                logger=logger)
 
     def _init_base_config(self):
         "初始化基础配置"
@@ -295,12 +298,13 @@ class Predictor:
 
         if self.args.use_trt:
             logger.info("Use TRT")
-            self.pred_cfg.enable_tensorrt_engine(workspace_size=1 << 30,
-                                                 max_batch_size=1,
-                                                 min_subgraph_size=300,
-                                                 precision_mode=precision_mode,
-                                                 use_static=False,
-                                                 use_calib_mode=False)
+            self.pred_cfg.enable_tensorrt_engine(
+                workspace_size=1 << 30,
+                max_batch_size=1,
+                min_subgraph_size=300,
+                precision_mode=precision_mode,
+                use_static=False,
+                use_calib_mode=False)
 
             if use_auto_tune(self.args) and \
                 os.path.exists(self.args.auto_tuned_shape_file):
@@ -379,18 +383,34 @@ class Predictor:
 
         """
         if not "npy" in img:
-            Prep.load_save(
-                file_path=img,
-                save_path=os.path.dirname(img),
-                preprocess=[
-                    HUNorm,
-                    functools.partial(
-                        resample,  # TODO: config preprocess in deply.yaml to set params
-                        new_shape=[128, 128, 128],
-                        order=1)
-                ],
-                valid_suffix=None,
-                filter_key=None)
+            image_files = get_image_list(img, None, None)
+            warnings.warn("The image path is {}, please make sure this is the images you want to infer".format(image_files))
+            savepath = os.path.dirname(img)
+            pre = [
+                HUnorm,
+                functools.partial(
+                    resample,  # TODO: config preprocess in deply.yaml(export) to set params
+                    new_shape=[128, 128, 128],
+                    order=1)
+            ]
+
+            for f in image_files:
+                f_nps = Prep.load_medical_data(f)
+                for f_np in f_nps:
+                    if pre is not None:
+                        for op in pre:
+                            f_np = op(f_np)
+
+                    # Set image to a uniform format before save. 
+                    if isinstance(f_np, tuple):
+                        f_np = f_np[0]             
+                    f_np = f_np.astype("float32")
+
+                    np.save(
+                        os.path.join(
+                            savepath, f.split("/")[-1].split(
+                                ".", maxsplit=1)[0]), f_np)
+
             img = img.split(".", maxsplit=1)[0] + ".npy"
 
         return self.cfg.transforms(img)[0]
