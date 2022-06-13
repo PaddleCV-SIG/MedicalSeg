@@ -155,48 +155,6 @@ class NNUNet(nn.Layer):
         return x
 
 
-class ConvDropoutNormNonlin(nn.Layer):
-    def __init__(self, input_channels, output_channels,
-                 conv_op=nn.Conv2D, conv_kwargs=None,
-                 norm_op=nn.BatchNorm2D, norm_op_kwargs=None,
-                 dropout_op=nn.Dropout2D, dropout_op_kwargs=None,
-                 nonlin=nn.LeakyReLU, nonlin_kwargs=None):
-        super(ConvDropoutNormNonlin, self).__init__()
-        if nonlin_kwargs is None:
-            nonlin_kwargs = {'negative_slope': 1e-2}
-        if dropout_op_kwargs is None:
-            dropout_op_kwargs = {'p': 0.5}
-        if norm_op_kwargs is None:
-            norm_op_kwargs = {'eps': 1e-5}
-        if conv_kwargs is None:
-            conv_kwargs = {'kernel_size': 3, 'stride': 1, 'padding': 1, 'dilation': 1, 'bias_attr': True}
-
-        self.nonlin_kwargs = nonlin_kwargs
-        self.nonlin = nonlin
-        self.dropout_op = dropout_op
-        self.dropout_op_kwargs = dropout_op_kwargs
-        self.norm_op_kwargs = norm_op_kwargs
-        self.conv_kwargs = conv_kwargs
-        self.conv_op = conv_op
-        self.norm_op = norm_op
-
-        self.conv = self.conv_op(input_channels, output_channels, **self.conv_kwargs)
-        if self.dropout_op is not None and self.dropout_op_kwargs['p'] is not None and self.dropout_op_kwargs['p'] > 0:
-            self.dropout = self.dropout_op(**self.dropout_op_kwargs)
-        else:
-            self.dropout = None
-        self.instnorm = self.norm_op(output_channels, **self.norm_op_kwargs)
-        self.lrelu = self.nonlin(**self.nonlin_kwargs)
-
-    def forward(self, x):
-        x = self.conv(x)
-        if self.dropout is not None:
-            x = self.dropout(x)
-
-        x = self.lrelu(self.instnorm(x))
-        return x
-
-
 class StackedConvLayers(nn.Layer):
     def __init__(self, input_feature_channels, 
                  output_feature_channels, 
@@ -210,7 +168,7 @@ class StackedConvLayers(nn.Layer):
                  nonlin=nn.LeakyReLU, 
                  nonlin_kwargs=None, 
                  first_stride=None, 
-                 basic_block=ConvDropoutNormNonlin):
+                 basic_block=layers.ConvDropoutNormNonlin):
         super(StackedConvLayers, self).__init__()
         self.input_channels = input_feature_channels
         self.output_channels = output_feature_channels
@@ -255,19 +213,6 @@ class StackedConvLayers(nn.Layer):
         return self.blocks(x)
 
 
-class Upsample(nn.Layer):
-    def __init__(self, size=None, scale_factor=None, mode='nearest', align_corners=False):
-        super().__init__()
-        self.align_corners = align_corners
-        self.mode = mode
-        self.scale_factor = scale_factor
-        self.size = size
-
-    def forward(self, x):
-        x = F.interpolate(x, size=self.size, scale_factor=self.scale_factor, mode=self.mode, align_corners=self.align_corners)
-        return x
-
-
 class Generic_UNet(nn.Layer):
     """
     Args:
@@ -291,7 +236,7 @@ class Generic_UNet(nn.Layer):
         convolutional_pooling (bool | optional): Whether add pool layer after conv layer. If convolutional_pooling is True, only conv layer is used and reduce resolution by conv stride. Default: False.
         convolutional_upsampling (bool | optional): Use transpose conv layer or interpolate to upsample feature maps. If True, using transpose conv. Default: False.
         max_num_features (int | optional): The maximum channels of feature maps. Default: None.
-        basic_block (paddle.nn.Layer): Only use conv-drop-norm-nonlin module. Default: ConvDropoutNormNonlin.
+        basic_block (paddle.nn.Layer): Only use conv-drop-norm-nonlin module. Default: layers.ConvDropoutNormNonlin.
         seg_output_use_bias (bool | optional): Whether use bias in segmentation head. Default: False.
     """
     def __init__(self, 
@@ -316,7 +261,7 @@ class Generic_UNet(nn.Layer):
                  convolutional_pooling=False, 
                  convolutional_upsampling=False,
                  max_num_features=None, 
-                 basic_block=ConvDropoutNormNonlin,
+                 basic_block=layers.ConvDropoutNormNonlin,
                  seg_output_use_bias=False):
         super().__init__()
         self.convolutional_upsampling = convolutional_upsampling
@@ -432,7 +377,7 @@ class Generic_UNet(nn.Layer):
                 final_num_features = nfeatures_from_skip
 
             if not self.convolutional_upsampling:
-                self.upsample_ops.append(Upsample(scale_factor=pool_op_kernel_sizes[-(u + 1)], mode=upsample_mode))
+                self.upsample_ops.append(nn.Upsample(scale_factor=pool_op_kernel_sizes[-(u + 1)], mode=upsample_mode))
             else:
                 self.upsample_ops.append(transpconv(nfeatures_from_down, nfeatures_from_skip, pool_op_kernel_sizes[-(u + 1)],
                                           pool_op_kernel_sizes[-(u + 1)], bias_attr=False))
@@ -456,7 +401,7 @@ class Generic_UNet(nn.Layer):
         cum_upsample = np.cumprod(np.vstack(pool_op_kernel_sizes), axis=0)[::-1]
         for usl in range(num_pool - 1):
             if self.upscale_logits:
-                self.upscale_logits_ops.append(Upsample(scale_factor=tuple([int(i) for i in cum_upsample[usl + 1]]),
+                self.upscale_logits_ops.append(nn.Upsample(scale_factor=tuple([int(i) for i in cum_upsample[usl + 1]]),
                                                         mode=upsample_mode))
             else:
                 self.upscale_logits_ops.append(layers.Identity())
