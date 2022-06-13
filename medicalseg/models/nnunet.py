@@ -143,7 +143,7 @@ class NNUNet(nn.Layer):
         elif len(self.patch_size) == 3:
             self.threeD = True
         else:
-            raise RuntimeError("Invalid patch size in plans file: %s" % str(self.patch_size))
+            raise RuntimeError("Invalid patch size in plans file: {}".format(self.patch_size))
 
         if "conv_per_stage" in plans.keys():
             self.conv_per_stage = plans['conv_per_stage']
