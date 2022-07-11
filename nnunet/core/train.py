@@ -24,7 +24,6 @@ import paddle.nn.functional as F
 from medicalseg.utils import (TimeAverager, calculate_eta, resume, logger,
                                worker_init_fn, train_profiler, op_flops_run,
                                loss_computation)
-from nnunet.datasets import MSDDataset
 from nnunet.core.val import evaluate
 
 
@@ -217,8 +216,7 @@ def train(model,
                     or iter == iters):
                 current_save_dir = os.path.join(save_dir,
                                                 "iter_{}".format(iter))
-                if not os.path.isdir(current_save_dir):
-                    os.makedirs(current_save_dir)
+                os.makedirs(dir, exist_ok=True)
                 paddle.save(model.state_dict(),
                             os.path.join(current_save_dir, 'model.pdparams'))
                 paddle.save(optimizer.state_dict(),

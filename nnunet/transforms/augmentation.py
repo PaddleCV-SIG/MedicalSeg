@@ -1,3 +1,7 @@
+# Implementation of this model is borrowed and modified
+# (from torch to paddle) from here:
+# https://github.com/MIC-DKFZ/nnUNet
+
 # Copyright (c) 2022 PaddlePaddle Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,7 +36,6 @@ def get_moreDA_augmentation(dataloader_train, dataloader_val, patch_size, params
     if params.get("selected_seg_channels") is not None:
         tr_transforms.append(SegChannelSelectionTransform(params.get("selected_seg_channels")))
 
-    # don't do color augmentations while in 2d mode with 3d data because the color channel is overloaded!!
     if params.get("dummy_2D") is not None and params.get("dummy_2D"):
         ignore_axes = (0,)
         tr_transforms.append(Convert3DTo2DTransform())
@@ -58,8 +61,6 @@ def get_moreDA_augmentation(dataloader_train, dataloader_val, patch_size, params
     if params.get("dummy_2D"):
         tr_transforms.append(Convert2DTo3DTransform())
 
-    # we need to put the color augmentations after the dummy 2d part (if applicable). Otherwise the overloaded color
-    # channel gets in the way
     tr_transforms.append(GaussianNoiseTransform(p_per_sample=0.1))
     tr_transforms.append(GaussianBlurTransform((0.5, 1.), different_sigma_per_channel=True, p_per_sample=0.2,
                                                p_per_channel=0.5))
@@ -78,7 +79,7 @@ def get_moreDA_augmentation(dataloader_train, dataloader_val, patch_size, params
                                                         ignore_axes=ignore_axes))
     tr_transforms.append(
         GammaTransform(params.get("gamma_range"), True, True, retain_stats=params.get("gamma_retain_stats"),
-                       p_per_sample=0.1))  # inverted gamma
+                       p_per_sample=0.1))  
 
     if params.get("do_gamma"):
         tr_transforms.append(
@@ -132,9 +133,6 @@ def get_moreDA_augmentation(dataloader_train, dataloader_val, patch_size, params
     tr_transforms = Compose(tr_transforms)
 
     batchgenerator_train = SingleThreadedAugmenter(dataloader_train, tr_transforms)
-    # batchgenerator_train = MultiThreadedAugmenter(dataloader_train, tr_transforms, params.get('num_threads'),
-    #                                                   params.get("num_cached_per_thread"),
-    #                                                   seeds=seeds_train, pin_memory=pin_memory)
 
     val_transforms = []
     val_transforms.append(RemoveLabelTransform(-1, 0))

@@ -13,13 +13,11 @@
 # limitations under the License.
 
 import os
-
-import numpy as np
 import time
-from tqdm import tqdm
+import numpy as np
+
 import paddle
 import paddle.nn.functional as F
-from nnunet.datasets import MSDDataset
 
 from medicalseg.utils import metric, TimeAverager, calculate_eta, logger, progbar, loss_computation, add_image_vdl
 from nnunet.utils import sum_tensor
@@ -108,7 +106,6 @@ def evaluate(model,
             fn_hard = fn_hard.sum(0, keepdim=False).numpy()
 
             online_eval_foreground_dc.append(list((2 * tp_hard) / (2 * tp_hard + fp_hard + fn_hard + 1e-8)))
-            # print('online_eval_foreground_dc:', online_eval_foreground_dc[-1], tp_hard, fp_hard, fn_hard)
             online_eval_tp_list.append(list(tp_hard))
             online_eval_fp_list.append(list(fp_hard))
             online_eval_fn_list.append(list(fn_hard))
