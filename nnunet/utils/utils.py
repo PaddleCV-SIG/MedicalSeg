@@ -1,3 +1,7 @@
+# Implementation of this model is borrowed and modified
+# (from torch to paddle) from here:
+# https://github.com/MIC-DKFZ/nnUNet
+
 # Copyright (c) 2022 PaddlePaddle Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +16,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .functional import *
-from .transform import *
-from .default_config import default_2D_augmentation_params, default_3D_augmentation_params
-from .augmentation import get_moreDA_augmentation
+import numpy as np
+
+
+def sum_tensor(inp, axes, keepdim=False):
+    axes = np.unique(axes).astype(int)
+    if keepdim:
+        for ax in axes:
+            inp = inp.sum(int(ax), keepdim=True)
+    else:
+        for ax in sorted(axes, reverse=True):
+            inp = inp.sum(int(ax))
+    return inp

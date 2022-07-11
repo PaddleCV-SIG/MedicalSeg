@@ -42,6 +42,7 @@ class NNUNet(nn.Layer):
     """
     Args:
         plan_path (int): The plan path of nnunet.
+        num_classes (int): Only for comparative with other models, this param has no function. Default: 0.
         pretrained (str | optional): The path or url of pretrained model. Default: None.
         stage (int | optional): The stage of nnunet, 0 for nnunet_2d and nnunet_3d, 1 for nnunet_cascade stage 2. Default: None.
         deep_supervision (bool | optional): Whether return multi-scale feats when training mode. Default: True.
@@ -53,6 +54,7 @@ class NNUNet(nn.Layer):
     """
     def __init__(self, 
         plan_path, 
+        num_classes=0,
         pretrained=None, 
         stage=None, 
         deep_supervision=True, 
@@ -432,6 +434,6 @@ class Generic_UNet(nn.Layer):
             outputs.append(self.seg_heads[u](x))
 
         if self._deep_supervision and self.training:
-            return [outputs[-1]] + [up_op(feat) for up_op, feat in zip(list(self.upscale_logits_ops)[::-1], outputs[:-1][::-1])]
+            return [[outputs[-1]] + [up_op(feat) for up_op, feat in zip(list(self.upscale_logits_ops)[::-1], outputs[:-1][::-1])]]
         else:
             return [outputs[-1]]
