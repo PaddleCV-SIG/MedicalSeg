@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import os
 import pickle
 import shutil
 from collections import OrderedDict
-from copy import deepcopy
-import numpy as np
+
 from .image_crop import get_case_identifier_from_npz
 from .preprocessing import GenericPreprocessor, PreprocessorFor2D
 from .experiment_utils import *
@@ -39,7 +39,6 @@ use_this_for_batch_size_computation_3D = 520000000
 
 
 class ExperimentPlanner:
-
     def __init__(self, folder_with_cropped_data, preprocessed_output_folder):
         os.makedirs(preprocessed_output_folder, exist_ok=True)
         self.folder_with_cropped_data = folder_with_cropped_data
@@ -83,8 +82,8 @@ class ExperimentPlanner:
 
     def get_target_spacing(self):
         spacings = self.dataset_properties['all_spacings']
-        target = np.percentile(np.vstack(spacings),
-                               self.target_spacing_percentile, 0)
+        target = np.percentile(
+            np.vstack(spacings), self.target_spacing_percentile, 0)
         return target
 
     def save_my_plans(self):
@@ -168,10 +167,10 @@ class ExperimentPlanner:
         batch_size = DEFAULT_BATCH_SIZE_3D
         batch_size = int(np.floor(max(ref / here, 1) * batch_size))
 
-        max_batch_size = np.round(
-            self.batch_size_covers_max_percent_of_dataset *
-            dataset_num_voxels /
-            np.prod(input_patch_size, dtype=np.int64)).astype(int)
+        max_batch_size = np.round(self.batch_size_covers_max_percent_of_dataset
+                                  * dataset_num_voxels / np.prod(
+                                      input_patch_size,
+                                      dtype=np.int64)).astype(int)
         max_batch_size = max(max_batch_size, self.unet_min_batch_size)
         batch_size = max(1, min(batch_size, max_batch_size))
 
@@ -241,12 +240,11 @@ class ExperimentPlanner:
 
         print("Generating configuration for 3d_fullres")
         self.plans_per_stage.append(
-            self.get_properties_for_stage(target_spacing_transposed,
-                                          target_spacing_transposed,
-                                          median_shape_transposed,
-                                          len(self.list_of_cropped_npz_files),
-                                          num_modalities,
-                                          len(all_classes) + 1))
+            self.get_properties_for_stage(
+                target_spacing_transposed, target_spacing_transposed,
+                median_shape_transposed,
+                len(self.list_of_cropped_npz_files), num_modalities,
+                len(all_classes) + 1))
 
         architecture_input_voxels_here = np.prod(
             self.plans_per_stage[-1]['patch_size'], dtype=np.int64)
@@ -264,28 +262,29 @@ class ExperimentPlanner:
             while num_voxels > self.how_much_of_a_patient_must_the_network_see_at_stage0 * architecture_input_voxels_here:
                 max_spacing = max(lowres_stage_spacing)
                 if np.any((max_spacing / lowres_stage_spacing) > 2):
-                    lowres_stage_spacing[(max_spacing /
-                                          lowres_stage_spacing) > 2] *= 1.01
+                    lowres_stage_spacing[(max_spacing / lowres_stage_spacing) >
+                                         2] *= 1.01
                 else:
                     lowres_stage_spacing *= 1.01
-                num_voxels = np.prod(target_spacing / lowres_stage_spacing *
-                                     median_shape,
-                                     dtype=np.float64)
+                num_voxels = np.prod(
+                    target_spacing / lowres_stage_spacing * median_shape,
+                    dtype=np.float64)
 
                 lowres_stage_spacing_transposed = np.array(
                     lowres_stage_spacing)[self.transpose_forward]
                 lowres_props = self.get_properties_for_stage(
-                    lowres_stage_spacing_transposed,
-                    target_spacing_transposed, median_shape_transposed,
+                    lowres_stage_spacing_transposed, target_spacing_transposed,
+                    median_shape_transposed,
                     len(self.list_of_cropped_npz_files), num_modalities,
                     len(all_classes) + 1)
                 architecture_input_voxels_here = np.prod(
                     lowres_props['patch_size'], dtype=np.int64)
-            if 2 * np.prod(lowres_props['median_patient_size_in_voxels'],
-                           dtype=np.int64) < np.prod(
-                               self.plans_per_stage[0]
-                               ['median_patient_size_in_voxels'],
-                               dtype=np.int64):
+            if 2 * np.prod(
+                    lowres_props['median_patient_size_in_voxels'],
+                    dtype=np.int64) < np.prod(
+                        self.plans_per_stage[0][
+                            'median_patient_size_in_voxels'],
+                        dtype=np.int64):
                 self.plans_per_stage.append(lowres_props)
 
         self.plans_per_stage = self.plans_per_stage[::-1]
@@ -322,7 +321,7 @@ class ExperimentPlanner:
             'transpose_backward': self.transpose_backward,
             'data_identifier': self.data_identifier,
             'plans_per_stage': self.plans_per_stage,
-            'preprocessor_name': self.preprocessor_name,
+            'preprocessor_name': self.preprocessor_name.__name__,
             'conv_per_stage': self.conv_per_stage,
         }
 
@@ -367,8 +366,8 @@ class ExperimentPlanner:
             else:
                 all_size_reductions = []
                 for k in self.dataset_properties['size_reductions'].keys():
-                    all_size_reductions.append(
-                        self.dataset_properties['size_reductions'][k])
+                    all_size_reductions.append(self.dataset_properties[
+                        'size_reductions'][k])
 
                 if np.median(all_size_reductions) < 3 / 4.:
                     print("using nonzero mask for normalization")
@@ -409,18 +408,17 @@ class ExperimentPlanner:
             'intensityproperties']
         preprocessor_class = self.preprocessor_name
         assert preprocessor_class is not None
-        preprocessor = preprocessor_class(normalization_schemes,
-                                          use_nonzero_mask_for_normalization,
-                                          self.transpose_forward,
-                                          intensityproperties)
+        preprocessor = preprocessor_class(
+            normalization_schemes, use_nonzero_mask_for_normalization,
+            self.transpose_forward, intensityproperties)
         target_spacings = [
             i["current_spacing"] for i in self.plans_per_stage.values()
         ]
-        if self.plans['num_stages'] > 1 and not isinstance(
-                num_threads, (list, tuple)):
+        if self.plans['num_stages'] > 1 and not isinstance(num_threads,
+                                                           (list, tuple)):
             num_threads = (8, num_threads)
-        elif self.plans['num_stages'] == 1 and isinstance(
-                num_threads, (list, tuple)):
+        elif self.plans['num_stages'] == 1 and isinstance(num_threads,
+                                                          (list, tuple)):
             num_threads = num_threads[-1]
         preprocessor.run(target_spacings, self.folder_with_cropped_data,
                          self.preprocessed_output_folder,
@@ -428,11 +426,9 @@ class ExperimentPlanner:
 
 
 class ExperimentPlanner2D_v21(ExperimentPlanner):
-
     def __init__(self, folder_with_cropped_data, preprocessed_output_folder):
-        super(ExperimentPlanner2D_v21,
-              self).__init__(folder_with_cropped_data,
-                             preprocessed_output_folder)
+        super(ExperimentPlanner2D_v21, self).__init__(
+            folder_with_cropped_data, preprocessed_output_folder)
         self.data_identifier = "nnUNetData_plans_v2.1_2D"
         self.plans_fname = os.path.join(self.preprocessed_output_folder,
                                         "nnUNetPlansv2.1_plans_2D.pkl")
@@ -449,8 +445,8 @@ class ExperimentPlanner2D_v21(ExperimentPlanner):
         new_median_shape = np.round(original_spacing / current_spacing *
                                     original_shape).astype(int)
 
-        dataset_num_voxels = np.prod(new_median_shape,
-                                     dtype=np.int64) * num_cases
+        dataset_num_voxels = np.prod(
+            new_median_shape, dtype=np.int64) * num_cases
         input_patch_size = new_median_shape[1:]
 
         network_num_pool_per_axis, pool_op_kernel_sizes, conv_kernel_sizes, new_shape, \
@@ -499,10 +495,10 @@ class ExperimentPlanner2D_v21(ExperimentPlanner):
         batch_size = int(np.floor(ref / here) * 2)
         input_patch_size = new_shape
 
-        max_batch_size = np.round(
-            self.batch_size_covers_max_percent_of_dataset *
-            dataset_num_voxels /
-            np.prod(input_patch_size, dtype=np.int64)).astype(int)
+        max_batch_size = np.round(self.batch_size_covers_max_percent_of_dataset
+                                  * dataset_num_voxels / np.prod(
+                                      input_patch_size,
+                                      dtype=np.int64)).astype(int)
         batch_size = max(1, min(batch_size, max_batch_size))
 
         plan = {
@@ -564,29 +560,15 @@ class ExperimentPlanner2D_v21(ExperimentPlanner):
         print("The transposed median shape of the dataset is {}.".format(
             median_shape_transposed))
 
-        # self.plans_per_stage = []
-        # self.plans_per_stage.append(
-        #     self.get_properties_for_stage(target_spacing_transposed, target_spacing_transposed, median_shape_transposed,
-        #                                   num_cases=len(self.list_of_cropped_npz_files),
-        #                                   num_modalities=num_modalities,
-        #                                   num_classes=len(all_classes) + 1),
-        #     )
-
-        # print(self.plans_per_stage)
-
-        # self.plans_per_stage = self.plans_per_stage[::-1]
-        # self.plans_per_stage = {i: self.plans_per_stage[i] for i in range(len(self.plans_per_stage))}  # convert to dict
         self.plans_per_stage = {
-            0:
-            self.get_properties_for_stage(target_spacing_transposed,
-                                          target_spacing_transposed,
-                                          median_shape_transposed,
-                                          num_cases=len(
-                                              self.list_of_cropped_npz_files),
-                                          num_modalities=num_modalities,
-                                          num_classes=len(all_classes) + 1)
+            0: self.get_properties_for_stage(
+                target_spacing_transposed,
+                target_spacing_transposed,
+                median_shape_transposed,
+                num_cases=len(self.list_of_cropped_npz_files),
+                num_modalities=num_modalities,
+                num_classes=len(all_classes) + 1)
         }
-        print(self.plans_per_stage)
 
         normalization_schemes = self.determine_normalization_scheme()
         only_keep_largest_connected_component, min_size_per_class, min_region_size_per_class = None, None, None
@@ -612,7 +594,7 @@ class ExperimentPlanner2D_v21(ExperimentPlanner):
             'transpose_backward': self.transpose_backward,
             'data_identifier': self.data_identifier,
             'plans_per_stage': self.plans_per_stage,
-            'preprocessor_name': self.preprocessor_name,
+            'preprocessor_name': self.preprocessor_name.__name__,
         }
 
         self.plans = plans
@@ -620,11 +602,9 @@ class ExperimentPlanner2D_v21(ExperimentPlanner):
 
 
 class ExperimentPlanner3D_v21(ExperimentPlanner):
-
     def __init__(self, folder_with_cropped_data, preprocessed_output_folder):
-        super(ExperimentPlanner3D_v21,
-              self).__init__(folder_with_cropped_data,
-                             preprocessed_output_folder)
+        super(ExperimentPlanner3D_v21, self).__init__(
+            folder_with_cropped_data, preprocessed_output_folder)
         self.data_identifier = "nnUNetData_plans_v2.1"
         self.plans_fname = os.path.join(self.preprocessed_output_folder,
                                         "nnUNetPlansv2.1_plans_3D.pkl")
@@ -634,10 +614,10 @@ class ExperimentPlanner3D_v21(ExperimentPlanner):
         spacings = self.dataset_properties['all_spacings']
         sizes = self.dataset_properties['all_sizes']
 
-        target = np.percentile(np.vstack(spacings),
-                               self.target_spacing_percentile, 0)
-        target_size = np.percentile(np.vstack(sizes),
-                                    self.target_spacing_percentile, 0)
+        target = np.percentile(
+            np.vstack(spacings), self.target_spacing_percentile, 0)
+        target_size = np.percentile(
+            np.vstack(sizes), self.target_spacing_percentile, 0)
         target_size_mm = np.array(target) * np.array(target_size)
 
         worst_spacing_axis = np.argmax(target)
@@ -652,8 +632,8 @@ class ExperimentPlanner3D_v21(ExperimentPlanner):
 
         if has_aniso_spacing and has_aniso_voxels:
             spacings_of_that_axis = np.vstack(spacings)[:, worst_spacing_axis]
-            target_spacing_of_that_axis = np.percentile(
-                spacings_of_that_axis, 10)
+            target_spacing_of_that_axis = np.percentile(spacings_of_that_axis,
+                                                        10)
             if target_spacing_of_that_axis < max(other_spacings):
                 target_spacing_of_that_axis = max(
                     max(other_spacings), target_spacing_of_that_axis) + 1e-5
@@ -709,8 +689,7 @@ class ExperimentPlanner3D_v21(ExperimentPlanner):
                 current_spacing,
                 new_shp,
                 self.unet_featuremap_min_edge_length,
-                self.unet_max_numpool,
-            )
+                self.unet_max_numpool, )
 
             here = compute_approx_vram_consumption(
                 new_shp,
@@ -726,10 +705,10 @@ class ExperimentPlanner3D_v21(ExperimentPlanner):
         batch_size = DEFAULT_BATCH_SIZE_3D  # This is what wirks with 128**3
         batch_size = int(np.floor(max(ref / here, 1) * batch_size))
 
-        max_batch_size = np.round(
-            self.batch_size_covers_max_percent_of_dataset *
-            dataset_num_voxels /
-            np.prod(input_patch_size, dtype=np.int64)).astype(int)
+        max_batch_size = np.round(self.batch_size_covers_max_percent_of_dataset
+                                  * dataset_num_voxels / np.prod(
+                                      input_patch_size,
+                                      dtype=np.int64)).astype(int)
         max_batch_size = max(max_batch_size, self.unet_min_batch_size)
         batch_size = max(1, min(batch_size, max_batch_size))
 
