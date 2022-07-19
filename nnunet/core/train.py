@@ -216,7 +216,7 @@ def train(model,
                     or iter == iters):
                 current_save_dir = os.path.join(save_dir,
                                                 "iter_{}".format(iter))
-                os.makedirs(dir, exist_ok=True)
+                os.makedirs(current_save_dir, exist_ok=True)
                 paddle.save(model.state_dict(),
                             os.path.join(current_save_dir, 'model.pdparams'))
                 paddle.save(optimizer.state_dict(),

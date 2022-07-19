@@ -50,32 +50,21 @@ def evaluate(model,
         float: The accuracy of validation datasets.
     """
     model.eval()
-
     loader = eval_dataset
-
     total_iters = len(loader)
-    logits_all = None
-    label_all = None
 
     if print_detail:
-        logger.info(
-            "Start evaluating (total_samples: {}, total_iters: {})...".format(
-                len(eval_dataset), total_iters))
-    progbar_val = progbar.Progbar(
-        target=total_iters, verbose=1)
+        logger.info("Start evaluating (total_samples: {}, total_iters: {})...".
+                    format(len(eval_dataset), total_iters))
+    progbar_val = progbar.Progbar(target=total_iters, verbose=1)
     reader_cost_averager = TimeAverager()
     batch_cost_averager = TimeAverager()
     batch_start = time.time()
-
-    mdice = 0.0
-    channel_dice_array = np.array([])
-    loss_all = 0.0
 
     online_eval_foreground_dc = []
     online_eval_tp_list = []
     online_eval_fp_list = []
     online_eval_fn_list = []
-    all_val_eval_metrics = []
 
     with paddle.no_grad():
         for iter, (im, label) in enumerate(loader):
@@ -97,15 +86,25 @@ def evaluate(model,
             fp_hard = paddle.zeros((target.shape[0], num_classes - 1))
             fn_hard = paddle.zeros((target.shape[0], num_classes - 1))
             for c in range(1, num_classes):
-                tp_hard[:, c - 1] = sum_tensor((output_seg == c).astype('float32') * (target == c).astype('float32'), axes=axes)
-                fp_hard[:, c - 1] = sum_tensor((output_seg == c).astype('float32') * (target != c).astype('float32'), axes=axes)
-                fn_hard[:, c - 1] = sum_tensor((output_seg != c).astype('float32') * (target == c).astype('float32'), axes=axes)
+                tp_hard[:, c - 1] = sum_tensor(
+                    (output_seg == c).astype('float32') *
+                    (target == c).astype('float32'),
+                    axes=axes)
+                fp_hard[:, c - 1] = sum_tensor(
+                    (output_seg == c).astype('float32') *
+                    (target != c).astype('float32'),
+                    axes=axes)
+                fn_hard[:, c - 1] = sum_tensor(
+                    (output_seg != c).astype('float32') *
+                    (target == c).astype('float32'),
+                    axes=axes)
 
             tp_hard = tp_hard.sum(0, keepdim=False).numpy()
             fp_hard = fp_hard.sum(0, keepdim=False).numpy()
             fn_hard = fn_hard.sum(0, keepdim=False).numpy()
 
-            online_eval_foreground_dc.append(list((2 * tp_hard) / (2 * tp_hard + fp_hard + fn_hard + 1e-8)))
+            online_eval_foreground_dc.append(
+                list((2 * tp_hard) / (2 * tp_hard + fp_hard + fn_hard + 1e-8)))
             online_eval_tp_list.append(list(tp_hard))
             online_eval_fp_list.append(list(fp_hard))
             online_eval_fn_list.append(list(fn_hard))
@@ -126,13 +125,18 @@ def evaluate(model,
     online_eval_fp = np.sum(online_eval_fp_list, 0)
     online_eval_fn = np.sum(online_eval_fn_list, 0)
 
-    global_dc_per_class = [i for i in [2 * i / (2 * i + j + k) for i, j, k in
-                                        zip(online_eval_tp, online_eval_fp, online_eval_fn)]
-                            if not np.isnan(i)]
+    global_dc_per_class = [
+        i for i in [
+            2 * i / (2 * i + j + k)
+            for i, j, k in zip(online_eval_tp, online_eval_fp, online_eval_fn)
+        ] if not np.isnan(i)
+    ]
     mdice = np.mean(global_dc_per_class)
 
-    logger.info("Average global foreground Dice: {}".format([np.round(i, 4) for i in global_dc_per_class]))
-    logger.info("(interpret this as an estimate for the Dice of the different classes. This is not "
-                            "exact.)")
+    logger.info("Average global foreground Dice: {}".format(
+        [np.round(i, 4) for i in global_dc_per_class]))
+    logger.info(
+        "(interpret this as an estimate for the Dice of the different classes. This is not "
+        "exact.)")
     result_dict = {"mdice": mdice}
     return result_dict
