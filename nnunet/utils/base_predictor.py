@@ -461,7 +461,6 @@ class BasePredictor:
             if m == 0:
                 pred = self.inference_apply_nonlin(self(x))
                 result += 1 / num_results * pred
-
             if m == 1 and (1 in mirror_axes):
                 pred = self.inference_apply_nonlin(self(paddle.flip(x, (3, ))))
                 result += 1 / num_results * paddle.flip(pred, (3, ))
@@ -474,7 +473,6 @@ class BasePredictor:
                 pred = self.inference_apply_nonlin(
                     self(paddle.flip(x, (3, 2))))
                 result += 1 / num_results * paddle.flip(pred, (3, 2))
-
         if mult is not None:
             result[:, :] *= mult
         return result

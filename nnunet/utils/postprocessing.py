@@ -56,7 +56,6 @@ def remove_all_but_the_largest_connected_component(
         else:
             mask = image == c
         lmap, num_objects = label(mask.astype(int))
-        print(num_objects)
         object_sizes = {}
         for object_id in range(1, num_objects + 1):
             object_sizes[object_id] = (

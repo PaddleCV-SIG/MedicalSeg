@@ -23,6 +23,7 @@ import paddle
 import numpy as np
 import pickle
 import sys
+from functools import partial
 
 parent_path = os.path.abspath(os.path.join(__file__, *(['..'] * 2)))
 sys.path.insert(0, parent_path)
@@ -102,6 +103,7 @@ def evaluate(model, eval_dataset, args):
                 os.path.join(validation_raw_folder, fname + '.nii.gz')))
             continue
         data = np.load(eval_dataset.dataset[k]['data_file'])['data']
+        print(k, data.shape)
         data[-1][data[-1] == -1] = 0
         data = data[:-1]
 
@@ -117,6 +119,7 @@ def evaluate(model, eval_dataset, args):
             data = np.concatenate(
                 (data, to_one_hot(seg_from_prev_stage[0],
                                   range(1, eval_dataset.num_classes))))
+
         argmax_pred, softmax_pred = predictor.predict_3D(
             data,
             do_mirroring=args.do_mirroring,
@@ -218,11 +221,13 @@ class DynamicPredictor(BasePredictor):
             model.net_num_pool_op_kernel_sizes, 0, dtype=np.int64)
         self.threeD = model.threeD
         self.num_classes = model.num_classes
-        self.inference_apply_nonlin = paddle.nn.functional.softmax
+        self.inference_apply_nonlin = partial(
+            paddle.nn.functional.softmax, axis=1)
         self.model = model
 
     def __call__(self, x):
-        return self.model(x)[0]
+        x = self.model(x)[0]
+        return x
 
 
 def parse_args():
