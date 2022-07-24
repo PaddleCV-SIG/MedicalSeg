@@ -78,12 +78,8 @@ def evaluate(model, eval_dataset, args):
     mirror_axes = eval_dataset.data_aug_params['mirror_axes']
 
     if args.predict_next_stage:
-        next_stage_output_folder = os.path.join(output_folder,
-                                                "pred_next_stage")
+        next_stage_output_folder = eval_dataset.folder_with_segs_from_prev_stage
         os.makedirs(next_stage_output_folder, exist_ok=True)
-        stage_to_be_predicted_folder = os.path.join(
-            eval_dataset.dataset_directory,
-            plans['data_identifier'] + "_stage%d" % 1)
 
     print('start evaluating...')
     pred_gt_tuples = []
