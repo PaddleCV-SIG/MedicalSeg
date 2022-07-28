@@ -23,6 +23,7 @@ train_dataset:
   fold: 1
   stage: 0
   unpack_data: True
+  cascade: False
   mode: train
 
 val_dataset:
@@ -38,6 +39,7 @@ val_dataset:
   fold: 1
   stage: 0
   unpack_data: True
+  cascade: False
   mode: val
 
 

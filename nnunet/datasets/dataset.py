@@ -50,6 +50,7 @@ class MSDDataset(MedicalDataset):
                  plan2d=False,
                  plan3d=False,
                  stage=None,
+                 cascade=False,
                  dataset_root=None,
                  result_dir=None,
                  transforms=None,
@@ -66,6 +67,7 @@ class MSDDataset(MedicalDataset):
         self.plan3d = plan3d
         self.preprocessed_dir = preprocessed_dir
         self.preprocess_and_generate_plans()
+        self.cascade = cascade
 
         self.folder_with_segs_from_prev_stage = os.path.join(preprocessed_dir,
                                                              'pred_next_stage')
@@ -183,7 +185,7 @@ class MSDDataset(MedicalDataset):
                     self.basic_generator_patch_size,
                     self.patch_size,
                     self.batch_size,
-                    True,
+                    has_prev_stage=self.cascade,
                     oversample_foreground_percent=self.
                     oversample_foreground_percent,
                     pad_mode="constant",
@@ -193,7 +195,7 @@ class MSDDataset(MedicalDataset):
                     self.patch_size,
                     self.patch_size,
                     self.batch_size,
-                    True,
+                    has_prev_stage=self.cascade,
                     oversample_foreground_percent=self.
                     oversample_foreground_percent,
                     pad_mode="constant",
@@ -313,7 +315,7 @@ class MSDDataset(MedicalDataset):
 
         self.data_aug_params["num_cached_per_thread"] = 2
 
-        if self.stage == 1:
+        if self.stage == 1 and self.cascade:
             self.data_aug_params["num_cached_per_thread"] = 2
 
             self.data_aug_params['move_last_seg_chanel_to_data'] = True
@@ -461,7 +463,7 @@ class MSDDataset(MedicalDataset):
             self.dataset_val[i] = self.dataset[i]
 
         # cascade stage 2
-        if self.stage == 1:
+        if self.stage == 1 and self.cascade:
             for k in self.dataset:
                 self.dataset[k]['seg_from_prev_stage_file'] = os.path.join(
                     self.folder_with_segs_from_prev_stage,
@@ -477,7 +479,6 @@ class MSDDataset(MedicalDataset):
 
 def unpack_dataset(folder, threads=8, key="data"):
     p = Pool(threads)
-    # npz_files = subfiles(folder, True, None, ".npz", True)
     npz_files = [
         os.path.join(folder, path) for path in os.listdir(folder)
         if os.path.isfile(os.path.join(folder, path)) and path.endswith('.npz')
@@ -518,7 +519,7 @@ def get_patch_size(final_patch_size, rot_x, rot_y, rot_z, scale_range):
     rot_x = min(90 / 360 * 2. * np.pi, rot_x)
     rot_y = min(90 / 360 * 2. * np.pi, rot_y)
     rot_z = min(90 / 360 * 2. * np.pi, rot_z)
-    # from batchgenerators.augmentations.utils import rotate_coords_3d, rotate_coords_2d
+
     coords = np.array(final_patch_size)
     final_shape = np.copy(coords)
     if len(coords) == 3:

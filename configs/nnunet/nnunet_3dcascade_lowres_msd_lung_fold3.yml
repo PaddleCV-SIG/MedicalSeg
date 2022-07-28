@@ -5,30 +5,31 @@ iters: 30000
 
 model:
   type: NNUNet
-  plan_path: msd_lung/preprocessed/Task006_Lung/nnUNetPlansv2.1_plans_2D.pkl
+  plan_path: msd_lung/preprocessed/Task006_Lung/nnUNetPlansv2.1_plans_3D.pkl
   stage: 0
+  cascade: True
 
 train_dataset:
   type: MSDDataset
-  plans_name: nnUNetPlansv2.1_plans_2D.pkl
+  plans_name: nnUNetPlansv2.1_plans_3D.pkl
   dataset_root: /
   result_dir: /
   raw_data_dir: msd_lung/Task06_Lung
   decathlon_dir: msd_lung/Task006_Lung
   cropped_data_dir: msd_lung/cropped/Task006_Lung
   preprocessed_dir: msd_lung/preprocessed/Task006_Lung
-  plan2d: True
-  plan3d: False
+  plan2d: False
+  plan3d: True
   num_batches_per_epoch: 250
-  fold: 4
+  fold: 3
   stage: 0
   unpack_data: True
-  cascade: False
+  cascade: True
   mode: train
 
 val_dataset:
   type: MSDDataset
-  plans_name: nnUNetPlansv2.1_plans_2D.pkl
+  plans_name: nnUNetPlansv2.1_plans_3D.pkl
   dataset_root: /
   result_dir: /
   raw_data_dir: msd_lung/Task06_Lung
@@ -36,10 +37,10 @@ val_dataset:
   cropped_data_dir: msd_lung/cropped/Task006_Lung
   preprocessed_dir: msd_lung/preprocessed/Task006_Lung
   num_batches_per_epoch: 50
-  fold: 4
+  fold: 3
   stage: 0
   unpack_data: True
-  cascade: False
+  cascade: True
   mode: val
 
 
@@ -59,11 +60,11 @@ lr_scheduler:
 loss:
   types:
     - type: MultipleLoss
-      plan_path: msd_lung/preprocessed/Task006_Lung/nnUNetPlansv2.1_plans_2D.pkl
+      plan_path: msd_lung/preprocessed/Task006_Lung/nnUNetPlansv2.1_plans_3D.pkl
       stage: 0
       losses:
         - type: DC_and_CE_loss
           do_bg: False
-          batch_dice: True
+          batch_dice: False
       coef: [1.0]
   coef: [1]

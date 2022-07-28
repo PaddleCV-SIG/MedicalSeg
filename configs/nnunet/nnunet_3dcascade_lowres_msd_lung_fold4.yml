@@ -7,6 +7,7 @@ model:
   type: NNUNet
   plan_path: msd_lung/preprocessed/Task006_Lung/nnUNetPlansv2.1_plans_3D.pkl
   stage: 0
+  cascade: True
 
 train_dataset:
   type: MSDDataset
@@ -20,9 +21,10 @@ train_dataset:
   plan2d: False
   plan3d: True
   num_batches_per_epoch: 250
-  fold: 1
+  fold: 4
   stage: 0
   unpack_data: True
+  cascade: True
   mode: train
 
 val_dataset:
@@ -35,9 +37,10 @@ val_dataset:
   cropped_data_dir: msd_lung/cropped/Task006_Lung
   preprocessed_dir: msd_lung/preprocessed/Task006_Lung
   num_batches_per_epoch: 50
-  fold: 1
+  fold: 4
   stage: 0
   unpack_data: True
+  cascade: True
   mode: val
 
 
