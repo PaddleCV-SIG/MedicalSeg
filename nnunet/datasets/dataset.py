@@ -470,7 +470,8 @@ class MSDDataset(MedicalDataset):
                     k + "_segFromPrevStage.npz")
                 assert os.path.isfile(
                     self.dataset[k]['seg_from_prev_stage_file']
-                ), "Cascade stage 1 predicted result which are used for stage 2 training are missing, please run all_folds_eval.py first."
+                ), "seg from prev stage missing: %s. please run single_fold_eval.py with --predict_next_stage first." % (
+                    self.dataset[k]['seg_from_prev_stage_file'])
 
         print("dataset split over! dataset mode: {}, keys: {}".format(
             self.mode, tr_keys if self.mode == 'train' else val_keys))
