@@ -17,6 +17,7 @@
 # limitations under the License.
 
 import numpy as np
+from functools import partial
 from typing import Tuple, List, Union
 from scipy.ndimage.filters import gaussian_filter
 
@@ -379,7 +380,7 @@ class BasePredictor:
 
         x = paddle.to_tensor(x).astype('float32')
         result = paddle.zeros(
-            [1, self.num_classes] + list(x.shape[2:]), type='float32')
+            [1, self.num_classes] + list(x.shape[2:]), dtype='float32')
 
         if mult is not None:
             mult = paddle.to_tensor(mult).astype('float32')
@@ -627,3 +628,22 @@ class BasePredictor:
         predicted_segmentation = np.vstack(predicted_segmentation)
         softmax_pred = np.vstack(softmax_pred).transpose((1, 0, 2, 3))
         return predicted_segmentation, softmax_pred
+
+
+class DynamicPredictor(BasePredictor):
+    def __init__(self, model):
+        super().__init__()
+        assert hasattr(
+            model, 'net_num_pool_op_kernel_sizes'
+        ), "BasePredictor only used for nnunet predict, but not found net_num_pool_op_kernel_sizes in your model."
+        self.input_shape_must_be_divisible_by = np.prod(
+            model.net_num_pool_op_kernel_sizes, 0, dtype=np.int64)
+        self.threeD = model.threeD
+        self.num_classes = model.num_classes
+        self.inference_apply_nonlin = partial(
+            paddle.nn.functional.softmax, axis=1)
+        self.model = model
+
+    def __call__(self, x):
+        x = self.model(x)[0]
+        return x

@@ -13,7 +13,8 @@
 # limitations under the License.
 
 from .utils import sum_tensor, no_op, pad_nd_image, save_segmentation_nifti_from_softmax, resample_and_save
-from .base_predictor import BasePredictor
+from .base_predictor import BasePredictor, DynamicPredictor
 from .metrics import ConfusionMatrix, ALL_METRICS
 from .evaluator import NiftiEvaluator, aggregate_scores
 from .postprocessing import determine_postprocessing
+from .cascade_utils import predict_next_stage
