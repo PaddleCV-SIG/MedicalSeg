@@ -31,7 +31,7 @@ sys.path.insert(0, parent_path)
 from medicalseg.cvlibs import Config
 from medicalseg.utils import get_sys_env, logger, config_check, utils
 
-from nnunet.utils import BasePredictor, save_segmentation_nifti_from_softmax, aggregate_scores, determine_postprocessing, resample_and_save
+from nnunet.utils import DynamicPredictor, save_segmentation_nifti_from_softmax, aggregate_scores, determine_postprocessing, resample_and_save, predict_next_stage
 
 
 def to_one_hot(seg, all_seg_labels=None):
@@ -140,22 +140,6 @@ def evaluate(model, eval_dataset, args):
                 softmax_pred)
             softmax_pred = os.path.join(validation_raw_folder, fname + ".npy")
 
-        if args.predict_next_stage:
-            data_file = eval_dataset.dataset_val[k]['data_file']
-            data_file_nofolder = data_file.split("/")[-1]
-            output_file = os.path.join(next_stage_output_folder,
-                                       data_file_nofolder.split("/")[-1][:-4] +
-                                       "_segFromPrevStage.npz")
-            target_shape = data.shape[1:]
-            resample_and_save(
-                softmax_pred,
-                target_shape,
-                output_file,
-                force_separate_z,
-                interpolation_order,
-                interpolation_order_z,
-                remove_seg=False)
-
         save_segmentation_nifti_from_softmax(
             softmax_pred,
             os.path.join(validation_raw_folder, fname + '.nii.gz'), properties,
@@ -206,24 +190,16 @@ def evaluate(model, eval_dataset, args):
             if e is not None:
                 raise e
 
-
-class DynamicPredictor(BasePredictor):
-    def __init__(self, model):
-        super().__init__()
-        assert hasattr(
-            model, 'net_num_pool_op_kernel_sizes'
-        ), "BasePredictor only used for nnunet predict, but not found net_num_pool_op_kernel_sizes in your model."
-        self.input_shape_must_be_divisible_by = np.prod(
-            model.net_num_pool_op_kernel_sizes, 0, dtype=np.int64)
-        self.threeD = model.threeD
-        self.num_classes = model.num_classes
-        self.inference_apply_nonlin = partial(
-            paddle.nn.functional.softmax, axis=1)
-        self.model = model
-
-    def __call__(self, x):
-        x = self.model(x)[0]
-        return x
+    if args.predict_next_stage:
+        predict_next_stage(
+            model,
+            plans,
+            eval_dataset,
+            eval_dataset.preprocessed_dir,
+            os.path.join(eval_dataset.preprocessed_dir,
+                         plans['data_identifier'] + "_stage%d" % 1),
+            args.precision == 'fp16',
+            num_threads=4)
 
 
 def parse_args():
