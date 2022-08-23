@@ -56,8 +56,7 @@ class MultiThreadedAugmenter:
         self.wait_time = wait_time
         self._queue = None
         self._processes = None
-
-        self.initialize()
+        self.is_initialized = False
 
     def __iter__(self):
         return self
@@ -66,6 +65,9 @@ class MultiThreadedAugmenter:
         return self.__next__()
 
     def __next__(self):
+        if not self.is_initialized:
+            self.initialize()
+            self.is_initialized = True
         try:
             while self._queue.empty():
                 sleep(self.wait_time)
@@ -85,13 +87,14 @@ class MultiThreadedAugmenter:
             proc.start()
 
     def _finish(self):
-        for proc in self._processes:
-            if proc.is_alive():
-                proc.terminate()
-        self._queue.close()
-        self._queue.join_thread()
-        del self._queue
-        del self._processes
+        if self.is_initialized:
+            for proc in self._processes:
+                if proc.is_alive():
+                    proc.terminate()
+            self._queue.close()
+            self._queue.join_thread()
+            del self._queue
+            del self._processes
 
     def __del__(self):
         self._finish()

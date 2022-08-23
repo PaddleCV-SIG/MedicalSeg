@@ -260,7 +260,6 @@ class MSDDataset(MedicalDataset):
             self.gen = tr_gen
         else:
             self.gen = val_gen
-        _ = self.gen.next()
 
     def setup_DA_params(self):
         self.deep_supervision_scales = [[1, 1, 1]] + list(
