@@ -30,7 +30,7 @@ from typing import List
 from medicalseg.datasets import MedicalDataset
 from medicalseg.cvlibs import manager
 from nnunet.transforms import get_moreDA_augmentation, default_2D_augmentation_params, default_3D_augmentation_params
-from nnunet.transforms import rotate_coords_3d, rotate_coords_2d
+from nnunet.transforms import rotate_coords_3d, rotate_coords_2d, NumpyToTensor
 
 from .dataloader import DataLoader2D, DataLoader3D
 from tools.preprocess_utils import verify_dataset_integrity, convert_to_decathlon, crop, ExperimentPlanner2D_v21, ExperimentPlanner3D_v21, DatasetAnalyzer
@@ -53,6 +53,7 @@ class MSDDataset(MedicalDataset):
                  cascade=False,
                  dataset_root=None,
                  result_dir=None,
+                 use_multi_augmenter=True,
                  transforms=None,
                  num_classes=None,
                  unpack_data=True,
@@ -68,6 +69,7 @@ class MSDDataset(MedicalDataset):
         self.preprocessed_dir = preprocessed_dir
         self.preprocess_and_generate_plans()
         self.cascade = cascade
+        self.use_multi_augmenter = use_multi_augmenter
 
         self.folder_with_segs_from_prev_stage = os.path.join(preprocessed_dir,
                                                              'pred_next_stage')
@@ -89,11 +91,14 @@ class MSDDataset(MedicalDataset):
         self.pin_memory = True
         self.initialize()
 
+        self.convert_to_tensor = NumpyToTensor(['data', 'target'], 'float32')
+
     def __len__(self):
         return self.num_batches_per_epoch
 
     def __getitem__(self, idx):
         data_dict = next(self.gen)
+        data_dict = self.convert_to_tensor(**data_dict)
         return data_dict['data'], data_dict['target']
 
     def preprocess_and_generate_plans(self):
@@ -250,7 +255,7 @@ class MSDDataset(MedicalDataset):
             self.data_aug_params,
             deep_supervision_scales=self.deep_supervision_scales,
             pin_memory=self.pin_memory,
-            use_nondetMultiThreadedAugmenter=False)
+            use_multi_augmenter=self.use_multi_augmenter)
         if self.mode == 'train':
             self.gen = tr_gen
         else:

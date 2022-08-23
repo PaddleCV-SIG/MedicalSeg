@@ -18,6 +18,8 @@
 
 from .default_config import default_2D_augmentation_params, default_3D_augmentation_params
 from .transform import *
+from .single_threaded_augmenter import SingleThreadedAugmenter
+from .multi_threaded_augmenter import MultiThreadedAugmenter
 
 
 def get_moreDA_augmentation(dataloader_train, dataloader_val, patch_size, params=default_3D_augmentation_params,
@@ -25,7 +27,7 @@ def get_moreDA_augmentation(dataloader_train, dataloader_val, patch_size, params
                             seeds_train=None, seeds_val=None, order_seg=1, order_data=3, deep_supervision_scales=None,
                             soft_ds=False,
                             classes=None, pin_memory=True, regions=None,
-                            use_nondetMultiThreadedAugmenter: bool = False):
+                            use_multi_augmenter: bool = False):
     assert params.get('mirror') is None, "old version of params, use new keyword do_mirror"
 
     tr_transforms = []
@@ -129,10 +131,11 @@ def get_moreDA_augmentation(dataloader_train, dataloader_val, patch_size, params
             tr_transforms.append(DownsampleSegForDSTransform2(deep_supervision_scales, 0, input_key='target',
                                                               output_key='target'))
 
-    tr_transforms.append(NumpyToTensor(['data', 'target'], 'float'))
     tr_transforms = Compose(tr_transforms)
-
-    batchgenerator_train = SingleThreadedAugmenter(dataloader_train, tr_transforms)
+    if not use_multi_augmenter:
+        batchgenerator_train = SingleThreadedAugmenter(dataloader_train, tr_transforms)
+    else:
+        batchgenerator_train = SingleThreadedAugmenter(dataloader_train, tr_transforms, params.get('num_threads'), params.get('num_cached_per_thread'))
 
     val_transforms = []
     val_transforms.append(RemoveLabelTransform(-1, 0))
@@ -157,26 +160,11 @@ def get_moreDA_augmentation(dataloader_train, dataloader_val, patch_size, params
             val_transforms.append(DownsampleSegForDSTransform2(deep_supervision_scales, 0, input_key='target',
                                                                output_key='target'))
 
-    val_transforms.append(NumpyToTensor(['data', 'target'], 'float'))
     val_transforms = Compose(val_transforms)
 
-    batchgenerator_val = SingleThreadedAugmenter(dataloader_val, val_transforms)
+    if not use_multi_augmenter:
+        batchgenerator_val = SingleThreadedAugmenter(dataloader_val, val_transforms)
+    else:
+        batchgenerator_val = SingleThreadedAugmenter(dataloader_val, val_transforms, params.get('num_threads') // 2, 1)
+
     return batchgenerator_train, batchgenerator_val
-
-
-class SingleThreadedAugmenter(object):
-    def __init__(self, data_loader, transform):
-        self.data_loader = data_loader
-        self.transform = transform
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        item = next(self.data_loader)
-        if self.transform is not None:
-            item = self.transform(**item)
-        return item
-
-    def next(self):
-        return self.__next__()

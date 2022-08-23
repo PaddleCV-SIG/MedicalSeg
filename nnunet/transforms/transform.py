@@ -561,9 +561,9 @@ class NumpyToTensor(AbstractTransform):
         if self.cast_to is not None:
             if self.cast_to == 'half':
                 tensor = tensor.astype('float16')
-            elif self.cast_to == 'float':
+            elif self.cast_to == 'float32':
                 tensor = tensor.astype('float32')
-            elif self.cast_to == 'long':
+            elif self.cast_to == 'int':
                 tensor = tensor.astype('int64')
             elif self.cast_to == 'bool':
                 tensor = tensor.astype('bool')
