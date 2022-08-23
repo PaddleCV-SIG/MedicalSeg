@@ -135,7 +135,7 @@ def get_moreDA_augmentation(dataloader_train, dataloader_val, patch_size, params
     if not use_multi_augmenter:
         batchgenerator_train = SingleThreadedAugmenter(dataloader_train, tr_transforms)
     else:
-        batchgenerator_train = SingleThreadedAugmenter(dataloader_train, tr_transforms, params.get('num_threads'), params.get('num_cached_per_thread'))
+        batchgenerator_train = MultiThreadedAugmenter(dataloader_train, tr_transforms, params.get('num_threads'), params.get('num_cached_per_thread'))
 
     val_transforms = []
     val_transforms.append(RemoveLabelTransform(-1, 0))
@@ -165,6 +165,6 @@ def get_moreDA_augmentation(dataloader_train, dataloader_val, patch_size, params
     if not use_multi_augmenter:
         batchgenerator_val = SingleThreadedAugmenter(dataloader_val, val_transforms)
     else:
-        batchgenerator_val = SingleThreadedAugmenter(dataloader_val, val_transforms, params.get('num_threads') // 2, 1)
+        batchgenerator_val = MultiThreadedAugmenter(dataloader_val, val_transforms, params.get('num_threads') // 2, 1)
 
     return batchgenerator_train, batchgenerator_val
