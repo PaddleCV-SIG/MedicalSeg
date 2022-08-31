@@ -25,6 +25,8 @@ from .utils import no_op, pad_nd_image
 
 import paddle
 from paddle.amp import auto_cast
+from tools.preprocess_utils import GenericPreprocessor, PreprocessorFor2D
+from nnunet.transforms import default_2D_augmentation_params, default_3D_augmentation_params
 
 
 class BasePredictor:
@@ -647,3 +649,121 @@ class DynamicPredictor(BasePredictor):
     def __call__(self, x):
         x = self.model(x)[0]
         return x
+
+
+class MultiFoldsPredictor(BasePredictor):
+    def __init__(self, model, param_paths):
+        super().__init__()
+        assert hasattr(
+            model, 'net_num_pool_op_kernel_sizes'
+        ), "BasePredictor only used for nnunet predict, but not found net_num_pool_op_kernel_sizes in your model."
+        self.input_shape_must_be_divisible_by = np.prod(
+            model.net_num_pool_op_kernel_sizes, 0, dtype=np.int64)
+        self.threeD = model.threeD
+        self.num_classes = model.num_classes
+        self.inference_apply_nonlin = partial(
+            paddle.nn.functional.softmax, axis=1)
+        self.model = model
+        self.param_list = [paddle.load(param_path) for param_path in param_paths]
+        self.plans = model.plans
+        self.stage = model.stage
+
+        if self.threeD:
+            self.data_aug_params = default_3D_augmentation_params
+        else:
+            self.data_aug_params = default_2D_augmentation_params
+
+        self.intensity_properties = self.plans['dataset_properties']['intensityproperties']
+        self.normalization_schemes = self.plans['normalization_schemes']
+        self.use_mask_for_norm = self.plans['use_mask_for_norm']
+        if self.plans.get('transpose_forward') is None or self.plans.get('transpose_backward') is None:
+            print("WARNING! You seem to have data that was preprocessed with a previous version of nnU-Net. "
+                  "You should rerun preprocessing. We will proceed and assume that both transpose_foward "
+                  "and transpose_backward are [0, 1, 2]. If that is not correct then weird things will happen!")
+            self.plans['transpose_forward'] = [0, 1, 2]
+            self.plans['transpose_backward'] = [0, 1, 2]
+        self.transpose_forward = self.plans['transpose_forward']
+        self.transpose_backward = self.plans['transpose_backward']
+
+    def __call__(self, x):
+        x = self.model(x)[0]
+        return x
+
+    def preprocess_patient(self, input_files):
+        if self.threeD:
+            preprocessor_class = GenericPreprocessor
+        else:
+            preprocessor_class = PreprocessorFor2D
+
+        preprocessor = preprocessor_class(self.normalization_schemes, self.use_mask_for_norm,
+                                          self.transpose_forward, self.intensity_properties)
+        d, s, properties = preprocessor.preprocess_test_case(input_files,
+                                                             self.plans['plans_per_stage'][self.stage][
+                                                                 'current_spacing'])
+        return d, s, properties
+
+    def predict_preprocessed_data_return_seg_and_softmax(self,
+                                                         data: np.ndarray,
+                                                         do_mirroring: bool = True,
+                                                         mirror_axes: Tuple[int] = None,
+                                                         use_sliding_window: bool = True,
+                                                         step_size: float = 0.5,
+                                                         use_gaussian: bool = True,
+                                                         pad_border_mode: str = 'constant',
+                                                         pad_kwargs: dict = None,
+                                                         verbose: bool = True,
+                                                         mixed_precision=True):
+        if pad_border_mode == 'constant' and pad_kwargs is None:
+            pad_kwargs = {'constant_values': 0}
+        if do_mirroring and mirror_axes is None:
+            mirror_axes = self.data_aug_params['mirror_axes']
+        if do_mirroring:
+            assert self.data_aug_params["do_mirror"], "Cannot do mirroring as test time augmentation when training " \
+                                                      "was done without mirroring"
+        self.model.eval()
+        res = self.predict_3D(
+            x=data,
+            do_mirroring=do_mirroring,
+            mirror_axes=mirror_axes,
+            use_sliding_window=use_sliding_window,
+            step_size=step_size,
+            patch_size=self.model.patch_size,
+            regions_class_order=None,
+            use_gaussian=use_gaussian,
+            pad_border_mode=pad_border_mode,
+            pad_kwargs=pad_kwargs,
+            verbose=verbose,
+            mixed_precision=mixed_precision)
+        return res
+
+    def multi_folds_predict_preprocessed_data_return_seg_and_softmax(self,
+                                                         data: np.ndarray,
+                                                         do_mirroring: bool = True,
+                                                         mirror_axes: Tuple[int] = None,
+                                                         use_sliding_window: bool = True,
+                                                         step_size: float = 0.5,
+                                                         use_gaussian: bool = True,
+                                                         pad_border_mode: str = 'constant',
+                                                         pad_kwargs: dict = None,
+                                                         verbose: bool = True,
+                                                         mixed_precision=True):
+        softmax_res = None
+        for params in self.param_list:
+            self.model.set_state_dict(params)
+            x = self.predict_preprocessed_data_return_seg_and_softmax(
+                data=data,
+                do_mirroring=do_mirroring,
+                mirror_axes=mirror_axes,
+                use_sliding_window=use_sliding_window,
+                step_size=step_size,
+                use_gaussian=use_gaussian,
+                pad_border_mode=pad_border_mode,
+                pad_kwargs=pad_kwargs,
+                verbose=verbose,
+                mixed_precision=mixed_precision
+            )[1]
+            if softmax_res is None:
+                softmax_res = x
+            else:
+                softmax_res += x
+        return softmax_res / len(self.param_list)
