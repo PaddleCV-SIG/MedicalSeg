@@ -65,7 +65,7 @@ def save_segmentation_nifti_from_softmax(
         non_postprocessed_fname: str=None,
         force_separate_z: bool=None,
         interpolation_order_z: int=0,
-        verbose: bool=True):
+        verbose: bool=False):
     if verbose:
         print("force_separate_z:", force_separate_z, "interpolation order:",
               order)
