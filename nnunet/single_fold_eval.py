@@ -23,7 +23,6 @@ import paddle
 import numpy as np
 import pickle
 import sys
-from functools import partial
 
 parent_path = os.path.abspath(os.path.join(__file__, *(['..'] * 2)))
 sys.path.insert(0, parent_path)
@@ -103,7 +102,7 @@ def evaluate(model, eval_dataset, args):
         data[-1][data[-1] == -1] = 0
         data = data[:-1]
 
-        if eval_dataset.stage == 1:
+        if eval_dataset.stage == 1 and eval_dataset.cascade:
             seg_pre_path = os.path.join(
                 eval_dataset.folder_with_segs_from_prev_stage,
                 k + "_segFromPrevStage.npz")
