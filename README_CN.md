@@ -13,7 +13,7 @@ MedicalSeg 是一个简单易使用的全流程 3D 医学图像分割工具包�
 **MedicalSeg 目前正在开发中！如果您在使用中发现任何问题，或想分享任何开发建议，请提交 github issue 或扫描以下微信二维码加入我们。**
 
 <p align="center">
-<img src="https://user-images.githubusercontent.com/48433081/162115375-2dba8796-5184-4793-8efa-b142734fe734.png" width="20%" height="20%">
+<img src="https://user-images.githubusercontent.com/48433081/174770518-e6b5319b-336f-45d9-9817-da12b1961fb1.jpg" width="20%" height="20%">
 </p>
 
 ## Contents
